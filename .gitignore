@@ -1,0 +1,73 @@
+# Binaries
+/bin/
+/*.exe
+/*.exe~
+/*.dll
+/*.so
+/*.dylib
+*.test
+
+# Build artifacts
+*.out
+*.log
+*.pid
+
+# Go build cache & test cache
+*.cover
+*.prof
+*.pb.go
+*.gen.go
+
+# Dependency directories
+/vendor/
+/node_modules/
+
+# Local environment & secrets
+.env
+.env.*
+*.local
+config.yaml
+config.yml
+config.json
+secrets.*
+*.key
+*.pem
+*.crt
+*.p12
+
+# Deployment & infra
+/deploy/local/*.db
+/deploy/local/*.sql
+/deploy/local/*.bak
+/deploy/local/*.log
+/deploy/local/data/
+/deploy/local/tmp/
+
+# IDE/editor junk
+.vscode/
+.idea/
+*.swp
+*.swo
+*.DS_Store
+*.iml
+
+# Logs & data dumps
+*.ndjson
+*.jsonl
+*.csv
+*.tsv
+*.sqlite
+*.db
+*.rdb
+*.dump
+
+# Coverage / profiling
+coverage.*
+*.cov
+*.lcov
+*.profraw
+*.profdata
+
+# Misc generated
+/go.sum
+/gen/

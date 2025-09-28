@@ -1,0 +1,43 @@
+{
+    "url" : {
+        "utm": {
+            "medium":"",
+            "campaign":"",
+            "source":"",
+            "term":"",
+            "content":""
+        },
+        "google": {
+            "gclid":"",
+            "campaign_id": ,
+            "ad_group_id": "",
+            "ad_id": "",
+            "keyword_id": ""
+        },
+        "meta": {
+            "fbclid":"",
+            "campaign_id":"",
+            "adset_id":"",
+            "ad_id":""
+        }
+    },
+    "device": {
+        "language": "...from device",
+        "gpu":"",
+        "monitors": 1,
+        "screens": [{
+            "width": 0,
+            "height": 0,
+            "availWidth": 0,
+            "availHeight": 0,
+            "colorDepth": 0,
+            "pixelDepth": 0
+        }]
+    },
+    "route": {
+        "path": "",
+        "fullPath": "",
+        "hash": "",
+        "query": {}
+    }
+}
