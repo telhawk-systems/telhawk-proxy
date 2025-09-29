@@ -25,7 +25,7 @@ It’s designed for **low-latency, high‑throughput** ingestion with backpressu
 
 ### Requirements
 
-* Go **1.22+**
+* Go **1.24+**
 * Docker & Docker Compose (for local Kafka/Postgres)
 
 ### 1) Clone & build
@@ -124,9 +124,9 @@ Returns a 1×1 transparent GIF. Accepts query params (any unknowns go to `props`
 
 ### Health & metrics
 
-* `GET /healthz` → liveness
-* `GET /readyz` → readiness (verifies sink connectivity)
-* `GET /metrics` → Prometheus
+* `GET /healthz` ➡️ liveness
+* `GET /readyz` ➡️ readiness (verifies sink connectivity)
+* `GET /metrics` ➡️ Prometheus
 
 ---
 
@@ -137,7 +137,7 @@ All configuration is via environment variables (12‑factor). Common flags:
 ### General
 
 * `SERVER_ADDR` (default `:19890`)
-* `OUTPUTS` → comma list of enabled sinks: `log`, `kafka`, `postgres`
+* `OUTPUTS` ➡️ comma list of enabled sinks: `log`, `kafka`, `postgres`
 * `BATCH_SIZE` (default `100`), `FLUSH_INTERVAL_MS` (default `250`)
 * `WORKER_CONCURRENCY` (default `4`)
 * `TRUST_PROXY` (default `false`): honor `X-Forwarded-For`

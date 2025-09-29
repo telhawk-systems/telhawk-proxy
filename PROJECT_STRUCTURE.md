@@ -40,61 +40,31 @@ Private packages that make up the core of the tracking pixel.
 
 HTTP server and request handlers.
 
-* `server.go` → starts the HTTP server, routing, lifecycle.
-* `handlers.go` → `/px.gif`, `/collect`, `/healthz`, `/readyz`, `/metrics`.
-* `middleware.go` → request logging, recovery, CORS, DNT enforcement.
+* `server.go` ➡️ starts the HTTP server, routing, lifecycle.
+* `handlers.go` ➡️ `/px.gif`, `/collect`, `/healthz`, `/readyz`, `/metrics`.
+* `middleware.go` ➡️ request logging, recovery, CORS, DNT enforcement.
 
 ### `internal/sink/`
 
 Implements pluggable data sinks.
 
-* `sink.go` → defines the `Sink` interface and sink registry.
-* `logsink.go` → NDJSON log sink.
-* `kafkasink.go` → Kafka producer sink.
-* `pgsink.go` → Postgres JSONB sink.
+* `sink.go` ➡️ defines the `Sink` interface and sink registry.
+* `logsink.go` ➡️ NDJSON log sink.
+* `kafkasink.go` ➡️ Kafka producer sink.
+* `pgsink.go` ➡️ Postgres JSONB sink.
 
 ### `internal/event/`
 
 Event model and enrichment logic.
 
-* `event.go` → event struct, validation, JSON marshalling.
-* `enrich.go` → adds metadata (event_id, IP hash, UA parsing, GeoIP).
+* `event.go` ➡️ event struct, validation, JSON marshalling.
+* `enrich.go` ➡️ adds metadata (event_id, IP, UA parsing, GeoIP).
 
 ---
-
-## `pkg/`
-
-Reusable helpers that could stand alone in other projects.
 
 ### `pkg/config/`
 
-* `config.go` → loads environment variables into a typed config struct.
-
----
-
-## `deploy/`
-
-Deployment manifests, scripts, and infra config.
-
-### `deploy/local/`
-
-* `docker-compose.yml` → local dev environment with Kafka, Postgres, Zookeeper.
-* `init.sql` → initializes Postgres schema (`events_json` table, indexes).
-
-Future expansion:
-
-* `deploy/k8s/` for Helm charts or raw manifests.
-* `deploy/terraform/` for cloud infra provisioning.
-
----
-
-## `test/`
-
-High‑level tests that exercise real sinks & network.
-
-* `integration_test.go` → verifies end‑to‑end ingestion across sinks.
-
-Unit tests for individual packages live next to their Go files.
+* `config.go` ➡️ loads environment variables into a typed config struct.
 
 ---
 
@@ -109,10 +79,10 @@ Unit tests for individual packages live next to their Go files.
 
 ## Summary
 
-* **`cmd/`** → entrypoints
-* **`internal/`** → application logic (HTTP, sinks, events)
-* **`pkg/`** → reusable utilities (config, logging, etc.)
-* **`deploy/`** → infra + manifests
-* **`test/`** → integration/system tests
+* **`cmd/`** ➡️ entrypoints
+* **`internal/`** ➡️ application logic (HTTP, sinks, events)
+* **`pkg/`** ➡️ for reusable utilities (config, logging, etc.)
+* **`deploy/`** ➡️ infra + manifests
+* **`test/`** ➡️ integration/system tests
 
 This structure balances Go’s simplicity with the needs of a production data pipeline.

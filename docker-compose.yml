@@ -1,0 +1,15 @@
+services:
+  gotrack:
+    container_name: gotrack
+    build:
+      context: .         # repo root (relative to this compose file)
+      dockerfile: Dockerfile
+      target: runner
+    image: gotrack:local
+    ports:
+      - "19890:19890"
+    environment:
+      - PORT=19890
+    volumes:
+      - ./out:/out            # bind-mount for your .log/.json output
+    restart: unless-stopped

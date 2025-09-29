@@ -1,8 +1,6 @@
 package event
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"net"
 	"net/http"
 	"net/url"
@@ -41,10 +39,7 @@ func EnrichServerFields(r *http.Request, e *Event, cfg config.Config) {
 	parseUTMAndClickIDsFromRequest(r, e)
 
 	// IP hashing (coarse privacy)
-	ip := clientIPFromRequest(r, cfg.TrustProxy)
-	if cfg.IPHashSecret != "" && ip != "" {
-		e.Server.IPHash = hashIPDaily(ip, cfg.IPHashSecret)
-	}
+	e.Server.IP = clientIPFromRequest(r, cfg.TrustProxy)
 }
 
 // Extract UTM & known click ids directly from the request URL (server-side fallback).
@@ -174,11 +169,4 @@ func clientIPFromRequest(r *http.Request, trustProxy bool) string {
 		return host
 	}
 	return r.RemoteAddr
-}
-
-// Hash(IP + YYYY-MM-DD + secret)
-func hashIPDaily(ip, secret string) string {
-	day := time.Now().UTC().Format("2006-01-02")
-	h := sha256.Sum256([]byte(ip + "|" + day + "|" + secret))
-	return hex.EncodeToString(h[:])
 }

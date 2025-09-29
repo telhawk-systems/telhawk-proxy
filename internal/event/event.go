@@ -143,7 +143,7 @@ type SessionInfo struct {
 // --- Server enrich ---
 
 type ServerMeta struct {
-	IPHash     string            `json:"ip_hash,omitempty"` // hash of client IP (if enabled)
+	IP         string            `json:"ip_hash,omitempty"` // hash of client IP (if enabled)
 	Geo        map[string]string `json:"geo,omitempty"`     // coarse {country,region,city}
 	BotScore   float64           `json:"bot_score,omitempty"`
 	BotReasons []string          `json:"bot_reasons,omitempty"`
