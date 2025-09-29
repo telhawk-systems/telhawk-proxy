@@ -18,7 +18,22 @@ The complete GoTrack stack includes:
 ./deploy/manage.sh logs
 ```
 
-### 2. Test the Setup
+## Testing & Verification
+
+### Built-in Test Mode
+
+GoTrack includes a test mode that automatically generates sample events for testing your sink configurations:
+
+```bash
+# Quick local test (log only)
+./deploy/manage.sh test-local
+
+# Test with full stack (after starting services)
+./deploy/manage.sh up
+./deploy/manage.sh test-mode
+```
+
+### Manual Testing
 
 ```bash
 # Test pixel tracking
@@ -26,10 +41,45 @@ The complete GoTrack stack includes:
 
 # Test JSON API
 ./deploy/manage.sh test-json
-
-# Check PostgreSQL data
-./deploy/manage.sh psql
 ```
+
+### Environment Variable Testing
+
+```bash
+# Test specific sink configurations
+TEST_MODE=true OUTPUTS=log LOG_PATH=./test.ndjson ./gotrack
+TEST_MODE=true OUTPUTS=kafka KAFKA_BROKERS=localhost:9092 ./gotrack
+TEST_MODE=true OUTPUTS=postgres PG_DSN="postgres://..." ./gotrack
+
+# Test multiple sinks
+TEST_MODE=true OUTPUTS=log,kafka,postgres ./gotrack
+```
+
+### Verifying Data Flow
+
+After running test mode, verify data reached each sink:
+
+1. **Log Files**: `cat ./out/events.ndjson | jq .`
+2. **Kafka**: `./deploy/manage.sh kafka-console`
+3. **PostgreSQL**: `./deploy/manage.sh psql` → `SELECT COUNT(*) FROM events_json;`
+
+### Test Event Structure
+
+Test mode generates 5 events with realistic data:
+
+- **Event 1**: Pageview from Google organic search with UTM parameters
+- **Event 2**: Click event from mobile Safari (iPhone)  
+- **Event 3**: Conversion event from Firefox on Linux
+- **Event 4**: Pageview from Facebook social campaign with Meta Ads data
+- **Event 5**: Custom event from Windows desktop
+
+Each event includes:
+- Unique UUID `event_id` for deduplication testing
+- Proper timestamp sequencing (1 second apart)
+- Diverse device/browser combinations
+- UTM and advertising attribution data
+- Session and visitor ID tracking
+- Geo location data (US/CA/San Francisco)
 
 ### 3. Monitor Data Flow
 
@@ -75,6 +125,7 @@ All sinks are enabled by default with production-ready settings:
 |----------|---------|-------------|
 | `OUTPUTS` | `log,kafka,postgres` | Enabled sinks |
 | `SERVER_ADDR` | `:19890` | HTTP server address |
+| `TEST_MODE` | `false` | Generate test events on startup |
 
 ### Kafka Settings
 | Variable | Default | Description |

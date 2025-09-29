@@ -48,6 +48,20 @@ SERVER_ADDR=":19890" \
 ./gotrack
 ```
 
+### Run with test events (for testing sinks)
+
+```bash
+go build -o ./gotrack ./cmd/gotrack
+
+TEST_MODE=true \
+OUTPUTS=log \
+LOG_PATH=./events.ndjson \
+SERVER_ADDR=":19890" \
+./gotrack
+```
+
+This will automatically generate 5 sample events after startup to test your sink configuration.
+
 ---
 
 🗄 Event Model
@@ -116,6 +130,7 @@ All configuration is via environment variables (12‑factor). Common flags:
 * `TRUST_PROXY` (default `false`): honor `X-Forwarded-For`
 * `GEOIP_DB` (optional path): enables coarse geo lookup
 * `DNT_RESPECT` (default `true`): drop or anonymize on `DNT: 1`
+* `TEST_MODE` (default `false`): generate test events on startup for testing sinks
 
 ### NDJSON log sink
 
@@ -186,6 +201,63 @@ ON CONFLICT (event_id) DO NOTHING;
 **Delivery semantics**: at‑least‑once to each enabled sink. Use `event_id` for downstream dedupe.
 
 **Backpressure**: bounded channels; if sinks stall, in‑memory queue slows intake; optional 429 on overflow.
+
+---
+
+## 🧪 Testing & Development
+
+### Test Mode
+
+GoTrack includes a built-in test mode that generates sample events for testing your sink configurations:
+
+```bash
+# Test locally with log sink only
+TEST_MODE=true OUTPUTS=log ./gotrack
+
+# Test all sinks (requires running Kafka/PostgreSQL)
+TEST_MODE=true OUTPUTS=log,kafka,postgres ./gotrack
+
+# Test specific configuration
+TEST_MODE=true \
+OUTPUTS=kafka \
+KAFKA_BROKERS=localhost:9092 \
+KAFKA_TOPIC=test.events \
+./gotrack
+```
+
+**Test Events Generated:**
+- `pageview` with UTM parameters and device info
+- `click` with mobile device simulation  
+- `conversion` event
+- `pageview` with social media attribution (Facebook)
+- `custom_event` with desktop browser info
+
+Each event includes realistic data for:
+- Unique `event_id` (UUID) for idempotency testing
+- Timestamps with proper sequencing
+- Device information (browser, OS, viewport)
+- Session data (visitor_id, session_id)
+- URL/UTM attribution data
+- Geo information
+
+### Management Scripts
+
+Use the included management script for easy testing:
+
+```bash
+# Test locally (log sink only)
+./deploy/manage.sh test-local
+
+# Test with full Docker stack  
+./deploy/manage.sh up
+./deploy/manage.sh test-mode
+
+# Manual HTTP tests
+./deploy/manage.sh test-pixel
+./deploy/manage.sh test-json
+```
+
+> 📖 **Detailed Testing Guide**: See [TESTMODE.md](TESTMODE.md) for comprehensive test mode documentation, event structure details, and verification methods.
 
 ---
 
@@ -260,6 +332,23 @@ services:
 make test   # or: go test ./...
 ```
 
+### Quick Testing
+
+```bash
+# Build and test locally with generated events
+go build -o ./gotrack ./cmd/gotrack
+TEST_MODE=true OUTPUTS=log ./gotrack
+
+# Test with Docker Compose stack
+./deploy/manage.sh up
+./deploy/manage.sh test-mode
+
+# Verify events in each sink
+tail -f out/events.ndjson              # Log files
+./deploy/manage.sh kafka-console       # Kafka messages  
+./deploy/manage.sh psql                # PostgreSQL: SELECT * FROM events_json;
+```
+
 ---
 
 ## Observability
@@ -295,6 +384,8 @@ Tuning knobs: `BATCH_SIZE`, `FLUSH_INTERVAL_MS`, `WORKER_CONCURRENCY`, Kafka com
 * S3/GCS parquet writes via buffered rollups
 * Schema registry for Kafka (Avro/Proto/JSON‑Schema)
 * SQL matviews & example dashboards (Grafana/Metabase)
+* Enhanced test mode with custom event templates
+* Real-time event validation and alerting
 
 ---
 
