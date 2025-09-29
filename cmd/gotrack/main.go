@@ -21,13 +21,50 @@ func main() {
 	// start sinks
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	logSink := sink.NewLogSink()
-	_ = logSink.Start(ctx)
+	
+	var sinks []sink.Sink
+	
+	// Initialize sinks based on configuration
+	for _, output := range cfg.Outputs {
+		switch output {
+		case "log":
+			logSink := sink.NewLogSink()
+			if err := logSink.Start(ctx); err != nil {
+				log.Fatalf("failed to start log sink: %v", err)
+			}
+			sinks = append(sinks, logSink)
+			log.Println("log sink started")
+			
+		case "kafka":
+			kafkaSink := sink.NewKafkaSinkFromEnv()
+			if err := kafkaSink.Start(ctx); err != nil {
+				log.Fatalf("failed to start kafka sink: %v", err)
+			}
+			sinks = append(sinks, kafkaSink)
+			log.Println("kafka sink started")
+			
+		case "postgres":
+			// TODO: implement postgres sink
+			log.Printf("postgres sink not yet implemented, skipping")
+			
+		default:
+			log.Printf("unknown output type: %s, skipping", output)
+		}
+	}
+	
+	if len(sinks) == 0 {
+		log.Fatal("no valid sinks configured")
+	}
 
 	env := httpx.Env{
 		Cfg: cfg,
 		Emit: func(ev event.Event) {
-			_ = logSink.Enqueue(ev)
+			// Send event to all configured sinks
+			for _, s := range sinks {
+				if err := s.Enqueue(ev); err != nil {
+					log.Printf("failed to enqueue event to sink: %v", err)
+				}
+			}
 		},
 	}
 
@@ -47,8 +84,17 @@ func main() {
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	<-stop
 
+	log.Println("shutting down...")
 	shutdownCtx, cancel2 := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel2()
 	_ = srv.Shutdown(shutdownCtx)
-	_ = logSink.Close()
+	
+	// Close all sinks
+	for _, s := range sinks {
+		if err := s.Close(); err != nil {
+			log.Printf("error closing sink: %v", err)
+		}
+	}
+	
+	log.Println("shutdown complete")
 }

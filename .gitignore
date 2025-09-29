@@ -1,4 +1,5 @@
 # Binaries
+gotrack
 /bin/
 /*.exe
 /*.exe~
@@ -69,5 +70,4 @@ coverage.*
 *.profdata
 
 # Misc generated
-/go.sum
 /gen/

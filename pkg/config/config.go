@@ -12,6 +12,7 @@ type Config struct {
 	DNTRespect   bool
 	MaxBodyBytes int64  // bytes for /collect payload
 	IPHashSecret string // daily salt secret seed; if empty, we won’t hash
+	Outputs      []string // enabled sinks: log, kafka, postgres
 }
 
 func getOr(k, def string) string {
@@ -39,6 +40,24 @@ func getInt64(k string, def int64) int64 {
 	return def
 }
 
+func getStringSlice(k, def string) []string {
+	v := os.Getenv(k)
+	if v == "" {
+		v = def
+	}
+	if v == "" {
+		return nil
+	}
+	parts := strings.Split(v, ",")
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if trimmed := strings.TrimSpace(part); trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
+}
+
 func Load() Config {
 	return Config{
 		ServerAddr:   getOr("SERVER_ADDR", ":19890"),
@@ -46,5 +65,6 @@ func Load() Config {
 		DNTRespect:   getBool("DNT_RESPECT", true),
 		MaxBodyBytes: getInt64("MAX_BODY_BYTES", 1<<20), // 1 MiB default
 		IPHashSecret: getOr("IP_HASH_SECRET", ""),       // set to enable hashing
+		Outputs:      getStringSlice("OUTPUTS", "log"),  // default to log only
 	}
 }

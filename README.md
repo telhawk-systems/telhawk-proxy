@@ -1,102 +1,75 @@
-# GoTrack Pixel — streaming tracking pixel with pluggable sinks
+# GoTrack
 
-A production‑minded, privacy‑aware tracking pixel written in Go that ingests pageview/interaction events and fans them out to multiple streaming sinks:
-
-* **NDJSON log** (newline‑delimited JSON, 1 event per line)
-* **Kafka** topic (configurable key/value)
-* **Postgres** JSONB table (batched inserts / COPY)
-
-It’s designed for **low-latency, high‑throughput** ingestion with backpressure, batching, and idempotency to support modern analytics and fraud‑detection pipelines.
+GoTrack is a **high-security tracking pixel and collection service** built in Go.  
+It’s designed for **bot and hacker detection**, fraud monitoring, and operational telemetry — not adtech profiling.  
+The platform is **privacy-aware, compliance-minded**, and ships with a hardened container image.
 
 ---
 
-## Highlights
+## ✨ Features
 
-* ⚡ **Fast path**: zero‑alloc hot loop where practical, pooled buffers, batched flushes
-* 🔌 **Pluggable sinks**: enable any combo of `log`, `kafka`, `postgres`
-* 🔁 **At‑least‑once** delivery with **idempotent event_id** to dedupe downstream
-* 🧪 **Table‑driven tests** + integration tests via Docker Compose
-* 🔒 **Privacy first**: optional IP hashing / GeoIP coarse resolution / DNT respect
-* 📈 **Ops hooks**: `/healthz`, `/readyz`, Prometheus `/metrics`
+- **Security-focused event pipeline**  
+  Collects requests via `/px.gif` (pixel) or `/collect` (JSON API), normalizes into structured events, and routes to pluggable sinks.
+
+- **Pluggable outputs**  
+  - Log sink → NDJSON lines for SIEM/SOC ingestion  
+  - Kafka sink → scalable pipeline integration  
+  - PostgreSQL sink → COPY-based high-throughput ingestion with JSONB schema + GIN indexes
+
+- **Privacy & compliance aware**  
+  - Honors **Do-Not-Track** headers  
+  - Configurable sanitization of query params (`SANITIZE_PARAMS`)  
+  - Explicitly designed to **avoid HIPAA, AML/KYC, FinCEN, GDPR violations**  
+  - Collects identifiers strictly for **security and fraud detection (legitimate interest)**
+
+- **Operational readiness**  
+  - Health checks: `/healthz`, `/readyz`  
+  - Prometheus metrics at `/metrics`  
+  - Bounded queues with backpressure  
+  - At-least-once delivery semantics
+
+- **Production shipping**  
+  - Multi-stage Docker build with Go 1.24+  
+  - Final stage runs as **distroless Debian 12 nonroot**  
+  - Minimal attack surface, non-root runtime
 
 ---
 
-## Quick start
+## 🚀 Quick Start
 
-### Requirements
-
-* Go **1.24+**
-* Docker & Docker Compose (for local Kafka/Postgres)
-
-### 1) Clone & build
+### Run locally (log sink only)
 
 ```bash
-make build   # or: go build -o bin/gotrack ./cmd/gotrack
-```
+go build -o ./gotrack ./cmd/gotrack
 
-### 2) Bring up infra (local)
-
-```bash
-docker compose -f deploy/local/docker-compose.yml up -d
-```
-
-Services:
-
-* **Kafka**: `localhost:9092`
-* **Postgres**: `localhost:5432` (db `analytics`, user `analytics`, pw `analytics`)
-
-### 3) Run the server
-
-```bash
-OUTPUTS=log,kafka,postgres \
-LOG_PATH=./data/events.ndjson \
-KAFKA_BROKERS=localhost:9092 \
-KAFKA_TOPIC=gotrack.events \
-PG_DSN="postgres://analytics:analytics@localhost:5432/analytics?sslmode=disable" \
+OUTPUTS=log \
+LOG_PATH=./events.ndjson \
 SERVER_ADDR=":19890" \
-TRUST_PROXY=true \
-DNT_RESPECT=true \
-./bin/gotrack
-```
-
-### 4) Fire test events
-
-**Pixel GET**
-
-```bash
-curl -I "http://localhost:19890/px.gif?e=pageview&url=https%3A%2F%2Fexample.com%2F&uid=abc123&ref=https%3A%2F%2Fgoogle.com%2F"
-```
-
-**JSON POST**
-
-```bash
-curl -s http://localhost:19890/collect \
-  -H 'content-type: application/json' \
-  -d '{"e":"signup","uid":"abc123","url":"https://example.com/register","props":{"plan":"pro"}}'
+./gotrack
 ```
 
 ---
 
-## Event model
+🗄 Event Model
 
-Each ingested event is normalized to the following JSON structure (keys present when known):
-
+All events are JSON with fixed top-level fields:
 ```json
 {
-  "event_id": "1b2e0f8a-e1e9-4a1e-9f77-6a5c8f99b0df",
-  "ts": "2025-09-28T13:37:42.420Z",
-  "e": "pageview",            // event name / type
-  "uid": "abc123",            // stable user id if provided
-  "sid": "s_...",             // anonymous session id (cookie)
-  "url": "https://example.com/",
-  "ref": "https://google.com/",
-  "ua": "Mozilla/5.0 ...",    // user agent
-  "ip": "203.0.113.42",       // optionally hashed / truncated
-  "utm": {"source":"...","medium":"...","campaign":"..."},
-  "geo": {"country":"US","region":"CA","city":"Los Angeles"}, // coarse
-  "props": {"key":"value"}   // arbitrary custom payload
+  "event_id": "uuid",
+  "timestamp": "2025-09-28T23:59:59Z",
+  "ip": "203.0.113.42",
+  "ua": "Mozilla/5.0 ...",
+  "url": "https://example.com/?e=pageview",
+  "payload": {
+    "e": "pageview"
+  }
 }
 ```
+
+
+* event_id ensures idempotency (downstream dedupe possible).
+* Payload (payload) is JSON-typed for flexible attributes.
+---
 
 ### Idempotency
 
@@ -338,12 +311,11 @@ A: Some will. Host on your own subdomain and avoid obvious paths; provide `/coll
 
 ---
 
-## License
-
-MIT (see `LICENSE`).
-
----
-
 ## Credits
 
-Built with ♥ in Go. Inspired by years of shipping analytics/fraud pipelines in fintech & e‑commerce.
+Built with ❤️ in Go. Inspired by years of shipping analytics/fraud pipelines in fintech & e‑commerce.
+
+# Licensing
+Source code provided for demonstration and educational purposes only.
+
+Not licensed for commercial deployment.
