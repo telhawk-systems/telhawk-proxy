@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GoTrack Pixel Integration Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔒 GoTrack JS ↔ Go Integration Test</h1>
+    
+    <div class="test-section">
+        <h2>Integration Status</h2>
+        <div id="status">⏳ Initializing...</div>
+    </div>
+
+    <div class="test-section">
+        <h2>Environment Data Collected</h2>
+        <pre id="env-data">Loading...</pre>
+    </div>
+
+    <div class="test-section">
+        <h2>Payload Structure</h2>
+        <pre id="payload-data">Loading...</pre>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Actions</h2>
+        <button onclick="testDirectCollect()">🚀 Test /collect Endpoint</button>
+        <button onclick="testPixelFallback()">🖼️ Test /px.gif Fallback</button>
+        <button onclick="checkServerLogs()">📋 Check Server Response</button>
+        <div id="test-results" style="margin-top: 15px;"></div>
+    </div>
+
+    <!-- Load the integration configuration -->
+    <script src="./js-integration-config.js"></script>
+    <script>
+        // Test functions
+        async function testDirectCollect() {
+            document.getElementById('test-results').innerHTML += '<div class="info">Testing /collect endpoint...</div>';
+            
+            const env = window.GoTrack.buildPayload({
+                nav: { ua: navigator.userAgent, lang: navigator.language },
+                screen: { w: window.innerWidth, h: window.innerHeight, dpr: devicePixelRatio },
+                session: { sid: 'test_session_123' }
+            }, [], 0);
+            
+            const success = await window.GoTrack.send(env);
+            const result = success 
+                ? '<div class="success">✅ /collect endpoint working!</div>'
+                : '<div class="error">❌ /collect endpoint failed</div>';
+            document.getElementById('test-results').innerHTML += result;
+        }
+
+        async function testPixelFallback() {
+            document.getElementById('test-results').innerHTML += '<div class="info">Testing pixel fallback...</div>';
+            
+            try {
+                const img = new Image(1, 1);
+                img.onload = () => {
+                    document.getElementById('test-results').innerHTML += '<div class="success">✅ Pixel fallback working!</div>';
+                };
+                img.onerror = () => {
+                    document.getElementById('test-results').innerHTML += '<div class="error">❌ Pixel fallback failed</div>';
+                };
+                img.src = 'http://localhost:19890/px.gif?e=test&url=' + encodeURIComponent(location.href);
+            } catch (error) {
+                document.getElementById('test-results').innerHTML += '<div class="error">❌ Pixel test error: ' + error.message + '</div>';
+            }
+        }
+
+        async function checkServerResponse() {
+            document.getElementById('test-results').innerHTML += '<div class="info">Checking server health...</div>';
+            
+            try {
+                const response = await fetch('http://localhost:19890/healthz');
+                if (response.ok) {
+                    document.getElementById('test-results').innerHTML += '<div class="success">✅ Go server is healthy!</div>';
+                } else {
+                    document.getElementById('test-results').innerHTML += '<div class="error">❌ Server health check failed</div>';
+                }
+            } catch (error) {
+                document.getElementById('test-results').innerHTML += '<div class="error">❌ Cannot reach server: ' + error.message + '</div>';
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            console.log('🔧 Initializing GoTrack integration test...');
+            
+            // Show environment data
+            const env = {
+                userAgent: navigator.userAgent,
+                language: navigator.language,
+                viewport: { w: window.innerWidth, h: window.innerHeight },
+                screen: { w: screen.width, h: screen.height },
+                devicePixelRatio: devicePixelRatio,
+                cookieEnabled: navigator.cookieEnabled,
+                url: location.href,
+                referrer: document.referrer
+            };
+            document.getElementById('env-data').textContent = JSON.stringify(env, null, 2);
+
+            // Show payload structure
+            const payload = window.GoTrack.buildPayload({
+                nav: { ua: navigator.userAgent, lang: navigator.language },
+                screen: { w: window.innerWidth, h: window.innerHeight, dpr: devicePixelRatio },
+                session: { sid: 'demo_session' }
+            }, [{ id: 'demo_detector', score: 0 }], 0);
+            document.getElementById('payload-data').textContent = JSON.stringify(payload, null, 2);
+
+            // Initialize GoTrack
+            document.getElementById('status').innerHTML = '<div class="info">🚀 Initializing GoTrack...</div>';
+            window.GoTrack.init();
+            
+            setTimeout(() => {
+                document.getElementById('status').innerHTML = '<div class="success">✅ GoTrack initialized successfully!</div>';
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

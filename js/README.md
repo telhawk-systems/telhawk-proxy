@@ -3,6 +3,43 @@
 This is the **client-side tracking pixel library** written in TypeScript.  
 It collects environment signals, runs bot-detection heuristics, and sends events to the GoTrack collector (`/px.gif` or `/collect`).
 
+## 🔗 Integration with Go Backend
+
+The JS pixel is configured to work seamlessly with the GoTrack Go server. See the main [INTEGRATION_GUIDE.md](../INTEGRATION_GUIDE.md) for complete setup instructions.
+
+### Quick Setup
+
+```javascript
+// Load the integration config
+<script src="./js-integration-config.js"></script>
+
+// Initialize
+<script>
+  GoTrack.init(); // Uses default localhost:19890
+  
+  // Or with custom endpoint
+  GoTrack.config.endpoint = "https://your-domain.com/collect";
+  GoTrack.init();
+</script>
+```
+
+### Event Format
+
+The pixel now sends events in the Go Event structure:
+
+```json
+{
+  "event_id": "evt_1696035000_abc123",
+  "ts": "2025-09-29T13:40:00.000Z", 
+  "type": "pageview",
+  "device": { "ua": "...", "viewport_w": 1920 },
+  "session": { "session_id": "sess_..." },
+  "server": { "bot_score": 0, "bot_reasons": [] }
+}
+```
+
+## 📂 Project Layout
+
 The structure may look like a lot of files, but each directory has a focused purpose:
 
 ---

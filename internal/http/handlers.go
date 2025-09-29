@@ -3,6 +3,7 @@ package httpx
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	event "revinar.io/go.track/internal/event"
 	cfg "revinar.io/go.track/pkg/config"
@@ -68,7 +69,7 @@ func (e Env) Collect(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	if ct := r.Header.Get("Content-Type"); ct == "" || ct[:16] != "application/json" {
+	if ct := r.Header.Get("Content-Type"); ct != "" && !strings.Contains(ct, "application/json") {
 		http.Error(w, "content-type must be application/json", http.StatusUnsupportedMediaType)
 		return
 	}
