@@ -73,6 +73,8 @@ services:
       - PG_BATCH_SIZE=500
       - PG_FLUSH_MS=500
       - PG_COPY=true
+      # Test mode (uncomment to enable)
+      # - TEST_MODE=true
     volumes:
       - ./out:/out            # bind-mount for your .log/.json output
     restart: unless-stopped

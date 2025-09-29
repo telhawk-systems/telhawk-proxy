@@ -13,6 +13,7 @@ type Config struct {
 	MaxBodyBytes int64  // bytes for /collect payload
 	IPHashSecret string // daily salt secret seed; if empty, we won’t hash
 	Outputs      []string // enabled sinks: log, kafka, postgres
+	TestMode     bool     // if true, generate test events on startup
 }
 
 func getOr(k, def string) string {
@@ -66,5 +67,6 @@ func Load() Config {
 		MaxBodyBytes: getInt64("MAX_BODY_BYTES", 1<<20), // 1 MiB default
 		IPHashSecret: getOr("IP_HASH_SECRET", ""),       // set to enable hashing
 		Outputs:      getStringSlice("OUTPUTS", "log"),  // default to log only
+		TestMode:     getBool("TEST_MODE", false),       // enable test event generation
 	}
 }

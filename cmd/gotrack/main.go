@@ -72,6 +72,15 @@ func main() {
 		},
 	}
 
+	// Run test mode if enabled (generate test events)
+	if cfg.TestMode {
+		go func() {
+			// Wait a moment for sinks to be fully initialized
+			time.Sleep(2 * time.Second)
+			runTestMode(env.Emit)
+		}()
+	}
+
 	srv := &http.Server{
 		Addr:    cfg.ServerAddr,
 		Handler: httpx.NewMux(env),

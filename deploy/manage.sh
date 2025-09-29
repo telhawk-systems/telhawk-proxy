@@ -69,6 +69,25 @@ case "${1:-help}" in
         echo ""
         echo "Check logs with: ./deploy/manage.sh logs"
         ;;
+        
+    test-mode)
+        echo "🧪 Testing with built-in test events..."
+        echo "Starting GoTrack with test mode enabled..."
+        TEST_MODE=true OUTPUTS=log,kafka,postgres \
+        SERVER_ADDR=:19897 \
+        LOG_PATH=./out/test_events.ndjson \
+        KAFKA_BROKERS=kafka:29092 \
+        PG_DSN="postgres://analytics:analytics@postgres:5432/analytics?sslmode=disable" \
+        ./gotrack
+        ;;
+        
+    test-local)
+        echo "🧪 Testing locally (log only) with test events..."
+        TEST_MODE=true OUTPUTS=log \
+        SERVER_ADDR=:19898 \
+        LOG_PATH=./local_test.ndjson \
+        ./gotrack
+        ;;
     
     psql)
         echo "🐘 Connecting to PostgreSQL..."
@@ -114,6 +133,8 @@ case "${1:-help}" in
         echo "  build        - Rebuild GoTrack image"
         echo "  test-pixel   - Test pixel tracking endpoint"
         echo "  test-json    - Test JSON API endpoint"
+        echo "  test-mode    - Test with built-in events (requires stack)"
+        echo "  test-local   - Test locally with built-in events"
         echo "  psql         - Connect to PostgreSQL"
         echo "  kafka-console - Start Kafka console consumer"
         echo "  status       - Show service status"
@@ -122,6 +143,8 @@ case "${1:-help}" in
         echo ""
         echo "Examples:"
         echo "  $0 up && $0 logs"
+        echo "  $0 test-local    # Quick local test"
+        echo "  $0 test-mode     # Test with full stack"
         echo "  $0 test-pixel && $0 psql"
         echo "  $0 kafka-console"
         ;;
