@@ -1,0 +1,2 @@
+export type DetectorResult = { id: string; score: number; details?: Record<string, unknown>; reliable?: boolean };
+export type Detector = { id: string; name?: string; weight?: number; run: () => Promise<DetectorResult> | DetectorResult };

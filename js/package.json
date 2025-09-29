@@ -1,0 +1,36 @@
+{
+  "name": "gotrack-pixel",
+  "version": "0.1.0",
+  "description": "Client-side tracking pixel library for GoTrack (fraud/bot defense)",
+  "author": "Steven Horton",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/pixel.umd.js",
+  "module": "dist/pixel.esm.js",
+  "types": "dist/types/index.d.ts",
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "npm run clean && rollup -c",
+    "dev": "rollup -c -w",
+    "lint": "eslint 'src/**/*.{ts,tsx}'",
+    "test": "jest",
+    "e2e": "playwright test"
+  },
+  "files": [
+    "dist"
+  ],
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-typescript": "^11.1.6",
+    "eslint": "^9.12.0",
+    "jest": "^29.7.0",
+    "playwright": "^1.47.0",
+    "rimraf": "^6.0.1",
+    "rollup": "^4.23.0",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "tslib": "^2.8.1",
+    "typescript": "^5.6.3"
+  }
+}

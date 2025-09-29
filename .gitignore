@@ -71,3 +71,19 @@ coverage.*
 
 # Misc generated
 /gen/
+**/node_modules/*
+
+# node
+node_modules/
+npm-debug.log*
+
+# js related
+yarn-error.log*
+
+# editor
+.DS_Store
+.idea/
+.vscode/
+
+# JS build files
+js/dist/*

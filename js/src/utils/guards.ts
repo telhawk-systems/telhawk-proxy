@@ -1,0 +1,2 @@
+export const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
+export const bytesUnder = (s: string, maxBytes: number) => (new TextEncoder().encode(s).length) <= maxBytes;
