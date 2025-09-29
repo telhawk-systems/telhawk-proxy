@@ -70,10 +70,11 @@ README.md # (this file)
 ## 🧩 Philosophy
 
 - **Small core, pluggable parts.** Each detector is independent and scored. Registry aggregates into `{ score, bucket }`.
-- **Privacy-aware.** Detectors return *booleans/flags*, not raw fingerprints (e.g., `"pluginsLen=0"`, not full plugin names).
+- **Security telemetry.** Collects detailed browser fingerprints, plugin data, and automation signatures for threat analysis.
 - **Transport fallback ladder.** Try `sendBeacon → fetch → img`.
 - **Non-breaking.** Pixel never throws; page should load even if detectors fail.
 - **Explainable.** Payload contains structured detector results so server can apply rules.
+- **Fraud defense.** Comprehensive data collection to identify bots, automation tools, and suspicious behavior.
 
 ---
 
@@ -139,10 +140,10 @@ Example payload sent to `/collect`:
 
 * Lightweight bundling for <script> drop-in (5–8 KB gzipped)
 
-*  Optional “strict privacy” mode (drop IP, obey DNT fully)
 
 * Demo dashboard with real detector scores
 
 ### ⚠️ Note
 This repo is **educational & security-focused**.
-Collected signals are coarse, non-invasive, and only used for **fraud/bot defense**.
+Collected signals are used for **fraud/bot defense** and threat detection.
+DNT/GPC signals are collected for analysis but not honored - this is security tooling, not advertising.
