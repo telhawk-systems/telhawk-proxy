@@ -44,8 +44,12 @@ func main() {
 			log.Println("kafka sink started")
 			
 		case "postgres":
-			// TODO: implement postgres sink
-			log.Printf("postgres sink not yet implemented, skipping")
+			pgSink := sink.NewPGSinkFromEnv()
+			if err := pgSink.Start(ctx); err != nil {
+				log.Fatalf("failed to start postgres sink: %v", err)
+			}
+			sinks = append(sinks, pgSink)
+			log.Println("postgres sink started")
 			
 		default:
 			log.Printf("unknown output type: %s, skipping", output)

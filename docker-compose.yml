@@ -1,4 +1,49 @@
 services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_logs:/var/lib/zookeeper/log
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_DOCKER://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_DOCKER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_DOCKER
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+      KAFKA_LOG_RETENTION_HOURS: 168  # 7 days
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: analytics
+      POSTGRES_USER: analytics
+      POSTGRES_PASSWORD: analytics
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./deploy/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U analytics -d analytics"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   gotrack:
     container_name: gotrack
     build:
@@ -6,10 +51,34 @@ services:
       dockerfile: Dockerfile
       target: runner
     image: gotrack:local
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
     ports:
       - "19890:19890"
     environment:
-      - PORT=19890
+      - SERVER_ADDR=:19890
+      - OUTPUTS=log,kafka,postgres
+      - LOG_PATH=/out/events.ndjson
+      # Kafka configuration
+      - KAFKA_BROKERS=kafka:29092
+      - KAFKA_TOPIC=gotrack.events
+      - KAFKA_ACKS=all
+      - KAFKA_COMPRESSION=snappy
+      # PostgreSQL configuration
+      - PG_DSN=postgres://analytics:analytics@postgres:5432/analytics?sslmode=disable
+      - PG_TABLE=events_json
+      - PG_BATCH_SIZE=500
+      - PG_FLUSH_MS=500
+      - PG_COPY=true
     volumes:
       - ./out:/out            # bind-mount for your .log/.json output
     restart: unless-stopped
+
+volumes:
+  zookeeper_data:
+  zookeeper_logs:
+  kafka_data:
+  postgres_data:
