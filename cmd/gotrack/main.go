@@ -60,8 +60,22 @@ func main() {
 		log.Fatal("no valid sinks configured")
 	}
 
+	// Initialize HMAC authentication if configured
+	var hmacAuth *httpx.HMACAuth
+	if cfg.HMACSecret != "" {
+		hmacAuth = httpx.NewHMACAuth(cfg.HMACSecret, cfg.HMACPublicKey, cfg.RequireHMAC)
+		if cfg.RequireHMAC {
+			log.Printf("HMAC authentication enabled and required for /collect endpoint")
+		} else {
+			log.Printf("HMAC authentication configured but not required")
+		}
+		log.Printf("HMAC client script available at /hmac.js")
+		log.Printf("HMAC public key available at /hmac/public-key")
+	}
+
 	env := httpx.Env{
-		Cfg: cfg,
+		Cfg:      cfg,
+		HMACAuth: hmacAuth,
 		Emit: func(ev event.Event) {
 			// Send event to all configured sinks
 			for _, s := range sinks {

@@ -2,6 +2,7 @@ package httpx
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"strings"
 
@@ -16,8 +17,9 @@ var pixelGIF = []byte{
 }
 
 type Env struct {
-	Cfg  cfg.Config        // <-- use cfg.Config here
-	Emit func(event.Event) // injected sink fan-out
+	Cfg      cfg.Config        // <-- use cfg.Config here
+	Emit     func(event.Event) // injected sink fan-out
+	HMACAuth *HMACAuth         // HMAC authentication handler
 }
 
 func (e Env) Healthz(w http.ResponseWriter, r *http.Request) {
@@ -29,6 +31,56 @@ func (e Env) Readyz(w http.ResponseWriter, r *http.Request) {
 	// TODO: verify sink connectivity (Kafka/PG) before returning 200
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte("ready"))
+}
+
+func (e Env) HMACScript(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	
+	if e.HMACAuth == nil {
+		http.Error(w, "HMAC authentication not configured", http.StatusNotFound)
+		return
+	}
+	
+	script := e.HMACAuth.GenerateClientScript()
+	if script == "" {
+		http.Error(w, "HMAC client script not available", http.StatusNotFound)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/javascript")
+	w.Header().Set("Cache-Control", "public, max-age=3600") // Cache for 1 hour
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(script))
+}
+
+func (e Env) HMACPublicKey(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	
+	if e.HMACAuth == nil {
+		http.Error(w, "HMAC authentication not configured", http.StatusNotFound)
+		return
+	}
+	
+	publicKey := e.HMACAuth.GetPublicKeyBase64()
+	if publicKey == "" {
+		http.Error(w, "HMAC public key not available", http.StatusNotFound)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "public, max-age=3600") // Cache for 1 hour
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"public_key": publicKey,
+		"algorithm":  "HMAC-SHA256",
+		"header":     "X-GoTrack-HMAC",
+	})
 }
 
 func (e Env) Pixel(w http.ResponseWriter, r *http.Request) {
@@ -80,12 +132,23 @@ func (e Env) Collect(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer r.Body.Close()
-	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, e.Cfg.MaxBodyBytes))
-	dec.DisallowUnknownFields()
-
-	// We accept either an object or an array; decode generically first.
+	
+	// Read the body for HMAC verification
+	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, e.Cfg.MaxBodyBytes))
+	if err != nil {
+		http.Error(w, "request body too large", http.StatusRequestEntityTooLarge)
+		return
+	}
+	
+	// Verify HMAC if authentication is enabled
+	if e.HMACAuth != nil && !e.HMACAuth.VerifyHMAC(r, body) {
+		http.Error(w, "invalid or missing HMAC signature", http.StatusUnauthorized)
+		return
+	}
+	
+	// Parse the JSON
 	var raw json.RawMessage
-	if err := dec.Decode(&raw); err != nil {
+	if err := json.Unmarshal(body, &raw); err != nil {
 		http.Error(w, "invalid json", http.StatusBadRequest)
 		return
 	}

@@ -3,6 +3,7 @@ package httpx
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -18,13 +19,15 @@ type ProxyHandler struct {
 	destination     string
 	client          *http.Client
 	autoInjectPixel bool
+	hmacAuth        *HMACAuth
 }
 
 // NewProxyHandler creates a new proxy handler for the given destination
-func NewProxyHandler(destination string, autoInjectPixel bool) *ProxyHandler {
+func NewProxyHandler(destination string, autoInjectPixel bool, hmacAuth *HMACAuth) *ProxyHandler {
 	return &ProxyHandler{
 		destination:     destination,
 		autoInjectPixel: autoInjectPixel,
+		hmacAuth:        hmacAuth,
 		client: &http.Client{
 			Timeout: 30 * time.Second, // 30 second timeout for proxied requests
 		},
@@ -94,7 +97,7 @@ func (p *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		
 		// Inject pixel and write modified response
-		modifiedBody := injectPixel(body, r)
+		modifiedBody := injectPixel(body, r, p.hmacAuth)
 		
 		// Update Content-Length header if it was set
 		if resp.Header.Get("Content-Length") != "" {
@@ -138,18 +141,29 @@ func isHTMLContent(contentType string) bool {
 }
 
 // injectPixel adds a tracking pixel to HTML content before the closing </body> tag
-func injectPixel(body []byte, r *http.Request) []byte {
+func injectPixel(body []byte, r *http.Request, hmacAuth *HMACAuth) []byte {
 	// Convert to string for easier manipulation
 	html := string(body)
 	
 	// Create the pixel tracking image tag
-	pixelTag := `<img src="/px.gif?e=pageview&auto=1&url=` + url.QueryEscape(r.URL.Path) + `" width="1" height="1" style="display:none" alt="">`
+	pixelURL := "/px.gif?e=pageview&auto=1&url=" + url.QueryEscape(r.URL.Path)
+	
+	// Add HMAC script if authentication is configured
+	var injectedContent string
+	if hmacAuth != nil {
+		// Include HMAC script for automatic authentication
+		injectedContent = fmt.Sprintf(`<script src="/hmac.js"></script>
+<img src="%s" width="1" height="1" style="display:none" alt="">`, pixelURL)
+	} else {
+		// Just the pixel without HMAC
+		injectedContent = fmt.Sprintf(`<img src="%s" width="1" height="1" style="display:none" alt="">`, pixelURL)
+	}
 	
 	// Try to inject before </body> tag (case-insensitive)
 	bodyCloseRegex := regexp.MustCompile(`(?i)</body>`)
 	if bodyCloseRegex.MatchString(html) {
 		// Inject before </body>
-		modified := bodyCloseRegex.ReplaceAllString(html, pixelTag+"\n</body>")
+		modified := bodyCloseRegex.ReplaceAllString(html, injectedContent+"\n</body>")
 		return []byte(modified)
 	}
 	
@@ -157,20 +171,20 @@ func injectPixel(body []byte, r *http.Request) []byte {
 	htmlCloseRegex := regexp.MustCompile(`(?i)</html>`)
 	if htmlCloseRegex.MatchString(html) {
 		// Inject before </html>
-		modified := htmlCloseRegex.ReplaceAllString(html, pixelTag+"\n</html>")
+		modified := htmlCloseRegex.ReplaceAllString(html, injectedContent+"\n</html>")
 		return []byte(modified)
 	}
 	
 	// If neither tag found, append to the end
-	return bytes.Join([][]byte{body, []byte(pixelTag)}, []byte("\n"))
+	return bytes.Join([][]byte{body, []byte(injectedContent)}, []byte("\n"))
 }
 
 // NewMiddlewareRouter creates a new middleware router that handles tracking routes
 // and forwards everything else to the destination
-func NewMiddlewareRouter(trackingMux *http.ServeMux, destination string, autoInjectPixel bool) *MiddlewareRouter {
+func NewMiddlewareRouter(trackingMux *http.ServeMux, destination string, autoInjectPixel bool, hmacAuth *HMACAuth) *MiddlewareRouter {
 	return &MiddlewareRouter{
 		trackingMux: trackingMux,
-		proxy:       NewProxyHandler(destination, autoInjectPixel),
+		proxy:       NewProxyHandler(destination, autoInjectPixel, hmacAuth),
 	}
 }
 
@@ -188,7 +202,7 @@ func (m *MiddlewareRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // isTrackingPath determines if a path should be handled by the tracking server
 func isTrackingPath(path string) bool {
-	trackingPaths := []string{"/px.gif", "/collect", "/healthz", "/readyz", "/metrics"}
+	trackingPaths := []string{"/px.gif", "/collect", "/healthz", "/readyz", "/metrics", "/hmac.js", "/hmac/public-key"}
 	for _, trackingPath := range trackingPaths {
 		if path == trackingPath {
 			return true
@@ -204,6 +218,10 @@ func NewMux(e Env) http.Handler {
 	mux.HandleFunc("/px.gif", e.Pixel)
 	mux.HandleFunc("/collect", e.Collect)
 	
+	// HMAC authentication endpoints
+	mux.HandleFunc("/hmac.js", e.HMACScript)
+	mux.HandleFunc("/hmac/public-key", e.HMACPublicKey)
+	
 	// If middleware mode is enabled and we have a destination, wrap with proxy
 	if e.Cfg.MiddlewareMode && e.Cfg.ForwardDestination != "" {
 		// Validate the destination URL
@@ -216,7 +234,7 @@ func NewMux(e Env) http.Handler {
 		if e.Cfg.AutoInjectPixel {
 			log.Printf("Auto pixel injection enabled for HTML content")
 		}
-		router := NewMiddlewareRouter(mux, e.Cfg.ForwardDestination, e.Cfg.AutoInjectPixel)
+		router := NewMiddlewareRouter(mux, e.Cfg.ForwardDestination, e.Cfg.AutoInjectPixel, e.HMACAuth)
 		return RequestLogger(cors(router))
 	}
 	

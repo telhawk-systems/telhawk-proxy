@@ -238,6 +238,60 @@ FORWARD_DESTINATION=http://localhost:3000 \
 ./gotrack
 ```
 
+### HMAC Authentication
+
+GoTrack supports HMAC-SHA256 authentication for the `/collect` endpoint to prevent forged tracking data and ensure data integrity:
+
+* `HMAC_SECRET` (required for HMAC): Master secret key for HMAC generation/verification
+* `REQUIRE_HMAC` (default `false`): Require HMAC verification for all `/collect` requests
+* `HMAC_PUBLIC_KEY` (optional): Override the derived public key with a custom base64-encoded key
+
+**HMAC Security Model:**
+- Uses **IP-derived keys**: Each client IP gets a unique HMAC key derived from `HMAC_SECRET + IP`
+- **SHA-256 based**: Uses HMAC-SHA256 for cryptographic integrity
+- **Header-based**: HMAC signature sent via `X-GoTrack-HMAC` header
+- **Replay protection**: Different IPs cannot reuse each other's signatures
+
+**Setup HMAC Authentication:**
+
+```bash
+# Generate a strong secret key
+HMAC_SECRET="$(openssl rand -base64 32)"
+
+# Enable HMAC authentication
+HMAC_SECRET="$HMAC_SECRET" \
+REQUIRE_HMAC=true \
+OUTPUTS=log \
+./gotrack
+```
+
+**Client Integration:**
+
+```javascript
+// Automatic integration - include the HMAC script
+<script src="/hmac.js"></script>
+
+// Manual integration - get public key and generate HMAC
+fetch('/hmac/public-key')
+  .then(r => r.json())
+  .then(data => {
+    // Use data.public_key for HMAC generation
+    // Send HMAC in X-GoTrack-HMAC header
+  });
+```
+
+**HMAC + Auto-Injection:**
+When middleware mode is enabled with HMAC authentication, auto-injected HTML includes both the tracking pixel AND the HMAC script:
+
+```html
+<script src="/hmac.js"></script>
+<img src="/px.gif?e=pageview&auto=1&url=%2Fpage.html" width="1" height="1" style="display:none" alt="">
+```
+
+**Endpoints:**
+- `GET /hmac.js` - JavaScript client for automatic HMAC generation
+- `GET /hmac/public-key` - Public key and configuration for manual integration
+
 ### NDJSON log sink
 
 * `LOG_PATH` (default `./events.ndjson`)

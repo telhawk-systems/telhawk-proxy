@@ -83,6 +83,9 @@ services:
       # - MIDDLEWARE_MODE=true
       # - FORWARD_DESTINATION=http://your-backend-server:3000
       # - AUTO_INJECT_PIXEL=true  # automatically inject tracking pixels into HTML
+      # HMAC Authentication (uncomment to enable secure collection endpoint)
+      # - HMAC_SECRET=your-secret-key-here  # generate with: openssl rand -base64 32
+      # - REQUIRE_HMAC=true  # require HMAC signatures for /collect endpoint
     volumes:
       - ./out:/out            # bind-mount for your .log/.json output
       # Uncomment the line below to mount SSL certificates for HTTPS
