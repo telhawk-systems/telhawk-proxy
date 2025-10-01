@@ -87,9 +87,16 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("gotrack listening on %s", cfg.ServerAddr)
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("server error: %v", err)
+		if cfg.EnableHTTPS {
+			log.Printf("gotrack listening on %s (HTTPS)", cfg.ServerAddr)
+			if err := srv.ListenAndServeTLS(cfg.CertFile, cfg.KeyFile); err != nil && err != http.ErrServerClosed {
+				log.Fatalf("HTTPS server error: %v", err)
+			}
+		} else {
+			log.Printf("gotrack listening on %s (HTTP)", cfg.ServerAddr)
+			if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				log.Fatalf("HTTP server error: %v", err)
+			}
 		}
 	}()
 

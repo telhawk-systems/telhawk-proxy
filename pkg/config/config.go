@@ -14,6 +14,11 @@ type Config struct {
 	IPHashSecret string // daily salt secret seed; if empty, we won’t hash
 	Outputs      []string // enabled sinks: log, kafka, postgres
 	TestMode     bool     // if true, generate test events on startup
+	
+	// HTTPS Configuration
+	EnableHTTPS bool   // enable HTTPS server
+	CertFile    string // path to SSL certificate file (server.crt)
+	KeyFile     string // path to SSL private key file (server.key)
 }
 
 func getOr(k, def string) string {
@@ -68,5 +73,10 @@ func Load() Config {
 		IPHashSecret: getOr("IP_HASH_SECRET", ""),       // set to enable hashing
 		Outputs:      getStringSlice("OUTPUTS", "log"),  // default to log only
 		TestMode:     getBool("TEST_MODE", false),       // enable test event generation
+		
+		// HTTPS Configuration
+		EnableHTTPS: getBool("ENABLE_HTTPS", false),     // disabled by default
+		CertFile:    getOr("SSL_CERT_FILE", "server.crt"), // default cert file path
+		KeyFile:     getOr("SSL_KEY_FILE", "server.key"),   // default key file path
 	}
 }

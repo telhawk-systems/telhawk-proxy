@@ -18,5 +18,10 @@ FROM gcr.io/distroless/base-debian12:nonroot AS runner
 WORKDIR /app
 USER nonroot:nonroot
 COPY --from=builder /bin/gotrack /app/gotrack
+
+# Create directory for SSL certificates (if needed)
+# Note: SSL certificates should be mounted as volumes in production
+# Example: docker run -v /path/to/certs:/app/certs gotrack
+
 EXPOSE 19890
 ENTRYPOINT ["/app/gotrack"]

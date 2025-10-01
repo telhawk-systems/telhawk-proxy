@@ -75,8 +75,14 @@ services:
       - PG_COPY=true
       # Test mode (uncomment to enable)
       # - TEST_MODE=true
+      # HTTPS configuration (uncomment and mount certificates to enable)
+      # - ENABLE_HTTPS=true
+      # - SSL_CERT_FILE=/app/certs/server.crt
+      # - SSL_KEY_FILE=/app/certs/server.key
     volumes:
       - ./out:/out            # bind-mount for your .log/.json output
+      # Uncomment the line below to mount SSL certificates for HTTPS
+      # - ./certs:/app/certs:ro
     restart: unless-stopped
 
 volumes:

@@ -132,6 +132,47 @@ All configuration is via environment variables (12‑factor). Common flags:
 * `DNT_RESPECT` (default `true`): drop or anonymize on `DNT: 1`
 * `TEST_MODE` (default `false`): generate test events on startup for testing sinks
 
+### HTTPS/TLS Configuration
+
+* `ENABLE_HTTPS` (default `false`): enable HTTPS server instead of HTTP
+* `SSL_CERT_FILE` (default `server.crt`): path to SSL certificate file
+* `SSL_KEY_FILE` (default `server.key`): path to SSL private key file
+
+**HTTPS Setup Example:**
+
+```bash
+# Generate self-signed certificates for testing (run once)
+./generate-certs.sh
+
+# Run with HTTPS enabled
+ENABLE_HTTPS=true \
+SSL_CERT_FILE=./server.crt \
+SSL_KEY_FILE=./server.key \
+OUTPUTS=log \
+./gotrack
+```
+
+**Docker HTTPS Setup:**
+
+```bash
+# Create certificate directory
+mkdir -p ./certs
+
+# Copy your certificates to the certs directory
+cp server.crt server.key ./certs/
+
+# Update docker-compose.yml to enable HTTPS:
+# Uncomment the HTTPS environment variables and volume mount
+# Then run:
+docker-compose up
+```
+
+**Production Notes:**
+- Use certificates from a trusted Certificate Authority in production
+- The included `generate-certs.sh` script creates self-signed certificates for testing only
+- Mount certificates as read-only volumes in Docker containers
+- Consider using Let's Encrypt or your organization's PKI for production certificates
+
 ### NDJSON log sink
 
 * `LOG_PATH` (default `./events.ndjson`)
