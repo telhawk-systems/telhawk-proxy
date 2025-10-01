@@ -82,6 +82,7 @@ services:
       # Middleware/Proxy mode (uncomment to enable reverse proxy functionality)  
       # - MIDDLEWARE_MODE=true
       # - FORWARD_DESTINATION=http://your-backend-server:3000
+      # - AUTO_INJECT_PIXEL=true  # automatically inject tracking pixels into HTML
     volumes:
       - ./out:/out            # bind-mount for your .log/.json output
       # Uncomment the line below to mount SSL certificates for HTTPS

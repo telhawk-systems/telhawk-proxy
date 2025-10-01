@@ -211,6 +211,33 @@ SERVER_ADDR=:8080 \
          [Analytics Pipeline]
 ```
 
+**Automatic Pixel Injection:**
+
+When middleware mode is enabled, GoTrack can automatically inject tracking pixels into HTML responses:
+
+* `AUTO_INJECT_PIXEL` (default `true` when middleware mode enabled): automatically inject tracking pixels into HTML responses
+
+The pixel injection:
+- ✅ **Only applies to HTML content** (Content-Type: text/html, application/xhtml+xml)
+- ✅ **Case-insensitive** content-type detection (`TEXT/HTML`, `text/html`, etc.)
+- ✅ **Never modifies** JSON, CSS, JS, images, or other non-HTML content
+- ✅ **Injects before `</body>`** tag when present, or before `</html>` as fallback
+- ✅ **Preserves all original content** and just adds a 1x1 transparent tracking pixel
+- ✅ **Updates Content-Length** header automatically
+
+**Injected Pixel Example:**
+```html
+<img src="/px.gif?e=pageview&auto=1&url=%2Fpage.html" width="1" height="1" style="display:none" alt="">
+```
+
+**Disable Auto-Injection:**
+```bash
+MIDDLEWARE_MODE=true \
+AUTO_INJECT_PIXEL=false \
+FORWARD_DESTINATION=http://localhost:3000 \
+./gotrack
+```
+
 ### NDJSON log sink
 
 * `LOG_PATH` (default `./events.ndjson`)

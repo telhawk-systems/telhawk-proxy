@@ -23,6 +23,7 @@ type Config struct {
 	// Middleware/Proxy Configuration
 	MiddlewareMode     bool   // enable middleware mode - forward 404s to destination
 	ForwardDestination string // destination hostname to forward non-tracking requests to
+	AutoInjectPixel    bool   // automatically inject tracking pixel into HTML responses
 }
 
 func getOr(k, def string) string {
@@ -86,5 +87,6 @@ func Load() Config {
 		// Middleware/Proxy Configuration
 		MiddlewareMode:     getBool("MIDDLEWARE_MODE", false), // disabled by default
 		ForwardDestination: getOr("FORWARD_DESTINATION", ""),  // no default destination
+		AutoInjectPixel:    getBool("AUTO_INJECT_PIXEL", true), // enabled by default for HTML
 	}
 }
