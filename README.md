@@ -173,6 +173,44 @@ docker-compose up
 - Mount certificates as read-only volumes in Docker containers
 - Consider using Let's Encrypt or your organization's PKI for production certificates
 
+### Middleware/Proxy Mode
+
+GoTrack can operate as a reverse proxy, forwarding non-tracking requests to a destination server while handling tracking endpoints locally. This allows you to embed tracking functionality into existing web applications seamlessly.
+
+* `MIDDLEWARE_MODE` (default `false`): enable middleware/proxy mode
+* `FORWARD_DESTINATION` (required when middleware mode is enabled): destination URL to forward non-tracking requests to
+
+**Middleware Mode Setup Example:**
+
+```bash
+# Run GoTrack as a middleware proxy
+MIDDLEWARE_MODE=true \
+FORWARD_DESTINATION=http://localhost:3000 \
+OUTPUTS=log \
+SERVER_ADDR=:8080 \
+./gotrack
+```
+
+**How Middleware Mode Works:**
+
+- **Tracking endpoints** (`/px.gif`, `/collect`, `/healthz`, `/readyz`, `/metrics`) are handled by GoTrack
+- **All other requests** are proxied to the `FORWARD_DESTINATION` server
+- Headers, query parameters, and request bodies are preserved during proxy
+- Response headers and status codes from the destination are passed through
+
+**Use Cases:**
+- Add tracking to existing web applications without code changes
+- Insert tracking middleware in front of static file servers
+- Create a unified endpoint for both content delivery and analytics
+- Load balancer with embedded tracking capabilities
+
+**Example Architecture:**
+```
+[Client] → [GoTrack :8080] → [Your App :3000]
+           ↓ (tracking only)
+         [Analytics Pipeline]
+```
+
 ### NDJSON log sink
 
 * `LOG_PATH` (default `./events.ndjson`)

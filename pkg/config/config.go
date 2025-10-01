@@ -19,6 +19,10 @@ type Config struct {
 	EnableHTTPS bool   // enable HTTPS server
 	CertFile    string // path to SSL certificate file (server.crt)
 	KeyFile     string // path to SSL private key file (server.key)
+	
+	// Middleware/Proxy Configuration
+	MiddlewareMode     bool   // enable middleware mode - forward 404s to destination
+	ForwardDestination string // destination hostname to forward non-tracking requests to
 }
 
 func getOr(k, def string) string {
@@ -78,5 +82,9 @@ func Load() Config {
 		EnableHTTPS: getBool("ENABLE_HTTPS", false),     // disabled by default
 		CertFile:    getOr("SSL_CERT_FILE", "server.crt"), // default cert file path
 		KeyFile:     getOr("SSL_KEY_FILE", "server.key"),   // default key file path
+		
+		// Middleware/Proxy Configuration
+		MiddlewareMode:     getBool("MIDDLEWARE_MODE", false), // disabled by default
+		ForwardDestination: getOr("FORWARD_DESTINATION", ""),  // no default destination
 	}
 }
