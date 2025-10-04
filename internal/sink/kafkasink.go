@@ -173,6 +173,10 @@ func (s *KafkaSink) Close() error {
 	return nil
 }
 
+func (s *KafkaSink) Name() string {
+	return "kafka"
+}
+
 // handleDeliveryReports processes delivery reports in background
 func (s *KafkaSink) handleDeliveryReports(ctx context.Context) {
 	for {

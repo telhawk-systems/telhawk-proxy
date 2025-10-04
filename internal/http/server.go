@@ -145,8 +145,12 @@ func injectPixel(body []byte, r *http.Request, hmacAuth *HMACAuth) []byte {
 	// Convert to string for easier manipulation
 	html := string(body)
 	
-	// Create the pixel tracking image tag
-	pixelURL := "/px.gif?e=pageview&auto=1&url=" + url.QueryEscape(r.URL.Path)
+	// Create the pixel tracking image tag with full URL including query parameters
+	fullURL := r.URL.Path
+	if r.URL.RawQuery != "" {
+		fullURL = r.URL.Path + "?" + r.URL.RawQuery
+	}
+	pixelURL := "/px.gif?e=pageview&auto=1&url=" + url.QueryEscape(fullURL)
 	
 	// Add HMAC script if authentication is configured
 	var injectedContent string
@@ -235,13 +239,13 @@ func NewMux(e Env) http.Handler {
 			log.Printf("Auto pixel injection enabled for HTML content")
 		}
 		router := NewMiddlewareRouter(mux, e.Cfg.ForwardDestination, e.Cfg.AutoInjectPixel, e.HMACAuth)
-		return RequestLogger(cors(router))
+		return RequestLogger(MetricsMiddleware(e.Metrics)(cors(router)))
 	}
 	
 	if e.Cfg.MiddlewareMode && e.Cfg.ForwardDestination == "" {
 		log.Printf("WARNING: MIDDLEWARE_MODE=true but FORWARD_DESTINATION is empty. Middleware mode disabled.")
 	}
 	
-	// Apply CORS and request logging middleware
-	return RequestLogger(cors(mux))
+	// Apply CORS, metrics, and request logging middleware
+	return RequestLogger(MetricsMiddleware(e.Metrics)(cors(mux)))
 }

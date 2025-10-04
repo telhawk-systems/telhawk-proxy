@@ -141,6 +141,10 @@ func (s *PGSink) Close() error {
 	return nil
 }
 
+func (s *PGSink) Name() string {
+	return "postgres"
+}
+
 // ensureSchema creates the table and indexes if they don't exist
 func (s *PGSink) ensureSchema() error {
 	// Create table

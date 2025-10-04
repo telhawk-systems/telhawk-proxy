@@ -11,12 +11,26 @@ import (
 
 	"revinar.io/go.track/internal/event"
 	httpx "revinar.io/go.track/internal/http"
+	"revinar.io/go.track/internal/metrics"
 	"revinar.io/go.track/internal/sink"
 	"revinar.io/go.track/pkg/config"
 )
 
 func main() {
 	cfg := config.Load()
+
+	// Initialize metrics
+	appMetrics := metrics.InitMetrics()
+	metricsConfig := metrics.Config{
+		Enabled:     cfg.MetricsEnabled,
+		Addr:        cfg.MetricsAddr,
+		TLSCert:     cfg.MetricsTLSCert,
+		TLSKey:      cfg.MetricsTLSKey,
+		ClientCA:    cfg.MetricsClientCA,
+		RequireTLS:  cfg.MetricsRequireTLS,
+		RequireAuth: false, // Not implemented yet
+	}
+	metricsServer := metrics.NewServer(metricsConfig)
 
 	// start sinks
 	ctx, cancel := context.WithCancel(context.Background())
@@ -76,14 +90,25 @@ func main() {
 	env := httpx.Env{
 		Cfg:      cfg,
 		HMACAuth: hmacAuth,
+		Metrics:  appMetrics,
 		Emit: func(ev event.Event) {
 			// Send event to all configured sinks
 			for _, s := range sinks {
 				if err := s.Enqueue(ev); err != nil {
 					log.Printf("failed to enqueue event to sink: %v", err)
+					// Track sink errors in metrics
+					appMetrics.IncrementSinkErrors(s.Name(), "enqueue_error")
+				} else {
+					// Track successful ingestion
+					appMetrics.IncrementEventsIngested(s.Name())
 				}
 			}
 		},
+	}
+
+	// Start metrics server
+	if err := metricsServer.Start(ctx); err != nil {
+		log.Printf("failed to start metrics server: %v", err)
 	}
 
 	// Run test mode if enabled (generate test events)
@@ -122,6 +147,11 @@ func main() {
 	shutdownCtx, cancel2 := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel2()
 	_ = srv.Shutdown(shutdownCtx)
+	
+	// Shutdown metrics server
+	if err := metricsServer.Shutdown(shutdownCtx); err != nil {
+		log.Printf("error shutting down metrics server: %v", err)
+	}
 	
 	// Close all sinks
 	for _, s := range sinks {

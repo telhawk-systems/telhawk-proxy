@@ -56,3 +56,7 @@ func (s *LogSink) Close() error {
 	}
 	return nil
 }
+
+func (s *LogSink) Name() string {
+	return "log"
+}

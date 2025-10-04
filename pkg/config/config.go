@@ -29,6 +29,14 @@ type Config struct {
 	HMACSecret    string // secret key for HMAC generation/verification
 	RequireHMAC   bool   // require HMAC verification for /collect endpoint
 	HMACPublicKey string // public key for client-side HMAC generation (base64 encoded)
+	
+	// Metrics Configuration
+	MetricsEnabled    bool   // enable Prometheus metrics server
+	MetricsAddr       string // metrics server bind address
+	MetricsTLSCert    string // TLS certificate for metrics server
+	MetricsTLSKey     string // TLS private key for metrics server
+	MetricsClientCA   string // client CA for mTLS authentication
+	MetricsRequireTLS bool   // require TLS for metrics server
 }
 
 func getOr(k, def string) string {
@@ -98,5 +106,13 @@ func Load() Config {
 		HMACSecret:    getOr("HMAC_SECRET", ""),           // no default - must be set explicitly
 		RequireHMAC:   getBool("REQUIRE_HMAC", false),     // disabled by default
 		HMACPublicKey: getOr("HMAC_PUBLIC_KEY", ""),       // derived from secret if not set
+		
+		// Metrics Configuration
+		MetricsEnabled:    getBool("METRICS_ENABLED", false),       // disabled by default
+		MetricsAddr:       getOr("METRICS_ADDR", "127.0.0.1:9090"), // bind to localhost by default
+		MetricsTLSCert:    getOr("METRICS_TLS_CERT", ""),           // no default TLS cert
+		MetricsTLSKey:     getOr("METRICS_TLS_KEY", ""),            // no default TLS key
+		MetricsClientCA:   getOr("METRICS_CLIENT_CA", ""),          // no default client CA
+		MetricsRequireTLS: getBool("METRICS_REQUIRE_TLS", false),   // TLS disabled by default
 	}
 }

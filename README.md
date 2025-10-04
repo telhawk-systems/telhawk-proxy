@@ -24,7 +24,7 @@ The platform is **privacy-aware, compliance-minded**, and ships with a hardened 
 
 - **Operational readiness**  
   - Health checks: `/healthz`, `/readyz`  
-  - Prometheus metrics at `/metrics`  
+  - **Prometheus metrics server** on separate port with 20+ metrics  
   - Bounded queues with backpressure  
   - At-least-once delivery semantics
 
@@ -61,6 +61,21 @@ SERVER_ADDR=":19890" \
 ```
 
 This will automatically generate 5 sample events after startup to test your sink configuration.
+
+### Run with metrics enabled
+
+```bash
+# Enable Prometheus metrics on separate port (secure localhost binding)
+METRICS_ENABLED=true \
+METRICS_ADDR=127.0.0.1:9090 \
+OUTPUTS=log \
+./gotrack
+
+# Check metrics
+curl http://127.0.0.1:9090/metrics | grep gotrack
+```
+
+See [METRICS.md](METRICS.md) for full monitoring and alerting documentation.
 
 ---
 
@@ -227,7 +242,7 @@ The pixel injection:
 
 **Injected Pixel Example:**
 ```html
-<img src="/px.gif?e=pageview&auto=1&url=%2Fpage.html" width="1" height="1" style="display:none" alt="">
+<img src="/px.gif?e=pageview&auto=1&url=http%3A%2F%2Fwww.example.com%2Flander" width="1" height="1" style="display:none" alt="">
 ```
 
 **Disable Auto-Injection:**
@@ -285,7 +300,7 @@ When middleware mode is enabled with HMAC authentication, auto-injected HTML inc
 
 ```html
 <script src="/hmac.js"></script>
-<img src="/px.gif?e=pageview&auto=1&url=%2Fpage.html" width="1" height="1" style="display:none" alt="">
+<img src="/px.gif?e=pageview&auto=1&url=http%3A%2F%2Fwww.example.com%2Flander" width="1" height="1" style="display:none" alt="">
 ```
 
 **Endpoints:**

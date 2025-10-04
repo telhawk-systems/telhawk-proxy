@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	event "revinar.io/go.track/internal/event"
+	"revinar.io/go.track/internal/metrics"
 	cfg "revinar.io/go.track/pkg/config"
 )
 
@@ -20,6 +21,7 @@ type Env struct {
 	Cfg      cfg.Config        // <-- use cfg.Config here
 	Emit     func(event.Event) // injected sink fan-out
 	HMACAuth *HMACAuth         // HMAC authentication handler
+	Metrics  *metrics.Metrics  // metrics collection
 }
 
 func (e Env) Healthz(w http.ResponseWriter, r *http.Request) {

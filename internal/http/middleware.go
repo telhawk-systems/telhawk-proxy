@@ -3,7 +3,10 @@ package httpx
 import (
 	"log"
 	"net/http"
+	"strconv"
 	"time"
+
+	"revinar.io/go.track/internal/metrics"
 )
 
 func RequestLogger(next http.Handler) http.Handler {
@@ -25,4 +28,41 @@ func cors(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// responseWriter wraps http.ResponseWriter to capture status code
+type responseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (rw *responseWriter) WriteHeader(code int) {
+	rw.statusCode = code
+	rw.ResponseWriter.WriteHeader(code)
+}
+
+// MetricsMiddleware adds HTTP request metrics tracking
+func MetricsMiddleware(appMetrics *metrics.Metrics) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if appMetrics == nil {
+				next.ServeHTTP(w, r)
+				return
+			}
+			
+			start := time.Now()
+			wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+			
+			next.ServeHTTP(wrapped, r)
+			
+			duration := time.Since(start)
+			endpoint := r.URL.Path
+			method := r.Method
+			status := strconv.Itoa(wrapped.statusCode)
+			
+			// Record metrics
+			appMetrics.IncrementHTTPRequests(endpoint, method, status)
+			appMetrics.ObserveHTTPDuration(endpoint, method, duration)
+		})
+	}
 }
