@@ -30,22 +30,42 @@ jobs:
           echo "" >> complexity_report.md
           
           # Run gocyclo and capture output
-          if gocyclo -over 15 . > complexity_output.txt 2>&1; then
-            echo "status=pass" >> $GITHUB_OUTPUT
-            echo "✅ All functions have acceptable complexity (≤15)" >> complexity_report.md
+          gocyclo -over 15 . > complexity_output.txt 2>&1 || true
+          
+          # Separate non-test and test files
+          grep -v "_test.go" complexity_output.txt > non_test_complexity.txt || true
+          grep "_test.go" complexity_output.txt > test_complexity.txt || true
+          
+          # Check non-test files (these will fail the build)
+          if [ -s non_test_complexity.txt ]; then
+            echo "status=fail" >> $GITHUB_OUTPUT
+            echo "❌ **Non-test functions exceed complexity threshold of 15:**" >> complexity_report.md
+            echo "" >> complexity_report.md
+            echo '```' >> complexity_report.md
+            cat non_test_complexity.txt >> complexity_report.md
+            echo '```' >> complexity_report.md
+            echo "" >> complexity_report.md
+            echo "🚨 **Build will fail** - These functions must be refactored before merging." >> complexity_report.md
+            echo "" >> complexity_report.md
           else
-            echo "status=warn" >> $GITHUB_OUTPUT
-            echo "⚠️ Some functions exceed complexity threshold of 15:" >> complexity_report.md
+            echo "status=pass" >> $GITHUB_OUTPUT
+            echo "✅ All non-test functions have acceptable complexity (≤15)" >> complexity_report.md
+            echo "" >> complexity_report.md
+          fi
+          
+          # Report on test files (informational only)
+          if [ -s test_complexity.txt ]; then
+            echo "ℹ️ **Test functions with high complexity** (informational only):" >> complexity_report.md
             echo "" >> complexity_report.md
             echo '```' >> complexity_report.md
-            cat complexity_output.txt >> complexity_report.md
+            cat test_complexity.txt >> complexity_report.md
             echo '```' >> complexity_report.md
             echo "" >> complexity_report.md
-            echo "Consider refactoring complex functions to improve maintainability." >> complexity_report.md
+            echo "_Note: Test functions are not required to meet the complexity threshold._" >> complexity_report.md
+            echo "" >> complexity_report.md
           fi
           
           # Always show top 10 most complex functions
-          echo "" >> complexity_report.md
           echo "<details>" >> complexity_report.md
           echo "<summary>Top 10 most complex functions</summary>" >> complexity_report.md
           echo "" >> complexity_report.md
@@ -71,11 +91,13 @@ jobs:
           path: |
             complexity_report.md
             complexity_output.txt
+            non_test_complexity.txt
+            test_complexity.txt
           retention-days: 30
 
       - name: Check complexity threshold
-        if: steps.gocyclo.outputs.status == 'warn'
+        if: steps.gocyclo.outputs.status == 'fail'
         run: |
-          echo "::warning::Some functions exceed the complexity threshold of 15. Consider refactoring for better maintainability."
-          # Not failing the build, just warning
-          exit 0
+          echo "::error::Non-test functions exceed the complexity threshold of 15. Refactoring is required before merging."
+          cat non_test_complexity.txt
+          exit 1
