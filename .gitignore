@@ -1,5 +1,5 @@
 # Binaries
-gotrack
+/gotrack
 /bin/
 /*.exe
 /*.exe~
