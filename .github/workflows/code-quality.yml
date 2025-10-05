@@ -1,0 +1,81 @@
+name: Code Quality
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  gocyclo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Install gocyclo
+        run: go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
+
+      - name: Run gocyclo
+        id: gocyclo
+        run: |
+          echo "## Cyclomatic Complexity Report" > complexity_report.md
+          echo "" >> complexity_report.md
+          
+          # Run gocyclo and capture output
+          if gocyclo -over 15 . > complexity_output.txt 2>&1; then
+            echo "status=pass" >> $GITHUB_OUTPUT
+            echo "✅ All functions have acceptable complexity (≤15)" >> complexity_report.md
+          else
+            echo "status=warn" >> $GITHUB_OUTPUT
+            echo "⚠️ Some functions exceed complexity threshold of 15:" >> complexity_report.md
+            echo "" >> complexity_report.md
+            echo '```' >> complexity_report.md
+            cat complexity_output.txt >> complexity_report.md
+            echo '```' >> complexity_report.md
+            echo "" >> complexity_report.md
+            echo "Consider refactoring complex functions to improve maintainability." >> complexity_report.md
+          fi
+          
+          # Always show top 10 most complex functions
+          echo "" >> complexity_report.md
+          echo "<details>" >> complexity_report.md
+          echo "<summary>Top 10 most complex functions</summary>" >> complexity_report.md
+          echo "" >> complexity_report.md
+          echo '```' >> complexity_report.md
+          gocyclo -top 10 . >> complexity_report.md
+          echo '```' >> complexity_report.md
+          echo "</details>" >> complexity_report.md
+          
+          # Display in workflow log
+          cat complexity_report.md
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: gocyclo
+          path: complexity_report.md
+
+      - name: Upload complexity report
+        uses: actions/upload-artifact@v4
+        with:
+          name: complexity-report
+          path: |
+            complexity_report.md
+            complexity_output.txt
+          retention-days: 30
+
+      - name: Check complexity threshold
+        if: steps.gocyclo.outputs.status == 'warn'
+        run: |
+          echo "::warning::Some functions exceed the complexity threshold of 15. Consider refactoring for better maintainability."
+          # Not failing the build, just warning
+          exit 0
