@@ -29,7 +29,7 @@ func (s *LogSink) Start(ctx context.Context) error {
 	if s.dst == "stdout" {
 		return nil
 	} // stdout only
-	f, err := os.OpenFile(s.dst, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0640)
+	f, err := os.OpenFile(s.dst, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
 		return err
 	}
