@@ -4,8 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -15,6 +17,25 @@ import (
 	_ "github.com/lib/pq" // PostgreSQL driver
 	"revinar.io/go.track/internal/event"
 )
+
+// validSQLIdentifier matches valid SQL identifiers (table/column names)
+// Allows alphanumeric characters, underscores, and must start with letter or underscore
+var validSQLIdentifier = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+
+// validateTableName ensures the table name is safe to use in SQL queries
+// This prevents SQL injection when table names cannot be parameterized
+func validateTableName(tableName string) error {
+	if tableName == "" {
+		return errors.New("table name cannot be empty")
+	}
+	if len(tableName) > 63 {
+		return errors.New("table name too long (max 63 characters for PostgreSQL)")
+	}
+	if !validSQLIdentifier.MatchString(tableName) {
+		return fmt.Errorf("invalid table name: must contain only alphanumeric characters and underscores, and start with a letter or underscore")
+	}
+	return nil
+}
 
 // PGConfig holds configuration for PostgreSQL sink
 type PGConfig struct {
@@ -69,6 +90,11 @@ func (s *PGSink) Start(ctx context.Context) error {
 	s.ctx, s.cancel = context.WithCancel(ctx)
 	s.done = make(chan struct{})
 	s.batch = make([]event.Event, 0, s.config.BatchSize)
+	
+	// Validate table name to prevent SQL injection
+	if err := validateTableName(s.config.Table); err != nil {
+		return fmt.Errorf("invalid table name: %w", err)
+	}
 	
 	// Connect to PostgreSQL
 	db, err := sql.Open("postgres", s.config.DSN)
