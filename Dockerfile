@@ -24,4 +24,11 @@ COPY --from=builder /bin/gotrack /app/gotrack
 # Example: docker run -v /path/to/certs:/app/certs gotrack
 
 EXPOSE 19890
+
+# Health check to ensure the service is responding
+# Uses the built-in health check functionality of the application
+# Check every 30s with 3s timeout, fail after 3 consecutive failures
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD ["/app/gotrack", "-healthcheck", "-health-host", "localhost", "-health-port", "19890"]
+
 ENTRYPOINT ["/app/gotrack"]

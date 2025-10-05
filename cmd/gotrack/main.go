@@ -2,7 +2,11 @@ package main
 
 import (
 	"context"
+	"flag"
+	"fmt"
+	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -17,6 +21,24 @@ import (
 )
 
 func main() {
+	// Parse command line flags
+	var (
+		healthCheck = flag.Bool("healthcheck", false, "Perform health check and exit")
+		healthHost  = flag.String("health-host", "localhost", "Host for health check")
+		healthPort  = flag.String("health-port", "19890", "Port for health check")
+	)
+	flag.Parse()
+
+	// Handle health check mode
+	if *healthCheck {
+		if err := performHealthCheck(*healthHost, *healthPort); err != nil {
+			log.Printf("Health check failed: %v", err)
+			os.Exit(1)
+		}
+		log.Println("Health check passed")
+		os.Exit(0)
+	}
+
 	cfg := config.Load()
 
 	// Initialize metrics
@@ -161,4 +183,41 @@ func main() {
 	}
 	
 	log.Println("shutdown complete")
+}
+
+// performHealthCheck performs a health check against the specified host and port
+func performHealthCheck(host, port string) error {
+	// Create HTTP client with timeout
+	client := &http.Client{
+		Timeout: 3 * time.Second,
+	}
+
+	// Construct health check URL
+	scheme := "http"
+	url := fmt.Sprintf("%s://%s/healthz", scheme, net.JoinHostPort(host, port))
+
+	// Perform health check request
+	resp, err := client.Get(url)
+	if err != nil {
+		return fmt.Errorf("failed to connect to health endpoint: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Check status code
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("health check returned status %d", resp.StatusCode)
+	}
+
+	// Read and verify response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read health check response: %w", err)
+	}
+
+	// Verify expected response
+	if string(body) != "ok" {
+		return fmt.Errorf("unexpected health check response: %s", string(body))
+	}
+
+	return nil
 }
