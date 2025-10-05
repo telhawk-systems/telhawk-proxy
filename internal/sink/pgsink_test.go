@@ -340,6 +340,44 @@ func TestGetIntEnv(t *testing.T) {
 	}
 }
 
+// TestPGSinkConfigValidation tests configuration validation
+func TestPGSinkConfigValidation(t *testing.T) {
+	t.Run("accepts valid table names", func(t *testing.T) {
+		validNames := []string{
+			"events",
+			"events_json",
+			"_private",
+			"table123",
+			"a",
+		}
+		
+		for _, name := range validNames {
+			err := validateTableName(name)
+			if err != nil {
+				t.Errorf("validateTableName(%q) should be valid, got error: %v", name, err)
+			}
+		}
+	})
+	
+	t.Run("rejects invalid table names", func(t *testing.T) {
+		invalidNames := []string{
+			"",
+			"123invalid",
+			"table-name",
+			"table name",
+			"table;drop",
+			"table' or '1'='1",
+		}
+		
+		for _, name := range invalidNames {
+			err := validateTableName(name)
+			if err == nil {
+				t.Errorf("validateTableName(%q) should be invalid", name)
+			}
+		}
+	})
+}
+
 // Helper functions
 func contains2(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && indexOf2(s, substr) >= 0)
