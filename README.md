@@ -3,7 +3,6 @@
 [![Tests](https://github.com/shortontech/gotrack/actions/workflows/test-coverage.yml/badge.svg)](https://github.com/shortontech/gotrack/actions/workflows/test-coverage.yml)
 [![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/shortontech/06522d3b723a877fce2c749350f6dc83/raw/gotrack-coverage.json)](https://github.com/shortontech/gotrack/actions/workflows/test-coverage.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/shortontech/gotrack)](https://goreportcard.com/report/github.com/shortontech/gotrack)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 GoTrack is a **high-security tracking pixel and collection service** built in Go.  
 It’s designed for **bot and hacker detection**, fraud monitoring, and operational telemetry — not adtech profiling.  
