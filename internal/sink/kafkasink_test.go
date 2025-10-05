@@ -43,15 +43,15 @@ func TestNewKafkaSinkFromEnv(t *testing.T) {
 
 	t.Run("uses env variables when set", func(t *testing.T) {
 		envVars := map[string]string{
-			"KAFKA_BROKERS":          "broker1:9092,broker2:9092,broker3:9092",
-			"KAFKA_TOPIC":            "custom.topic",
-			"KAFKA_ACKS":             "1",
-			"KAFKA_COMPRESSION":      "gzip",
-			"KAFKA_SASL_MECHANISM":   "PLAIN",
-			"KAFKA_SASL_USER":        "test-user",
-			"KAFKA_SASL_PASSWORD":    "test-pass",
-			"KAFKA_TLS_CA":           "/path/to/ca.pem",
-			"KAFKA_TLS_SKIP_VERIFY":  "true",
+			"KAFKA_BROKERS":         "broker1:9092,broker2:9092,broker3:9092",
+			"KAFKA_TOPIC":           "custom.topic",
+			"KAFKA_ACKS":            "1",
+			"KAFKA_COMPRESSION":     "gzip",
+			"KAFKA_SASL_MECHANISM":  "PLAIN",
+			"KAFKA_SASL_USER":       "test-user",
+			"KAFKA_SASL_PASSWORD":   "test-pass",
+			"KAFKA_TLS_CA":          "/path/to/ca.pem",
+			"KAFKA_TLS_SKIP_VERIFY": "true",
 		}
 
 		oldValues := make(map[string]string)

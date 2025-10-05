@@ -59,12 +59,12 @@ func TestLoadConfig(t *testing.T) {
 
 	t.Run("loads custom values from environment", func(t *testing.T) {
 		envVars := map[string]string{
-			"METRICS_ENABLED":     "true",
-			"METRICS_ADDR":        "0.0.0.0:8080",
-			"METRICS_TLS_CERT":    "/path/to/cert.pem",
-			"METRICS_TLS_KEY":     "/path/to/key.pem",
-			"METRICS_CLIENT_CA":   "/path/to/ca.pem",
-			"METRICS_REQUIRE_TLS": "true",
+			"METRICS_ENABLED":      "true",
+			"METRICS_ADDR":         "0.0.0.0:8080",
+			"METRICS_TLS_CERT":     "/path/to/cert.pem",
+			"METRICS_TLS_KEY":      "/path/to/key.pem",
+			"METRICS_CLIENT_CA":    "/path/to/ca.pem",
+			"METRICS_REQUIRE_TLS":  "true",
 			"METRICS_REQUIRE_AUTH": "true",
 		}
 

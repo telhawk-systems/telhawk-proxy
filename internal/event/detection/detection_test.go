@@ -84,10 +84,10 @@ func TestAnalyzeHeaders(t *testing.T) {
 
 func TestDetectAutomationHeaders(t *testing.T) {
 	tests := []struct {
-		name          string
-		headers       http.Header
-		expectDetect  bool
-		description   string
+		name         string
+		headers      http.Header
+		expectDetect bool
+		description  string
 	}{
 		{
 			name: "detects selenium in User-Agent",
@@ -138,11 +138,11 @@ func TestDetectAutomationHeaders(t *testing.T) {
 
 func TestAnalyzeUserAgent(t *testing.T) {
 	tests := []struct {
-		name               string
-		userAgent          string
-		expectAutomation   bool
-		expectedPlatform   string
-		expectedBrowser    string
+		name             string
+		userAgent        string
+		expectAutomation bool
+		expectedPlatform string
+		expectedBrowser  string
 	}{
 		{
 			name:             "Chrome on Windows",
@@ -283,11 +283,11 @@ func TestIsLanguageUAInconsistent(t *testing.T) {
 
 func TestGetClientIP(t *testing.T) {
 	tests := []struct {
-		name          string
-		remoteAddr    string
-		xff           string
-		xrip          string
-		expectedIP    string
+		name       string
+		remoteAddr string
+		xff        string
+		xrip       string
+		expectedIP string
 	}{
 		{
 			name:       "uses RemoteAddr when no headers",
@@ -429,7 +429,7 @@ func TestAnalyzeTimingPatterns(t *testing.T) {
 	t.Run("detects round interval precision", func(t *testing.T) {
 		tracker := NewMemoryTimingTracker()
 		ip := "192.168.1.1"
-		
+
 		// Manually set last request time to exactly 100ms ago
 		now := time.Now()
 		past := now.Add(-100 * time.Millisecond)

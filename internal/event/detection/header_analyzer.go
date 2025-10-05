@@ -47,7 +47,7 @@ func detectAutomationHeaders(headers http.Header) []string {
 
 	// Check for automation tool signatures in ANY header value
 	automationKeywords := []string{"headless", "selenium", "webdriver", "puppeteer", "playwright"}
-	
+
 	for header, values := range headers {
 		for _, value := range values {
 			lowerValue := strings.ToLower(value)
@@ -62,11 +62,11 @@ func detectAutomationHeaders(headers http.Header) []string {
 
 	// Check for automation-specific headers
 	automationIndicators := map[string][]string{
-		"X-Requested-With":     {"xmlhttprequest"},
-		"Purpose":              {"prefetch"},
-		"X-Purpose":            {"preview"},
-		"Sec-Fetch-Mode":       {"navigate", "cors", "no-cors"},
-		"Chrome-Proxy":         {},
+		"X-Requested-With": {"xmlhttprequest"},
+		"Purpose":          {"prefetch"},
+		"X-Purpose":        {"preview"},
+		"Sec-Fetch-Mode":   {"navigate", "cors", "no-cors"},
+		"Chrome-Proxy":     {},
 		"X-DevTools-Emulate-Network-Conditions-Client-Id": {},
 	}
 

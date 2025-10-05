@@ -350,7 +350,7 @@ func TestPGSinkConfigValidation(t *testing.T) {
 			"table123",
 			"a",
 		}
-		
+
 		for _, name := range validNames {
 			err := validateTableName(name)
 			if err != nil {
@@ -358,7 +358,7 @@ func TestPGSinkConfigValidation(t *testing.T) {
 			}
 		}
 	})
-	
+
 	t.Run("rejects invalid table names", func(t *testing.T) {
 		invalidNames := []string{
 			"",
@@ -368,7 +368,7 @@ func TestPGSinkConfigValidation(t *testing.T) {
 			"table;drop",
 			"table' or '1'='1",
 		}
-		
+
 		for _, name := range invalidNames {
 			err := validateTableName(name)
 			if err == nil {

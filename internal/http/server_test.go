@@ -93,20 +93,20 @@ func TestInjectPixel(t *testing.T) {
 	t.Run("injects before closing body tag", func(t *testing.T) {
 		html := []byte("<html><body><h1>Hello</h1></body></html>")
 		req := httptest.NewRequest(http.MethodGet, "/test?utm_source=test", nil)
-		
+
 		result := injectPixel(html, req, nil)
 		resultStr := string(result)
-		
+
 		// Check that pixel is injected with proper URL encoding
 		// Note: HTML escaping converts & to &amp;
 		if !strings.Contains(resultStr, `<img src="/px.gif?e=pageview&amp;auto=1&amp;url=`) {
 			t.Errorf("should inject pixel, got: %s", resultStr)
 		}
-		
+
 		if !strings.Contains(resultStr, `width="1" height="1" style="display:none"`) {
 			t.Error("pixel should have proper attributes")
 		}
-		
+
 		// Check that pixel is before </body>
 		bodyCloseIndex := strings.Index(resultStr, "</body>")
 		pixelIndex := strings.Index(resultStr, `<img src="/px.gif`)
@@ -118,14 +118,14 @@ func TestInjectPixel(t *testing.T) {
 	t.Run("injects before closing html tag when no body tag", func(t *testing.T) {
 		html := []byte("<html><div>Content</div></html>")
 		req := httptest.NewRequest(http.MethodGet, "/page", nil)
-		
+
 		result := injectPixel(html, req, nil)
 		resultStr := string(result)
-		
+
 		if !strings.Contains(resultStr, `<img src="/px.gif`) {
 			t.Error("should inject pixel")
 		}
-		
+
 		// Check that pixel is before </html>
 		htmlCloseIndex := strings.Index(resultStr, "</html>")
 		pixelIndex := strings.Index(resultStr, `<img src="/px.gif`)
@@ -137,14 +137,14 @@ func TestInjectPixel(t *testing.T) {
 	t.Run("appends to end when no closing tags", func(t *testing.T) {
 		html := []byte("<div>Content without closing tags")
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
-		
+
 		result := injectPixel(html, req, nil)
 		resultStr := string(result)
-		
+
 		if !strings.Contains(resultStr, `<img src="/px.gif`) {
 			t.Error("should inject pixel")
 		}
-		
+
 		if !strings.HasSuffix(strings.TrimSpace(resultStr), `alt="">`) {
 			t.Error("pixel should be appended to end")
 		}
@@ -154,14 +154,14 @@ func TestInjectPixel(t *testing.T) {
 		html := []byte("<html><body>Test</body></html>")
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		auth := NewHMACAuth("test-secret", "", false)
-		
+
 		result := injectPixel(html, req, auth)
 		resultStr := string(result)
-		
+
 		if !strings.Contains(resultStr, `<script src="/hmac.js"></script>`) {
 			t.Error("should include HMAC script")
 		}
-		
+
 		if !strings.Contains(resultStr, `<img src="/px.gif`) {
 			t.Error("should still include pixel")
 		}
@@ -170,19 +170,19 @@ func TestInjectPixel(t *testing.T) {
 	t.Run("handles case insensitive closing tags", func(t *testing.T) {
 		html := []byte("<html><body>Test</BODY></html>")
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
-		
+
 		result := injectPixel(html, req, nil)
 		resultStr := string(result)
-		
+
 		if !strings.Contains(resultStr, `<img src="/px.gif`) {
 			t.Errorf("should inject pixel, got: %s", resultStr)
 		}
-		
+
 		// The regex replaces </BODY> with pixel + </body>, so check for that
 		if !strings.Contains(resultStr, "</body>") && !strings.Contains(resultStr, "</BODY>") {
 			t.Error("should preserve body closing tag (case may change)")
 		}
-		
+
 		// Pixel should be present before the closing tag
 		bodyCloseIndex := strings.LastIndex(resultStr, "body>")
 		pixelIndex := strings.Index(resultStr, `<img src="/px.gif`)
@@ -198,10 +198,10 @@ func TestInjectPixel(t *testing.T) {
 	t.Run("escapes special characters in URL", func(t *testing.T) {
 		html := []byte("<html><body>Test</body></html>")
 		req := httptest.NewRequest(http.MethodGet, "/test?q=foo&bar=baz<script>", nil)
-		
+
 		result := injectPixel(html, req, nil)
 		resultStr := string(result)
-		
+
 		// URL should be properly escaped
 		if strings.Contains(resultStr, "<script>") && !strings.Contains(resultStr, `%3Cscript%3E`) {
 			t.Error("special characters should be escaped in URL")
@@ -211,10 +211,10 @@ func TestInjectPixel(t *testing.T) {
 	t.Run("handles path without query string", func(t *testing.T) {
 		html := []byte("<html><body>Test</body></html>")
 		req := httptest.NewRequest(http.MethodGet, "/simple", nil)
-		
+
 		result := injectPixel(html, req, nil)
 		resultStr := string(result)
-		
+
 		if !strings.Contains(resultStr, `url=%2Fsimple"`) {
 			t.Error("should encode simple path")
 		}
@@ -257,27 +257,27 @@ func TestIsTrackingPath(t *testing.T) {
 func TestNewProxyHandler(t *testing.T) {
 	t.Run("creates handler with destination", func(t *testing.T) {
 		handler := NewProxyHandler("http://example.com", false, nil)
-		
+
 		if handler == nil {
 			t.Fatal("handler should not be nil")
 		}
-		
+
 		if handler.destination != "http://example.com" {
 			t.Errorf("destination = %q, want http://example.com", handler.destination)
 		}
-		
+
 		if handler.autoInjectPixel {
 			t.Error("autoInjectPixel should be false")
 		}
-		
+
 		if handler.hmacAuth != nil {
 			t.Error("hmacAuth should be nil")
 		}
-		
+
 		if handler.client == nil {
 			t.Error("client should not be nil")
 		}
-		
+
 		if handler.client.Timeout != 30*time.Second {
 			t.Errorf("client timeout = %v, want 30s", handler.client.Timeout)
 		}
@@ -286,11 +286,11 @@ func TestNewProxyHandler(t *testing.T) {
 	t.Run("creates handler with auto inject and HMAC", func(t *testing.T) {
 		auth := NewHMACAuth("secret", "", false)
 		handler := NewProxyHandler("http://example.com", true, auth)
-		
+
 		if !handler.autoInjectPixel {
 			t.Error("autoInjectPixel should be true")
 		}
-		
+
 		if handler.hmacAuth == nil {
 			t.Error("hmacAuth should not be nil")
 		}
@@ -307,22 +307,22 @@ func TestProxyHandlerServeHTTP(t *testing.T) {
 			w.Write([]byte("backend response"))
 		}))
 		defer backend.Close()
-		
+
 		handler := NewProxyHandler(backend.URL, false, nil)
-		
+
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		w := httptest.NewRecorder()
-		
+
 		handler.ServeHTTP(w, req)
-		
+
 		if w.Code != http.StatusOK {
 			t.Errorf("status code = %d, want %d", w.Code, http.StatusOK)
 		}
-		
+
 		if w.Header().Get("X-Test-Header") != "test-value" {
 			t.Error("should copy response headers from backend")
 		}
-		
+
 		body := w.Body.String()
 		if body != "backend response" {
 			t.Errorf("body = %q, want 'backend response'", body)
@@ -336,20 +336,20 @@ func TestProxyHandlerServeHTTP(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 		}))
 		defer backend.Close()
-		
+
 		handler := NewProxyHandler(backend.URL, false, nil)
-		
+
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		req.Header.Set("X-Custom-Header", "custom-value")
 		req.Header.Set("User-Agent", "TestAgent/1.0")
 		w := httptest.NewRecorder()
-		
+
 		handler.ServeHTTP(w, req)
-		
+
 		if receivedHeaders.Get("X-Custom-Header") != "custom-value" {
 			t.Error("should forward custom headers")
 		}
-		
+
 		if receivedHeaders.Get("User-Agent") != "TestAgent/1.0" {
 			t.Error("should forward User-Agent header")
 		}
@@ -362,14 +362,14 @@ func TestProxyHandlerServeHTTP(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 		}))
 		defer backend.Close()
-		
+
 		handler := NewProxyHandler(backend.URL, false, nil)
-		
+
 		req := httptest.NewRequest(http.MethodGet, "/test?param1=value1&param2=value2", nil)
 		w := httptest.NewRecorder()
-		
+
 		handler.ServeHTTP(w, req)
-		
+
 		if receivedQuery != "param1=value1&param2=value2" {
 			t.Errorf("query = %q, want 'param1=value1&param2=value2'", receivedQuery)
 		}
@@ -382,19 +382,19 @@ func TestProxyHandlerServeHTTP(t *testing.T) {
 			w.Write([]byte("<html><body>Test content</body></html>"))
 		}))
 		defer backend.Close()
-		
+
 		handler := NewProxyHandler(backend.URL, true, nil) // autoInjectPixel = true
-		
+
 		req := httptest.NewRequest(http.MethodGet, "/page", nil)
 		w := httptest.NewRecorder()
-		
+
 		handler.ServeHTTP(w, req)
-		
+
 		body := w.Body.String()
 		if !strings.Contains(body, `<img src="/px.gif`) {
 			t.Error("should inject pixel into HTML response")
 		}
-		
+
 		if !strings.Contains(body, "Test content") {
 			t.Error("should preserve original content")
 		}
@@ -407,19 +407,19 @@ func TestProxyHandlerServeHTTP(t *testing.T) {
 			w.Write([]byte(`{"status":"ok"}`))
 		}))
 		defer backend.Close()
-		
+
 		handler := NewProxyHandler(backend.URL, true, nil) // autoInjectPixel = true
-		
+
 		req := httptest.NewRequest(http.MethodGet, "/api/data", nil)
 		w := httptest.NewRecorder()
-		
+
 		handler.ServeHTTP(w, req)
-		
+
 		body := w.Body.String()
 		if strings.Contains(body, `<img src="/px.gif`) {
 			t.Error("should not inject pixel into JSON response")
 		}
-		
+
 		if body != `{"status":"ok"}` {
 			t.Errorf("body = %q, want original JSON", body)
 		}
@@ -427,12 +427,12 @@ func TestProxyHandlerServeHTTP(t *testing.T) {
 
 	t.Run("handles invalid destination URL", func(t *testing.T) {
 		handler := NewProxyHandler("://invalid-url", false, nil)
-		
+
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		w := httptest.NewRecorder()
-		
+
 		handler.ServeHTTP(w, req)
-		
+
 		if w.Code != http.StatusInternalServerError {
 			t.Errorf("status code = %d, want %d", w.Code, http.StatusInternalServerError)
 		}
@@ -441,12 +441,12 @@ func TestProxyHandlerServeHTTP(t *testing.T) {
 	t.Run("handles unreachable backend", func(t *testing.T) {
 		// Use an invalid port
 		handler := NewProxyHandler("http://localhost:0", false, nil)
-		
+
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		w := httptest.NewRecorder()
-		
+
 		handler.ServeHTTP(w, req)
-		
+
 		if w.Code != http.StatusBadGateway {
 			t.Errorf("status code = %d, want %d", w.Code, http.StatusBadGateway)
 		}
@@ -459,15 +459,15 @@ func TestProxyHandlerServeHTTP(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 		}))
 		defer backend.Close()
-		
+
 		handler := NewProxyHandler(backend.URL, false, nil)
-		
+
 		body := bytes.NewReader([]byte("test body data"))
 		req := httptest.NewRequest(http.MethodPost, "/api", body)
 		w := httptest.NewRecorder()
-		
+
 		handler.ServeHTTP(w, req)
-		
+
 		if string(receivedBody) != "test body data" {
 			t.Errorf("received body = %q, want 'test body data'", receivedBody)
 		}
@@ -478,15 +478,15 @@ func TestProxyHandlerServeHTTP(t *testing.T) {
 func TestNewMiddlewareRouter(t *testing.T) {
 	mux := http.NewServeMux()
 	router := NewMiddlewareRouter(mux, "http://example.com", false, nil)
-	
+
 	if router == nil {
 		t.Fatal("router should not be nil")
 	}
-	
+
 	if router.trackingMux != mux {
 		t.Error("trackingMux should be set")
 	}
-	
+
 	if router.proxy == nil {
 		t.Error("proxy should not be nil")
 	}
@@ -501,20 +501,20 @@ func TestMiddlewareRouterServeHTTP(t *testing.T) {
 			trackingCalled = true
 			w.WriteHeader(http.StatusOK)
 		})
-		
+
 		// Create a backend that should NOT be called
 		backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			t.Error("backend should not be called for tracking paths")
 		}))
 		defer backend.Close()
-		
+
 		router := NewMiddlewareRouter(mux, backend.URL, false, nil)
-		
+
 		req := httptest.NewRequest(http.MethodGet, "/px.gif", nil)
 		w := httptest.NewRecorder()
-		
+
 		router.ServeHTTP(w, req)
-		
+
 		if !trackingCalled {
 			t.Error("tracking handler should have been called")
 		}
@@ -527,19 +527,19 @@ func TestMiddlewareRouterServeHTTP(t *testing.T) {
 			w.Write([]byte("backend response"))
 		}))
 		defer backend.Close()
-		
+
 		mux := http.NewServeMux()
 		router := NewMiddlewareRouter(mux, backend.URL, false, nil)
-		
+
 		req := httptest.NewRequest(http.MethodGet, "/app/page", nil)
 		w := httptest.NewRecorder()
-		
+
 		router.ServeHTTP(w, req)
-		
+
 		if !backendCalled {
 			t.Error("backend should have been called")
 		}
-		
+
 		body := w.Body.String()
 		if body != "backend response" {
 			t.Errorf("body = %q, want 'backend response'", body)
@@ -548,7 +548,7 @@ func TestMiddlewareRouterServeHTTP(t *testing.T) {
 
 	t.Run("routes all standard tracking paths", func(t *testing.T) {
 		trackingPaths := []string{"/px.gif", "/collect", "/healthz", "/readyz", "/metrics", "/hmac.js", "/hmac/public-key"}
-		
+
 		for _, path := range trackingPaths {
 			t.Run(path, func(t *testing.T) {
 				called := false
@@ -557,19 +557,19 @@ func TestMiddlewareRouterServeHTTP(t *testing.T) {
 					called = true
 					w.WriteHeader(http.StatusOK)
 				})
-				
+
 				backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					t.Errorf("backend should not be called for tracking path %s", path)
 				}))
 				defer backend.Close()
-				
+
 				router := NewMiddlewareRouter(mux, backend.URL, false, nil)
-				
+
 				req := httptest.NewRequest(http.MethodGet, path, nil)
 				w := httptest.NewRecorder()
-				
+
 				router.ServeHTTP(w, req)
-				
+
 				if !called {
 					t.Errorf("tracking handler should have been called for %s", path)
 				}
@@ -589,9 +589,9 @@ func TestNewMux(t *testing.T) {
 			Emit:    func(e event.Event) {},
 			Metrics: metrics.InitMetrics(),
 		}
-		
+
 		mux := NewMux(env)
-		
+
 		if mux == nil {
 			t.Fatal("mux should not be nil")
 		}
@@ -602,7 +602,7 @@ func TestNewMux(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 		}))
 		defer backend.Close()
-		
+
 		env := Env{
 			Cfg: config.Config{
 				MiddlewareMode:     true,
@@ -612,18 +612,18 @@ func TestNewMux(t *testing.T) {
 			Emit:    func(e event.Event) {},
 			Metrics: metrics.InitMetrics(),
 		}
-		
+
 		mux := NewMux(env)
-		
+
 		if mux == nil {
 			t.Fatal("mux should not be nil")
 		}
-		
+
 		// Test that it works as middleware
 		req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 		w := httptest.NewRecorder()
 		mux.ServeHTTP(w, req)
-		
+
 		// Should handle tracking paths
 		if w.Code != http.StatusOK {
 			t.Errorf("status code = %d, want %d", w.Code, http.StatusOK)
@@ -639,18 +639,18 @@ func TestNewMux(t *testing.T) {
 			Emit:    func(e event.Event) {},
 			Metrics: metrics.InitMetrics(),
 		}
-		
+
 		mux := NewMux(env)
-		
+
 		if mux == nil {
 			t.Fatal("mux should not be nil")
 		}
-		
+
 		// Should still work as regular mux
 		req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 		w := httptest.NewRecorder()
 		mux.ServeHTTP(w, req)
-		
+
 		if w.Code != http.StatusOK {
 			t.Errorf("status code = %d, want %d", w.Code, http.StatusOK)
 		}
@@ -665,9 +665,9 @@ func TestNewMux(t *testing.T) {
 			Emit:    func(e event.Event) {},
 			Metrics: metrics.InitMetrics(),
 		}
-		
+
 		mux := NewMux(env)
-		
+
 		if mux == nil {
 			t.Fatal("mux should not be nil")
 		}
