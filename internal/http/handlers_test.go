@@ -840,7 +840,7 @@ func TestCollectIntegration(t *testing.T) {
 			Emit: func(e event.Event) {
 				capturedEvent = &e
 			},
-			Metrics: metrics.NewMetrics(),
+			Metrics: metrics.InitMetrics(),
 		}
 
 		eventJSON := `{
