@@ -144,6 +144,130 @@ func TestGenerateClientScript(t *testing.T) {
 	})
 }
 
+// TestGetClientIP tests IP extraction from requests
+func TestGetClientIP(t *testing.T) {
+	tests := []struct {
+		name       string
+		remoteAddr string
+		xForwarded string
+		xRealIP    string
+		want       string
+	}{
+		{
+			name:       "gets IP from RemoteAddr when no headers",
+			remoteAddr: "203.0.113.42:12345",
+			want:       "203.0.113.42:12345",
+		},
+		{
+			name:       "prefers X-Forwarded-For over X-Real-IP",
+			remoteAddr: "192.168.1.1:8080",
+			xRealIP:    "10.0.0.1",
+			xForwarded: "203.0.113.42",
+			want:       "203.0.113.42",
+		},
+		{
+			name:       "prefers X-Real-IP over RemoteAddr",
+			remoteAddr: "192.168.1.1:8080",
+			xRealIP:    "203.0.113.42",
+			want:       "203.0.113.42",
+		},
+		{
+			name:       "uses first IP in X-Forwarded-For chain",
+			remoteAddr: "192.168.1.1:8080",
+			xForwarded: "203.0.113.42, 10.0.0.1, 192.168.1.1",
+			want:       "203.0.113.42",
+		},
+		{
+			name:       "handles IPv6 RemoteAddr",
+			remoteAddr: "[2001:db8::1]:8080",
+			want:       "[2001:db8::1]:8080",
+		},
+		{
+			name:       "handles RemoteAddr without port",
+			remoteAddr: "203.0.113.42",
+			want:       "203.0.113.42",
+		},
+		{
+			name:       "trims whitespace from X-Forwarded-For",
+			remoteAddr: "192.168.1.1:8080",
+			xForwarded: "  203.0.113.42  , 10.0.0.1",
+			want:       "203.0.113.42",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest("GET", "/", nil)
+			req.RemoteAddr = tt.remoteAddr
+			if tt.xRealIP != "" {
+				req.Header.Set("X-Real-IP", tt.xRealIP)
+			}
+			if tt.xForwarded != "" {
+				req.Header.Set("X-Forwarded-For", tt.xForwarded)
+			}
+
+			got := getClientIP(req)
+			if got != tt.want {
+				t.Errorf("getClientIP() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+// TestNormalizeIP tests IP normalization (port removal)
+func TestNormalizeIP(t *testing.T) {
+	tests := []struct {
+		name string
+		ip   string
+		want string
+	}{
+		{
+			name: "strips port from IPv4",
+			ip:   "203.0.113.42:12345",
+			want: "203.0.113.42",
+		},
+		{
+			name: "strips port from IPv4 with standard port",
+			ip:   "192.168.1.100:80",
+			want: "192.168.1.100",
+		},
+		{
+			name: "strips port from IPv6",
+			ip:   "[2001:db8:85a3::8a2e:370:7334]:8080",
+			want: "2001:db8:85a3::8a2e:370:7334",
+		},
+		{
+			name: "handles IPv6 without brackets",
+			ip:   "2001:db8::1",
+			want: "2001:db8::1",
+		},
+		{
+			name: "handles IPv4 without port",
+			ip:   "203.0.113.42",
+			want: "203.0.113.42",
+		},
+		{
+			name: "handles empty string",
+			ip:   "",
+			want: "",
+		},
+		{
+			name: "handles malformed input",
+			ip:   "not-an-ip",
+			want: "not-an-ip",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := normalizeIP(tt.ip)
+			if got != tt.want {
+				t.Errorf("normalizeIP(%q) = %q, want %q", tt.ip, got, tt.want)
+			}
+		})
+	}
+}
+
 // Note: deriveClientKey is an internal method tested indirectly
 
 func TestHMACIntegration(t *testing.T) {
