@@ -1,4 +1,5 @@
 import { webdriverDetector } from '../../src/detect/webdriver';
+import type { DetectorResult } from '../../src/detect/types';
 
 describe('Webdriver Detector', () => {
   let originalNavigator: any;
@@ -24,13 +25,13 @@ describe('Webdriver Detector', () => {
   });
 
   test('detects clean browser with score 0', () => {
-    const result = webdriverDetector.run();
+    const result = webdriverDetector.run() as DetectorResult;
     
     expect(result.id).toBe('webdriver');
     expect(result.score).toBe(0);
-    expect(result.details.suspicious).toBe(false);
-    expect(result.details.webdriver).toBe(false);
-    expect(result.details.automation).toBe(false);
+    expect(result.details!.suspicious).toBe(false);
+    expect(result.details!.webdriver).toBe(false);
+    expect(result.details!.automation).toBe(false);
   });
 
   test('detects navigator.webdriver flag', () => {
@@ -40,11 +41,11 @@ describe('Webdriver Detector', () => {
       configurable: true
     });
     
-    const result = webdriverDetector.run();
+    const result = webdriverDetector.run() as DetectorResult;
     
     expect(result.score).toBe(3);
-    expect(result.details.webdriver).toBe(true);
-    expect(result.details.suspicious).toBe(true);
+    expect(result.details!.webdriver).toBe(true);
+    expect(result.details!.suspicious).toBe(true);
     expect(result.reliable).toBe(true);
   });
 
@@ -55,11 +56,11 @@ describe('Webdriver Detector', () => {
       configurable: true
     });
     
-    const result = webdriverDetector.run();
+    const result = webdriverDetector.run() as DetectorResult;
     
     expect(result.score).toBe(3);
-    expect(result.details.automation).toBe(true);
-    expect(result.details.suspicious).toBe(true);
+    expect(result.details!.automation).toBe(true);
+    expect(result.details!.suspicious).toBe(true);
     expect(result.reliable).toBe(true);
   });
 
@@ -67,13 +68,13 @@ describe('Webdriver Detector', () => {
     (window as any).__selenium_unwrapped = {};
     (window as any).__webdriver_evaluate = {};
     
-    const result = webdriverDetector.run();
+    const result = webdriverDetector.run() as DetectorResult;
     
     expect(result.score).toBe(3);
-    expect(result.details.seleniumGlobals).toBe(true);
-    expect(result.details.globals).toContain('__selenium_unwrapped');
-    expect(result.details.globals).toContain('__webdriver_evaluate');
-    expect(result.details.suspicious).toBe(true);
+    expect(result.details!.seleniumGlobals).toBe(true);
+    expect(result.details!.globals).toContain('__selenium_unwrapped');
+    expect(result.details!.globals).toContain('__webdriver_evaluate');
+    expect(result.details!.suspicious).toBe(true);
     expect(result.reliable).toBe(true);
     
     // Cleanup
@@ -85,13 +86,13 @@ describe('Webdriver Detector', () => {
     (window as any).__phantomas = {};
     (window as any)._phantom = {};
     
-    const result = webdriverDetector.run();
+    const result = webdriverDetector.run() as DetectorResult;
     
     expect(result.score).toBe(3);
-    expect(result.details.phantomGlobals).toBe(true);
-    expect(result.details.globals).toContain('__phantomas');
-    expect(result.details.globals).toContain('_phantom');
-    expect(result.details.suspicious).toBe(true);
+    expect(result.details!.phantomGlobals).toBe(true);
+    expect(result.details!.globals).toContain('__phantomas');
+    expect(result.details!.globals).toContain('_phantom');
+    expect(result.details!.suspicious).toBe(true);
     
     // Cleanup
     delete (window as any).__phantomas;
@@ -102,11 +103,11 @@ describe('Webdriver Detector', () => {
     (window as any).cdc_adoQpoasnfa76pfcZLmcfl_Array = {};
     (window as any).$chrome_asyncScriptInfo = {};
     
-    const result = webdriverDetector.run();
+    const result = webdriverDetector.run() as DetectorResult;
     
     expect(result.score).toBe(3);
-    expect(result.details.globals.length).toBeGreaterThan(0);
-    expect(result.details.suspicious).toBe(true);
+    expect((result.details!.globals as unknown[]).length).toBeGreaterThan(0);
+    expect(result.details!.suspicious).toBe(true);
     
     // Cleanup
     delete (window as any).cdc_adoQpoasnfa76pfcZLmcfl_Array;
@@ -123,9 +124,9 @@ describe('Webdriver Detector', () => {
     (window as any).__selenium_unwrapped = {};
     (window as any).__webdriver_evaluate = {};
     
-    const result = webdriverDetector.run();
+    const result = webdriverDetector.run() as DetectorResult;
     
-    expect(result.details.globals.length).toBeLessThanOrEqual(10);
+    expect((result.details!.globals as unknown[]).length).toBeLessThanOrEqual(10);
     
     // Cleanup
     for (let i = 0; i < 15; i++) {
@@ -145,11 +146,11 @@ describe('Webdriver Detector', () => {
     // Ensure chrome.runtime is NOT present
     delete (window as any).chrome;
     
-    const result = webdriverDetector.run();
+    const result = webdriverDetector.run() as DetectorResult;
     
     expect(result.score).toBe(3);
-    expect(result.details.suspicious).toBe(true);
-    expect(result.details.chromeRuntime).toBe(false);
+    expect(result.details!.suspicious).toBe(true);
+    expect(result.details!.chromeRuntime).toBe(false);
   });
 
   test('does not flag Chrome with chrome.runtime present', () => {
@@ -163,18 +164,18 @@ describe('Webdriver Detector', () => {
       runtime: {}
     };
     
-    const result = webdriverDetector.run();
+    const result = webdriverDetector.run() as DetectorResult;
     
     expect(result.score).toBe(0);
-    expect(result.details.suspicious).toBe(false);
-    expect(result.details.chromeRuntime).toBe(true);
+    expect(result.details!.suspicious).toBe(false);
+    expect(result.details!.chromeRuntime).toBe(true);
     
     // Cleanup
     delete (window as any).chrome;
   });
 
   test('returns proper result structure', () => {
-    const result = webdriverDetector.run();
+    const result = webdriverDetector.run() as DetectorResult;
     
     expect(result).toHaveProperty('id');
     expect(result).toHaveProperty('score');
@@ -189,6 +190,6 @@ describe('Webdriver Detector', () => {
     expect(result.details).toHaveProperty('globals');
     expect(result.details).toHaveProperty('suspicious');
     
-    expect(Array.isArray(result.details.globals)).toBe(true);
+    expect(Array.isArray(result.details!.globals)).toBe(true);
   });
 });

@@ -39,7 +39,6 @@ describe('Pixel Library', () => {
     expect(() => {
       init({
         endpoint: 'https://custom.example.com/collect',
-        respectDnt: false,
         batchSize: 5
       });
     }).not.toThrow();

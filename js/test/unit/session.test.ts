@@ -1,8 +1,8 @@
 import { getSessionId } from '../../src/ids/session';
 
 // Mock localStorage
-const localStorageMock = (() => {
-  let store: Record<string, string> = {};
+const createLocalStorageMock = () => {
+  const store: Record<string, string> = {};
   
   return {
     getItem: jest.fn((key: string) => store[key] || null),
@@ -10,7 +10,7 @@ const localStorageMock = (() => {
       store[key] = value;
     }),
     clear: jest.fn(() => {
-      store = {};
+      Object.keys(store).forEach(key => delete store[key]);
     }),
     removeItem: jest.fn((key: string) => {
       delete store[key];
@@ -20,16 +20,18 @@ const localStorageMock = (() => {
     },
     key: jest.fn((index: number) => Object.keys(store)[index] || null)
   };
-})();
+};
+
+let localStorageMock = createLocalStorageMock();
 
 describe('Session ID management', () => {
   beforeEach(() => {
-    localStorageMock.clear();
-    (localStorageMock.getItem as jest.Mock).mockClear();
-    (localStorageMock.setItem as jest.Mock).mockClear();
+    // Create a fresh mock for each test
+    localStorageMock = createLocalStorageMock();
     Object.defineProperty(window, 'localStorage', {
       value: localStorageMock,
-      writable: true
+      writable: true,
+      configurable: true
     });
   });
 

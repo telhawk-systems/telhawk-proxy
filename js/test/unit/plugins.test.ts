@@ -1,4 +1,5 @@
 import { pluginsDetector } from '../../src/detect/plugins';
+import type { DetectorResult } from '../../src/detect/types';
 
 describe('Plugins Detector', () => {
   let originalNavigator: any;
@@ -33,12 +34,12 @@ describe('Plugins Detector', () => {
       configurable: true
     });
     
-    const result = pluginsDetector.run();
+    const result = pluginsDetector.run() as DetectorResult;
     
     expect(result.id).toBe('plugins');
     expect(result.score).toBe(0); // 4 plugins, should be 0
-    expect(result.details.pluginsLen).toBe(4);
-    expect(result.details.suspicious).toBe(false);
+    expect(result.details!.pluginsLen).toBe(4);
+    expect(result.details!.suspicious).toBe(false);
   });
 
   test('detects headless browser with no plugins', () => {
@@ -54,12 +55,12 @@ describe('Plugins Detector', () => {
       configurable: true
     });
     
-    const result = pluginsDetector.run();
+    const result = pluginsDetector.run() as DetectorResult;
     
     expect(result.score).toBe(2); // Suspicious: no plugins and no mimeTypes
-    expect(result.details.pluginsLen).toBe(0);
-    expect(result.details.mimeLen).toBe(0);
-    expect(result.details.suspicious).toBe(true);
+    expect(result.details!.pluginsLen).toBe(0);
+    expect(result.details!.mimeLen).toBe(0);
+    expect(result.details!.suspicious).toBe(true);
   });
 
   test('detects browser with few plugins', () => {
@@ -74,11 +75,11 @@ describe('Plugins Detector', () => {
       configurable: true
     });
     
-    const result = pluginsDetector.run();
+    const result = pluginsDetector.run() as DetectorResult;
     
     expect(result.score).toBe(1); // Less than 3 plugins
-    expect(result.details.pluginsLen).toBe(2);
-    expect(result.details.suspicious).toBe(false);
+    expect(result.details!.pluginsLen).toBe(2);
+    expect(result.details!.suspicious).toBe(false);
   });
 
   test('collects plugin names', () => {
@@ -94,11 +95,11 @@ describe('Plugins Detector', () => {
       configurable: true
     });
     
-    const result = pluginsDetector.run();
+    const result = pluginsDetector.run() as DetectorResult;
     
-    expect(result.details.plugins).toContain('Chrome PDF Plugin');
-    expect(result.details.plugins).toContain('Native Client');
-    expect(result.details.plugins).toContain('Widevine CDM');
+    expect(result.details!.plugins).toContain('Chrome PDF Plugin');
+    expect(result.details!.plugins).toContain('Native Client');
+    expect(result.details!.plugins).toContain('Widevine CDM');
   });
 
   test('collects mime types', () => {
@@ -114,11 +115,11 @@ describe('Plugins Detector', () => {
       configurable: true
     });
     
-    const result = pluginsDetector.run();
+    const result = pluginsDetector.run() as DetectorResult;
     
-    expect(result.details.mimeTypes).toContain('application/pdf');
-    expect(result.details.mimeTypes).toContain('application/x-nacl');
-    expect(result.details.mimeTypes).toContain('video/mp4');
+    expect(result.details!.mimeTypes).toContain('application/pdf');
+    expect(result.details!.mimeTypes).toContain('application/x-nacl');
+    expect(result.details!.mimeTypes).toContain('video/mp4');
   });
 
   test('limits plugins array to 20 items', () => {
@@ -133,10 +134,10 @@ describe('Plugins Detector', () => {
       configurable: true
     });
     
-    const result = pluginsDetector.run();
+    const result = pluginsDetector.run() as DetectorResult;
     
-    expect(result.details.plugins.length).toBe(20);
-    expect(result.details.pluginsLen).toBe(30);
+    expect((result.details!.plugins as unknown[]).length).toBe(20);
+    expect(result.details!.pluginsLen).toBe(30);
   });
 
   test('limits mimeTypes array to 20 items', () => {
@@ -150,10 +151,10 @@ describe('Plugins Detector', () => {
       configurable: true
     });
     
-    const result = pluginsDetector.run();
+    const result = pluginsDetector.run() as DetectorResult;
     
-    expect(result.details.mimeTypes.length).toBe(20);
-    expect(result.details.mimeLen).toBe(25);
+    expect((result.details!.mimeTypes as unknown[]).length).toBe(20);
+    expect(result.details!.mimeLen).toBe(25);
   });
 
   test('handles undefined navigator.plugins gracefully', () => {
@@ -163,10 +164,10 @@ describe('Plugins Detector', () => {
       configurable: true
     });
     
-    const result = pluginsDetector.run();
+    const result = pluginsDetector.run() as DetectorResult;
     
-    expect(result.details.pluginsLen).toBe(0);
-    expect(result.details.plugins).toEqual([]);
+    expect(result.details!.pluginsLen).toBe(0);
+    expect(result.details!.plugins).toEqual([]);
   });
 
   test('handles undefined navigator.mimeTypes gracefully', () => {
@@ -176,14 +177,14 @@ describe('Plugins Detector', () => {
       configurable: true
     });
     
-    const result = pluginsDetector.run();
+    const result = pluginsDetector.run() as DetectorResult;
     
-    expect(result.details.mimeLen).toBe(0);
-    expect(result.details.mimeTypes).toEqual([]);
+    expect(result.details!.mimeLen).toBe(0);
+    expect(result.details!.mimeTypes).toEqual([]);
   });
 
   test('returns proper result structure', () => {
-    const result = pluginsDetector.run();
+    const result = pluginsDetector.run() as DetectorResult;
     
     expect(result).toHaveProperty('id');
     expect(result).toHaveProperty('score');
@@ -195,10 +196,10 @@ describe('Plugins Detector', () => {
     expect(result.details).toHaveProperty('mimeTypes');
     expect(result.details).toHaveProperty('suspicious');
     
-    expect(typeof result.details.pluginsLen).toBe('number');
-    expect(typeof result.details.mimeLen).toBe('number');
-    expect(Array.isArray(result.details.plugins)).toBe(true);
-    expect(Array.isArray(result.details.mimeTypes)).toBe(true);
-    expect(typeof result.details.suspicious).toBe('boolean');
+    expect(typeof result.details!.pluginsLen).toBe('number');
+    expect(typeof result.details!.mimeLen).toBe('number');
+    expect(Array.isArray(result.details!.plugins)).toBe(true);
+    expect(Array.isArray(result.details!.mimeTypes)).toBe(true);
+    expect(typeof result.details!.suspicious).toBe('boolean');
   });
 });
