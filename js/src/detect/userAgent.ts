@@ -33,15 +33,17 @@ export const uaDetector: Detector = {
       const uaLower = ua.toLowerCase();
       const platformLower = platform.toLowerCase();
       
-      suspicious = /headlesschrome|phantomjs|puppeteer|playwright|selenium|webdriver|chromedriver|automation/i.test(ua) ||
-                  // Platform inconsistencies  
-                  (platformLower.includes("win") && !uaLower.includes("windows")) ||
-                  (platformLower.includes("mac") && uaLower.includes("windows")) ||
-                  (platformLower.includes("linux") && uaLower.includes("windows")) ||
-                  // Empty or minimal UA
-                  ua.length < 20 ||
-                  // Missing expected fields
-                  (ua && !platform);
+      suspicious = !!(
+        /headlesschrome|phantomjs|puppeteer|playwright|selenium|webdriver|chromedriver|automation/i.test(ua) ||
+        // Platform inconsistencies  
+        (platformLower.includes("win") && !uaLower.includes("windows")) ||
+        (platformLower.includes("mac") && uaLower.includes("windows")) ||
+        (platformLower.includes("linux") && uaLower.includes("windows")) ||
+        // Empty or minimal UA
+        ua.length < 20 ||
+        // Missing expected fields
+        (ua && !platform)
+      );
                   
     } catch {}
 
