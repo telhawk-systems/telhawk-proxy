@@ -20,7 +20,7 @@
     "dist"
   ],
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^25.0.8",
+    "@rollup/plugin-commonjs": "^28.0.6",
     "@rollup/plugin-node-resolve": "^15.3.1",
     "@rollup/plugin-typescript": "^11.1.6",
     "@types/jest": "^30.0.0",
