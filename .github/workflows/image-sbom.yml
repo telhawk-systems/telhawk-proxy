@@ -28,7 +28,7 @@ jobs:
           tags: gotrack:ci
 
       - name: Generate SBOM (SPDX JSON) with Trivy
-        uses: aquasecurity/trivy-action@0.33.0
+        uses: aquasecurity/trivy-action@0.33.1
         with:
           scan-type: image
           image-ref: gotrack:ci
