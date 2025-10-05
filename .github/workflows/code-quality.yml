@@ -36,7 +36,7 @@ jobs:
           grep -v "_test.go" complexity_output.txt > non_test_complexity.txt || true
           grep "_test.go" complexity_output.txt > test_complexity.txt || true
           
-          # Check non-test files (these will fail the build)
+          # Check non-test files
           if [ -s non_test_complexity.txt ]; then
             echo "status=fail" >> $GITHUB_OUTPUT
             echo "❌ **Non-test functions exceed complexity threshold of 15:**" >> complexity_report.md
@@ -45,23 +45,22 @@ jobs:
             cat non_test_complexity.txt >> complexity_report.md
             echo '```' >> complexity_report.md
             echo "" >> complexity_report.md
-            echo "🚨 **Build will fail** - These functions must be refactored before merging." >> complexity_report.md
-            echo "" >> complexity_report.md
           else
             echo "status=pass" >> $GITHUB_OUTPUT
             echo "✅ All non-test functions have acceptable complexity (≤15)" >> complexity_report.md
             echo "" >> complexity_report.md
           fi
           
-          # Report on test files (informational only)
+          # Check test files (now also enforced)
           if [ -s test_complexity.txt ]; then
-            echo "ℹ️ **Test functions with high complexity** (informational only):" >> complexity_report.md
+            echo "status=fail" >> $GITHUB_OUTPUT
+            echo "❌ **Test functions exceed complexity threshold of 15:**" >> complexity_report.md
             echo "" >> complexity_report.md
             echo '```' >> complexity_report.md
             cat test_complexity.txt >> complexity_report.md
             echo '```' >> complexity_report.md
             echo "" >> complexity_report.md
-            echo "_Note: Test functions are not required to meet the complexity threshold._" >> complexity_report.md
+            echo "🚨 **Build will fail** - These test functions must be refactored before merging." >> complexity_report.md
             echo "" >> complexity_report.md
           fi
           
@@ -98,6 +97,13 @@ jobs:
       - name: Check complexity threshold
         if: steps.gocyclo.outputs.status == 'fail'
         run: |
-          echo "::error::Non-test functions exceed the complexity threshold of 15. Refactoring is required before merging."
-          cat non_test_complexity.txt
+          echo "::error::Functions exceed the complexity threshold of 15. Refactoring is required before merging."
+          if [ -s non_test_complexity.txt ]; then
+            echo "Non-test functions:"
+            cat non_test_complexity.txt
+          fi
+          if [ -s test_complexity.txt ]; then
+            echo "Test functions:"
+            cat test_complexity.txt
+          fi
           exit 1
