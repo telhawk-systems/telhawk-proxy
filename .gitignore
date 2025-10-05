@@ -86,4 +86,5 @@ yarn-error.log*
 .vscode/
 
 # JS build files
-js/dist/*
+js/dist/*coverage/
+js/coverage/
