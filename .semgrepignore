@@ -1,0 +1,13 @@
+# Semgrep ignore patterns
+# These are legitimate false positives that have been reviewed for security
+
+# Test scripts and test HTML files - not production code
+test/scripts/
+
+# Vendor and generated code
+vendor/
+*.pb.go
+*.gen.go
+
+# Node modules if any JavaScript scanning happens
+node_modules/
