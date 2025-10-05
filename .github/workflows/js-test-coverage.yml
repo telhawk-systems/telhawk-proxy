@@ -1,0 +1,173 @@
+name: JavaScript Tests & Coverage
+
+on:
+  pull_request:
+    paths:
+      - 'js/**'
+      - '.github/workflows/js-test-coverage.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'js/**'
+      - '.github/workflows/js-test-coverage.yml'
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./js
+    
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: js/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript type check
+        run: npx tsc --noEmit
+
+      - name: Run ESLint
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Run tests with coverage
+        run: npm test -- --coverage --coverageReporters=text --coverageReporters=lcov
+
+      - name: Calculate coverage
+        id: coverage
+        run: |
+          # Extract coverage percentage from Jest output
+          COVERAGE=$(npm test -- --coverage --coverageReporters=json-summary 2>/dev/null | grep -o '"lines":[0-9.]*' | head -1 | grep -o '[0-9.]*' || echo "0")
+          echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
+          echo "JavaScript Coverage: $COVERAGE%"
+          
+          # Determine badge color
+          if (( $(echo "$COVERAGE >= 80" | bc -l) )); then
+            COLOR="brightgreen"
+          elif (( $(echo "$COVERAGE >= 60" | bc -l) )); then
+            COLOR="yellow"
+          elif (( $(echo "$COVERAGE >= 40" | bc -l) )); then
+            COLOR="orange"
+          else
+            COLOR="red"
+          fi
+          echo "color=$COLOR" >> $GITHUB_OUTPUT
+
+      - name: Generate coverage summary
+        id: coverage-summary
+        run: |
+          if [ -f coverage/lcov.info ]; then
+            # Create a summary from lcov
+            echo "## JavaScript Test Coverage" > coverage-summary.md
+            echo "" >> coverage-summary.md
+            echo "**Overall Coverage:** \`${{ steps.coverage.outputs.coverage }}%\`" >> coverage-summary.md
+            echo "" >> coverage-summary.md
+            
+            # Extract coverage by file type
+            echo "<details>" >> coverage-summary.md
+            echo "<summary>Coverage by module</summary>" >> coverage-summary.md
+            echo "" >> coverage-summary.md
+            echo '```' >> coverage-summary.md
+            
+            # Parse lcov.info for summary
+            awk '/^SF:/ {file=$0; gsub("SF:src/", "", file)} 
+                 /^LH:/ {hit=$2} 
+                 /^LF:/ {total=$2; if(total>0) printf "%-40s %3d/%3d (%5.1f%%)\n", file, hit, total, (hit/total)*100}' coverage/lcov.info | head -20 >> coverage-summary.md
+            
+            echo '```' >> coverage-summary.md
+            echo "</details>" >> coverage-summary.md
+          else
+            echo "## JavaScript Test Coverage" > coverage-summary.md
+            echo "Coverage report not generated" >> coverage-summary.md
+          fi
+
+      - name: Comment coverage on PR
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: js-coverage
+          path: js/coverage-summary.md
+
+      - name: Create coverage badge
+        if: github.ref == 'refs/heads/main'
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_TOKEN }}
+          gistID: 06522d3b723a877fce2c749350f6dc83
+          filename: gotrack-js-coverage.json
+          label: js coverage
+          message: ${{ steps.coverage.outputs.coverage }}%
+          color: ${{ steps.coverage.outputs.color }}
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: js-coverage-report
+          path: |
+            js/coverage/lcov.info
+            js/coverage/lcov-report/**
+          retention-days: 30
+
+      - name: Check coverage threshold
+        run: |
+          COVERAGE=${{ steps.coverage.outputs.coverage }}
+          THRESHOLD=60
+          
+          if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
+            echo "::warning::JavaScript coverage ($COVERAGE%) is below threshold ($THRESHOLD%)"
+          else
+            echo "✅ Coverage meets threshold: $COVERAGE% >= $THRESHOLD%"
+          fi
+
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./js
+    
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: js/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build library
+        run: npm run build
+
+      - name: Check build output
+        run: |
+          if [ ! -d "dist" ]; then
+            echo "::error::Build failed - dist directory not created"
+            exit 1
+          fi
+          
+          echo "✅ Build successful"
+          echo "Build artifacts:"
+          ls -lh dist/
+          
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: js-build-artifacts
+          path: js/dist/
+          retention-days: 7
