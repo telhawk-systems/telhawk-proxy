@@ -40,6 +40,10 @@ func EnrichServerFields(r *http.Request, e *Event, cfg config.Config) {
 
 	// IP hashing (coarse privacy)
 	e.Server.IP = clientIPFromRequest(r, cfg.TrustProxy)
+
+	// Server-side detection signals (raw data, no scoring)
+	body := []byte{} // TODO: Pass actual body if available
+	e.Server.Detection = AnalyzeServerDetectionSignals(r, body)
 }
 
 // Extract UTM & known click ids directly from the request URL (server-side fallback).

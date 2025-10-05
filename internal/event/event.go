@@ -145,8 +145,7 @@ type SessionInfo struct {
 type ServerMeta struct {
 	IP         string            `json:"ip_hash,omitempty"` // hash of client IP (if enabled)
 	Geo        map[string]string `json:"geo,omitempty"`     // coarse {country,region,city}
-	BotScore   float64           `json:"bot_score,omitempty"`
-	BotReasons []string          `json:"bot_reasons,omitempty"`
+	Detection  ServerDetectionSignals `json:"detection,omitempty"` // Raw detection signals
 }
 
 // --- Consent ---

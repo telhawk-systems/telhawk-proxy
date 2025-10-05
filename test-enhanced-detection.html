@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Bot Detection Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .detection-result { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .detection-title { font-weight: bold; color: #333; }
+        pre { background: #f0f0f0; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Enhanced Bot Detection Test</h1>
+    <p>This page demonstrates the new bot detection methods we just implemented.</p>
+    
+    <div id="results"></div>
+
+    <script>
+        // Simplified versions of our new detectors for testing
+        async function testAudioContext() {
+            try {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContextClass) return { available: false };
+
+                const ctx = new AudioContextClass();
+                const result = {
+                    available: true,
+                    sampleRate: ctx.sampleRate || 0,
+                    maxChannelCount: ctx.destination?.maxChannelCount || 0,
+                    numberOfInputs: ctx.destination?.numberOfInputs || 0,
+                    numberOfOutputs: ctx.destination?.numberOfOutputs || 0,
+                    state: ctx.state || "",
+                    baseLatency: ctx.baseLatency || 0,
+                    outputLatency: ctx.outputLatency || 0
+                };
+                ctx.close?.();
+                return result;
+            } catch (e) {
+                return { available: false, error: e.message };
+            }
+        }
+
+        function testAPIMatrix() {
+            const apis = {
+                bluetooth: 'bluetooth' in navigator,
+                credentials: 'credentials' in navigator,
+                serviceWorker: 'serviceWorker' in navigator,
+                share: 'share' in navigator,
+                wakeLock: 'wakeLock' in navigator,
+                usb: 'usb' in navigator,
+                serial: 'serial' in navigator,
+                hid: 'hid' in navigator,
+                webNFC: 'nfc' in navigator,
+                webLocks: 'locks' in navigator,
+                presentation: 'presentation' in navigator,
+                gamepad: 'getGamepads' in navigator,
+                maxTouchPoints: navigator.maxTouchPoints || 0
+            };
+
+            const ua = navigator.userAgent.toLowerCase();
+            const browser = {
+                isMobile: /mobile|android|iphone|ipad|ipod/.test(ua),
+                isChrome: /chrome/.test(ua) && !/edge|edg/.test(ua),
+                isFirefox: /firefox/.test(ua),
+                isSafari: /safari/.test(ua) && !/chrome/.test(ua)
+            };
+
+            return { apis, browser };
+        }
+
+        function testEnvironmentInconsistency() {
+            const screen = window.screen;
+            const timing = {
+                performanceNow: performance.now(),
+                performanceNowPrecision: performance.now() % 1,
+                timeOrigin: performance.timeOrigin || 0
+            };
+
+            return {
+                screen: {
+                    width: screen.width,
+                    height: screen.height,
+                    availWidth: screen.availWidth,
+                    availHeight: screen.availHeight,
+                    devicePixelRatio: window.devicePixelRatio,
+                    innerWidth: window.innerWidth,
+                    innerHeight: window.innerHeight
+                },
+                locale: {
+                    language: navigator.language,
+                    languages: navigator.languages,
+                    timezoneOffset: new Date().getTimezoneOffset(),
+                    resolvedTimezone: (() => {
+                        try { return Intl.DateTimeFormat().resolvedOptions().timeZone; }
+                        catch { return ""; }
+                    })()
+                },
+                timing
+            };
+        }
+
+        function testJSEngineFingerprint() {
+            let errorStackFormat = "";
+            try {
+                throw new Error("test");
+            } catch (e) {
+                errorStackFormat = (e.stack || "").slice(0, 50);
+            }
+
+            return {
+                errorStackFormat,
+                functionToStringLength: Function.prototype.toString.toString().length,
+                performanceNowPrecision: performance.now() % 1,
+                mathConstantLength: Math.PI.toString().length,
+                regexUnicodeSupport: /\u{1F4A9}/u.test('💩'),
+                arrayStringifyBehavior: JSON.stringify([undefined, null, 1]),
+                objectToStringResult: Object.prototype.toString.call(window)
+            };
+        }
+
+        async function runAllTests() {
+            const results = document.getElementById('results');
+            
+            // Test Audio Context
+            const audioResult = await testAudioContext();
+            results.innerHTML += `
+                <div class="detection-result">
+                    <div class="detection-title">🎵 Audio Context Detection</div>
+                    <pre>${JSON.stringify(audioResult, null, 2)}</pre>
+                </div>
+            `;
+
+            // Test API Matrix
+            const apiResult = testAPIMatrix();
+            results.innerHTML += `
+                <div class="detection-result">
+                    <div class="detection-title">🔌 API Matrix Detection</div>
+                    <pre>${JSON.stringify(apiResult, null, 2)}</pre>
+                </div>
+            `;
+
+            // Test Environment Inconsistency
+            const envResult = testEnvironmentInconsistency();
+            results.innerHTML += `
+                <div class="detection-result">
+                    <div class="detection-title">🌍 Environment Inconsistency Detection</div>
+                    <pre>${JSON.stringify(envResult, null, 2)}</pre>
+                </div>
+            `;
+
+            // Test JS Engine Fingerprint
+            const engineResult = testJSEngineFingerprint();
+            results.innerHTML += `
+                <div class="detection-result">
+                    <div class="detection-title">⚙️ JavaScript Engine Fingerprint</div>
+                    <pre>${JSON.stringify(engineResult, null, 2)}</pre>
+                </div>
+            `;
+
+            // Send a tracking pixel with the data
+            const pixelData = {
+                audioContext: audioResult,
+                apiMatrix: apiResult,
+                environment: envResult,
+                jsEngine: engineResult
+            };
+
+            // This would normally be sent to your tracking endpoint
+            console.log('Detection data that would be sent to GoTrack:', pixelData);
+            
+            // Show a summary
+            results.innerHTML += `
+                <div class="detection-result">
+                    <div class="detection-title">📊 Summary</div>
+                    <p>Audio Context Available: ${audioResult.available ? '✅' : '❌'}</p>
+                    <p>Browser Type: ${apiResult.browser.isChrome ? 'Chrome' : apiResult.browser.isFirefox ? 'Firefox' : apiResult.browser.isSafari ? 'Safari' : 'Other'}</p>
+                    <p>Platform: ${apiResult.browser.isMobile ? 'Mobile' : 'Desktop'}</p>
+                    <p>Touch Points: ${apiResult.apis.maxTouchPoints}</p>
+                    <p>WebGL Available: ${envResult.screen.devicePixelRatio > 0 ? '✅' : '❌'}</p>
+                    <p>Timezone: ${envResult.locale.resolvedTimezone}</p>
+                </div>
+            `;
+        }
+
+        // Run tests when page loads
+        document.addEventListener('DOMContentLoaded', runAllTests);
+    </script>
+</body>
+</html>
