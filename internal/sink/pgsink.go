@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/lib/pq"
-	"revinar.io/go.track/internal/event"
+	"github.com/shortontech/gotrack/internal/event"
 )
 
 // validSQLIdentifier matches valid SQL identifiers (table/column names)

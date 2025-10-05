@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"revinar.io/go.track/internal/event"
+	"github.com/shortontech/gotrack/internal/event"
 )
 
 // TestNewLogSink tests LogSink creation

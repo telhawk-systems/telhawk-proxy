@@ -1,6 +1,6 @@
 package event
 
-import "revinar.io/go.track/internal/event/detection"
+import "github.com/shortontech/gotrack/internal/event/detection"
 
 // High-level envelope. Optional fields are omitted when empty.
 type Event struct {

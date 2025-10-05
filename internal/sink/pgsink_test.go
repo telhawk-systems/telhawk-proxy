@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"revinar.io/go.track/internal/event"
+	"github.com/shortontech/gotrack/internal/event"
 )
 
 // TestValidateTableName tests SQL injection prevention

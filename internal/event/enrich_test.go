@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"revinar.io/go.track/pkg/config"
+	"github.com/shortontech/gotrack/pkg/config"
 )
 
 func TestEnrichServerFields(t *testing.T) {

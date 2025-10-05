@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
-	"revinar.io/go.track/internal/event"
+	"github.com/shortontech/gotrack/internal/event"
 )
 
 // KafkaConfig holds configuration for Kafka producer

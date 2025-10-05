@@ -1,4 +1,4 @@
-module revinar.io/go.track
+module github.com/shortontech/gotrack
 
 go 1.23.0
 

@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"revinar.io/go.track/internal/metrics"
+	"github.com/shortontech/gotrack/internal/metrics"
 )
 
 func RequestLogger(next http.Handler) http.Handler {

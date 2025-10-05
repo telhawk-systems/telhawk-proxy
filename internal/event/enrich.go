@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"revinar.io/go.track/internal/event/detection"
-	"revinar.io/go.track/pkg/config"
+	"github.com/shortontech/gotrack/internal/event/detection"
+	"github.com/shortontech/gotrack/pkg/config"
 )
 
 // Normalize fields that the server can set/augment safely.

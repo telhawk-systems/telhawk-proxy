@@ -7,7 +7,7 @@ import (
 	"os"
 	"sync"
 
-	"revinar.io/go.track/internal/event"
+	"github.com/shortontech/gotrack/internal/event"
 )
 
 type LogSink struct {

@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strings"
 
-	event "revinar.io/go.track/internal/event"
-	"revinar.io/go.track/internal/metrics"
-	cfg "revinar.io/go.track/pkg/config"
+	event "github.com/shortontech/gotrack/internal/event"
+	"github.com/shortontech/gotrack/internal/metrics"
+	cfg "github.com/shortontech/gotrack/pkg/config"
 )
 
 var pixelGIF = []byte{

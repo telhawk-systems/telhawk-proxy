@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"revinar.io/go.track/internal/metrics"
+	"github.com/shortontech/gotrack/internal/metrics"
 )
 
 // TestRequestLogger tests the request logging middleware

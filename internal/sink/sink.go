@@ -3,7 +3,7 @@ package sink
 import (
 	"context"
 
-	"revinar.io/go.track/internal/event"
+	"github.com/shortontech/gotrack/internal/event"
 )
 
 type Sink interface {

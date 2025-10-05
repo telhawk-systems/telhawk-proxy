@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"revinar.io/go.track/internal/event"
-	"revinar.io/go.track/internal/metrics"
-	"revinar.io/go.track/pkg/config"
+	"github.com/shortontech/gotrack/internal/event"
+	"github.com/shortontech/gotrack/internal/metrics"
+	"github.com/shortontech/gotrack/pkg/config"
 )
 
 // TestIsHTMLContent tests HTML content type detection

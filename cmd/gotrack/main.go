@@ -13,11 +13,11 @@ import (
 	"syscall"
 	"time"
 
-	"revinar.io/go.track/internal/event"
-	httpx "revinar.io/go.track/internal/http"
-	"revinar.io/go.track/internal/metrics"
-	"revinar.io/go.track/internal/sink"
-	"revinar.io/go.track/pkg/config"
+	"github.com/shortontech/gotrack/internal/event"
+	httpx "github.com/shortontech/gotrack/internal/http"
+	"github.com/shortontech/gotrack/internal/metrics"
+	"github.com/shortontech/gotrack/internal/sink"
+	"github.com/shortontech/gotrack/pkg/config"
 )
 
 func main() {
