@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"revinar.io/go.track/internal/event/detection"
 	"revinar.io/go.track/pkg/config"
 )
 
@@ -43,7 +44,7 @@ func EnrichServerFields(r *http.Request, e *Event, cfg config.Config) {
 
 	// Server-side detection signals (raw data, no scoring)
 	body := []byte{} // TODO: Pass actual body if available
-	e.Server.Detection = AnalyzeServerDetectionSignals(r, body)
+	e.Server.Detection = detection.AnalyzeServerDetectionSignals(r, body)
 }
 
 // Extract UTM & known click ids directly from the request URL (server-side fallback).

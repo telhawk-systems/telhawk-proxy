@@ -1,5 +1,7 @@
 package event
 
+import "revinar.io/go.track/internal/event/detection"
+
 // High-level envelope. Optional fields are omitted when empty.
 type Event struct {
 	EventID string `json:"event_id,omitempty"`
@@ -143,9 +145,9 @@ type SessionInfo struct {
 // --- Server enrich ---
 
 type ServerMeta struct {
-	IP         string            `json:"ip_hash,omitempty"` // hash of client IP (if enabled)
-	Geo        map[string]string `json:"geo,omitempty"`     // coarse {country,region,city}
-	Detection  ServerDetectionSignals `json:"detection,omitempty"` // Raw detection signals
+	IP        string                          `json:"ip_hash,omitempty"` // hash of client IP (if enabled)
+	Geo       map[string]string               `json:"geo,omitempty"`     // coarse {country,region,city}
+	Detection detection.ServerDetectionSignals `json:"detection,omitempty"` // Raw detection signals
 }
 
 // --- Consent ---
