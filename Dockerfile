@@ -1,6 +1,6 @@
 # ---- builder ----
 FROM golang:1.25 AS builder
-ENV CGO_ENABLED=0 GO111MODULE=on GOTOOLCHAIN=auto
+ENV CGO_ENABLED=1 GO111MODULE=on GOTOOLCHAIN=auto
 WORKDIR /src
 
 COPY go.mod ./

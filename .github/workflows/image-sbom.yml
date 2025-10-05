@@ -1,0 +1,45 @@
+name: Image Scan & SBOM (app path)
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image (uses ./Dockerfile)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          load: true
+          tags: gotrack:ci
+
+      - name: Generate SBOM (SPDX JSON) with Trivy
+        uses: aquasecurity/trivy-action@0.33.0
+        with:
+          scan-type: image
+          image-ref: gotrack:ci
+          format: spdx-json
+          output: sbom.spdx.json
+          exit-code: '0'   # do not fail the job on findings
+
+      - name: Upload SBOM artifact (single upload, safe name)
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ github.sha }}
+          path: sbom.spdx.json
+          if-no-files-found: error
+          retention-days: 7

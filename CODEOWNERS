@@ -1,0 +1,11 @@
+# Require review from security team on critical changes
+* @shortontech
+
+# Core detection logic requires review
+/js/src/detect/* @shortontech
+/internal/event/* @shortontech
+
+# CI/CD and security configs require review
+/.github/workflows/* @shortontech
+/Dockerfile @shortontech
+/docker-compose*.yml @shortontech
