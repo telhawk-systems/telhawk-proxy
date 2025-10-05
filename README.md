@@ -2,6 +2,8 @@
 
 [![Tests](https://github.com/shortontech/gotrack/actions/workflows/test-coverage.yml/badge.svg)](https://github.com/shortontech/gotrack/actions/workflows/test-coverage.yml)
 [![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/shortontech/06522d3b723a877fce2c749350f6dc83/raw/gotrack-coverage.json)](https://github.com/shortontech/gotrack/actions/workflows/test-coverage.yml)
+[![JS Tests](https://github.com/shortontech/gotrack/actions/workflows/js-test-coverage.yml/badge.svg)](https://github.com/shortontech/gotrack/actions/workflows/js-test-coverage.yml)
+[![JS Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/shortontech/06522d3b723a877fce2c749350f6dc83/raw/gotrack-js-coverage.json)](https://github.com/shortontech/gotrack/actions/workflows/js-test-coverage.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/shortontech/gotrack)](https://goreportcard.com/report/github.com/shortontech/gotrack)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -512,6 +514,51 @@ services:
 make test   # or: go test ./...
 ```
 
+### JavaScript/TypeScript Testing
+
+The client-side tracking library (`js/`) has comprehensive test coverage:
+
+```bash
+cd js
+
+# Install dependencies
+npm ci
+
+# Run tests with coverage
+npm test -- --coverage
+
+# Run tests in watch mode
+npm test -- --watch
+
+# Type checking
+npx tsc --noEmit
+
+# Linting
+npm run lint
+
+# Build the library
+npm run build
+```
+
+**Test Coverage:**
+- Unit tests: `js/test/unit/`
+- Current coverage: ~84% on core modules
+- Coverage reports: `js/coverage/lcov-report/index.html`
+
+**CI/CD Integration:**
+- Automated tests run on all PRs touching `js/` code
+- TypeScript type checking enforced
+- Coverage tracked and badged
+- Build verification ensures library compiles
+
+**Key test files:**
+- `rand.test.ts` - Random number generation
+- `batch.test.ts` - Event batching and queuing
+- `sign.test.ts` - HMAC signing for authenticated requests
+- `session.test.ts` - Session ID management with localStorage
+- `webdriver.test.ts` - Bot/automation detection
+- `plugins.test.ts` - Browser plugin detection
+
 ### Quick Testing
 
 ```bash
@@ -528,6 +575,53 @@ tail -f out/events.ndjson              # Log files
 ./deploy/manage.sh kafka-console       # Kafka messages  
 ./deploy/manage.sh psql                # PostgreSQL: SELECT * FROM events_json;
 ```
+
+---
+
+## 🔄 CI/CD & Quality Gates
+
+GoTrack has comprehensive automated testing and quality checks via GitHub Actions:
+
+### Go Backend Workflows
+
+**Tests & Coverage** (`.github/workflows/test-coverage.yml`)
+- Runs on all PRs and pushes to main
+- Executes full test suite with race detector
+- Tracks code coverage (82-100% across packages)
+- Generates coverage badges and PR comments
+- Uploads coverage artifacts
+
+**Code Quality** (`.github/workflows/code-quality.yml`)
+- Enforces cyclomatic complexity ≤15 for non-test code
+- Fails build if complexity thresholds exceeded
+- Posts detailed complexity reports on PRs
+- Tracks top 10 most complex functions
+
+### JavaScript/TypeScript Workflows
+
+**JS Tests & Coverage** (`.github/workflows/js-test-coverage.yml`)
+- Runs when `js/` code changes
+- TypeScript type checking with `tsc --noEmit`
+- ESLint linting (non-blocking)
+- Jest unit tests with coverage reporting
+- Coverage threshold: 60% (warning)
+- Build verification with Rollup
+- Generates JS coverage badges
+
+### Security Scans
+
+**SAST** - Static Application Security Testing (Semgrep)
+**DAST** - Dynamic Application Security Testing (OWASP ZAP)
+**Secret Scanning** - gitleaks for committed secrets
+**Dependency Scanning** - Trivy for vulnerable dependencies
+**Container Scanning** - SBOM generation and vulnerability scanning
+
+### Quality Metrics
+
+- **Go Coverage:** 82-100% across most packages
+- **JS Coverage:** ~84% on tested modules (growing)
+- **Complexity:** All non-test functions ≤15 cyclomatic complexity
+- **Security:** Automated scanning on every commit
 
 ---
 
