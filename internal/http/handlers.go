@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 
 	event "github.com/shortontech/gotrack/internal/event"
@@ -27,6 +29,47 @@ type Env struct {
 func (e Env) Healthz(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte("ok"))
+}
+
+func (e Env) ServePixelJS(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Determine which file to serve based on the path
+	var filename string
+	switch r.URL.Path {
+	case "/pixel.js", "/pixel.umd.js":
+		filename = "pixel.umd.js"
+	case "/pixel.esm.js":
+		filename = "pixel.esm.js"
+	default:
+		http.NotFound(w, r)
+		return
+	}
+
+	// Try to read from the static directory
+	staticPath := filepath.Join("static", filename)
+	content, err := os.ReadFile(staticPath)
+	if err != nil {
+		// If file doesn't exist, return 404
+		http.NotFound(w, r)
+		return
+	}
+
+	// Set appropriate headers
+	w.Header().Set("Content-Type", "application/javascript")
+	w.Header().Set("Cache-Control", "public, max-age=3600") // Cache for 1 hour
+	w.Header().Set("Access-Control-Allow-Origin", "*")       // Allow CORS for pixel script
+
+	if r.Method == http.MethodHead {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(content)
 }
 
 func (e Env) Readyz(w http.ResponseWriter, r *http.Request) {

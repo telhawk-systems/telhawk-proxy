@@ -234,6 +234,9 @@ func TestIsTrackingPath(t *testing.T) {
 		{"/metrics", true},
 		{"/hmac.js", true},
 		{"/hmac/public-key", true},
+		{"/pixel.js", true},
+		{"/pixel.umd.js", true},
+		{"/pixel.esm.js", true},
 		{"/", false},
 		{"/index.html", false},
 		{"/api/users", false},
@@ -241,6 +244,8 @@ func TestIsTrackingPath(t *testing.T) {
 		{"/collect/extra", false},
 		{"/health", false},
 		{"/hmac", false},
+		{"/pixel", false},
+		{"/pixel.min.js", false},
 	}
 
 	for _, tt := range tests {
@@ -547,7 +552,7 @@ func TestMiddlewareRouterServeHTTP(t *testing.T) {
 	})
 
 	t.Run("routes all standard tracking paths", func(t *testing.T) {
-		trackingPaths := []string{"/px.gif", "/collect", "/healthz", "/readyz", "/metrics", "/hmac.js", "/hmac/public-key"}
+		trackingPaths := []string{"/px.gif", "/collect", "/healthz", "/readyz", "/metrics", "/hmac.js", "/hmac/public-key", "/pixel.js", "/pixel.umd.js", "/pixel.esm.js"}
 
 		for _, path := range trackingPaths {
 			t.Run(path, func(t *testing.T) {

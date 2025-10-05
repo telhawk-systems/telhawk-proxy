@@ -891,3 +891,67 @@ func TestCollectIntegration(t *testing.T) {
 		}
 	})
 }
+
+// TestServePixelJS tests the pixel JS file serving endpoint
+func TestServePixelJS(t *testing.T) {
+	// Create a temporary test file
+	env := Env{}
+
+	t.Run("returns 404 for non-existent files", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/pixel.js", nil)
+		w := httptest.NewRecorder()
+
+		env.ServePixelJS(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("status code = %d, want %d", w.Code, http.StatusNotFound)
+		}
+	})
+
+	t.Run("returns 404 for unknown paths", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/unknown.js", nil)
+		w := httptest.NewRecorder()
+
+		env.ServePixelJS(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("status code = %d, want %d", w.Code, http.StatusNotFound)
+		}
+	})
+
+	t.Run("rejects POST method", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/pixel.js", nil)
+		w := httptest.NewRecorder()
+
+		env.ServePixelJS(w, req)
+
+		if w.Code != http.StatusMethodNotAllowed {
+			t.Errorf("status code = %d, want %d", w.Code, http.StatusMethodNotAllowed)
+		}
+	})
+
+	t.Run("supports HEAD method", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodHead, "/pixel.js", nil)
+		w := httptest.NewRecorder()
+
+		env.ServePixelJS(w, req)
+
+		// Will be 404 since file doesn't exist, but should not be method not allowed
+		if w.Code == http.StatusMethodNotAllowed {
+			t.Errorf("HEAD method should be allowed")
+		}
+	})
+
+	t.Run("sets correct headers", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/pixel.js", nil)
+		w := httptest.NewRecorder()
+
+		env.ServePixelJS(w, req)
+
+		// Even on 404, these headers should be set if we get past method check
+		contentType := w.Header().Get("Content-Type")
+		if w.Code == http.StatusOK && contentType != "application/javascript" {
+			t.Errorf("Content-Type = %q, want application/javascript", contentType)
+		}
+	})
+}

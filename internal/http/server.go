@@ -210,7 +210,18 @@ func (m *MiddlewareRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // isTrackingPath determines if a path should be handled by the tracking server
 func isTrackingPath(path string) bool {
-	trackingPaths := []string{"/px.gif", "/collect", "/healthz", "/readyz", "/metrics", "/hmac.js", "/hmac/public-key"}
+	trackingPaths := []string{
+		"/px.gif",
+		"/collect",
+		"/healthz",
+		"/readyz",
+		"/metrics",
+		"/hmac.js",
+		"/hmac/public-key",
+		"/pixel.js",
+		"/pixel.umd.js",
+		"/pixel.esm.js",
+	}
 	for _, trackingPath := range trackingPaths {
 		if path == trackingPath {
 			return true
@@ -229,6 +240,11 @@ func NewMux(e Env) http.Handler {
 	// HMAC authentication endpoints
 	mux.HandleFunc("/hmac.js", e.HMACScript)
 	mux.HandleFunc("/hmac/public-key", e.HMACPublicKey)
+
+	// Pixel JS distribution endpoints
+	mux.HandleFunc("/pixel.js", e.ServePixelJS)
+	mux.HandleFunc("/pixel.umd.js", e.ServePixelJS)
+	mux.HandleFunc("/pixel.esm.js", e.ServePixelJS)
 
 	// If middleware mode is enabled and we have a destination, wrap with proxy
 	if e.Cfg.MiddlewareMode && e.Cfg.ForwardDestination != "" {

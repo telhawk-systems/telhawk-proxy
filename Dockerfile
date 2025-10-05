@@ -1,5 +1,13 @@
-# ---- builder ----
-FROM golang:1.25 AS builder
+# ---- js-builder ----
+FROM node:20-slim AS js-builder
+WORKDIR /js
+COPY js/package*.json ./
+RUN npm ci --production=false
+COPY js/ ./
+RUN npm run build
+
+# ---- go-builder ----
+FROM golang:1.25 AS go-builder
 ENV CGO_ENABLED=1 GO111MODULE=on GOTOOLCHAIN=auto
 WORKDIR /src
 
@@ -17,7 +25,9 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 FROM gcr.io/distroless/base-debian12:nonroot AS runner
 WORKDIR /app
 USER nonroot:nonroot
-COPY --from=builder /bin/gotrack /app/gotrack
+COPY --from=go-builder /bin/gotrack /app/gotrack
+COPY --from=js-builder /js/dist /app/static
+COPY --from=js-builder /js/package.json /js/package-lock.json /app/static/
 
 # Create directory for SSL certificates (if needed)
 # Note: SSL certificates should be mounted as volumes in production
