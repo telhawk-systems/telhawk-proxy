@@ -138,7 +138,7 @@ func (s *PGSink) Enqueue(e event.Event) error {
 	s.flushTimer = time.AfterFunc(time.Duration(s.config.FlushMS)*time.Millisecond, func() {
 		s.batchMutex.Lock()
 		defer s.batchMutex.Unlock()
-		s.flushBatch()
+		_ = s.flushBatch() // Error logged within flushBatch
 	})
 	
 	return nil
@@ -214,7 +214,7 @@ func (s *PGSink) flushRoutine() {
 			return
 		case <-ticker.C:
 			s.batchMutex.Lock()
-			s.flushBatch()
+			_ = s.flushBatch() // Error logged within flushBatch
 			s.batchMutex.Unlock()
 		}
 	}

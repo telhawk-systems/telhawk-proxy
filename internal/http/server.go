@@ -158,11 +158,13 @@ func injectPixel(body []byte, r *http.Request, hmacAuth *HMACAuth) []byte {
 	if hmacAuth != nil {
 		// Include HMAC script for automatic authentication
 		// Escape pixel URL for safe HTML insertion
+		// nosemgrep: go.lang.security.injection.raw-html-format.raw-html-format
 		injectedContent = fmt.Sprintf(`<script src="/hmac.js"></script>
 <img src="%s" width="1" height="1" style="display:none" alt="">`, template.HTMLEscapeString(pixelURL))
 	} else {
 		// Just the pixel without HMAC
 		// Escape pixel URL for safe HTML insertion
+		// nosemgrep: go.lang.security.injection.raw-html-format.raw-html-format
 		injectedContent = fmt.Sprintf(`<img src="%s" width="1" height="1" style="display:none" alt="">`, template.HTMLEscapeString(pixelURL))
 	}
 	
