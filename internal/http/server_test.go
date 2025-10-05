@@ -89,63 +89,47 @@ func TestIsHTMLContent(t *testing.T) {
 }
 
 // TestInjectPixel tests pixel injection into HTML
+func assertPixelInjected(t *testing.T, result string, beforeTag string) {
+	t.Helper()
+	if !strings.Contains(result, `<img src="/px.gif`) {
+		t.Errorf("should inject pixel, got: %s", result)
+	}
+	if beforeTag != "" {
+		tagIndex := strings.Index(result, beforeTag)
+		pixelIndex := strings.Index(result, `<img src="/px.gif`)
+		if pixelIndex >= tagIndex {
+			t.Errorf("pixel should be injected before %s tag", beforeTag)
+		}
+	}
+}
+
 func TestInjectPixel(t *testing.T) {
 	t.Run("injects before closing body tag", func(t *testing.T) {
 		html := []byte("<html><body><h1>Hello</h1></body></html>")
 		req := httptest.NewRequest(http.MethodGet, "/test?utm_source=test", nil)
-
-		result := injectPixel(html, req, nil)
-		resultStr := string(result)
-
-		// Check that pixel is injected with proper URL encoding
-		// Note: HTML escaping converts & to &amp;
-		if !strings.Contains(resultStr, `<img src="/px.gif?e=pageview&amp;auto=1&amp;url=`) {
-			t.Errorf("should inject pixel, got: %s", resultStr)
+		result := string(injectPixel(html, req, nil))
+		assertPixelInjected(t, result, "</body>")
+		if !strings.Contains(result, `<img src="/px.gif?e=pageview&amp;auto=1&amp;url=`) {
+			t.Errorf("should inject pixel with proper URL encoding, got: %s", result)
 		}
-
-		if !strings.Contains(resultStr, `width="1" height="1" style="display:none"`) {
+		if !strings.Contains(result, `width="1" height="1" style="display:none"`) {
 			t.Error("pixel should have proper attributes")
-		}
-
-		// Check that pixel is before </body>
-		bodyCloseIndex := strings.Index(resultStr, "</body>")
-		pixelIndex := strings.Index(resultStr, `<img src="/px.gif`)
-		if pixelIndex >= bodyCloseIndex {
-			t.Error("pixel should be injected before </body> tag")
 		}
 	})
 
 	t.Run("injects before closing html tag when no body tag", func(t *testing.T) {
 		html := []byte("<html><div>Content</div></html>")
 		req := httptest.NewRequest(http.MethodGet, "/page", nil)
-
-		result := injectPixel(html, req, nil)
-		resultStr := string(result)
-
-		if !strings.Contains(resultStr, `<img src="/px.gif`) {
-			t.Error("should inject pixel")
-		}
-
-		// Check that pixel is before </html>
-		htmlCloseIndex := strings.Index(resultStr, "</html>")
-		pixelIndex := strings.Index(resultStr, `<img src="/px.gif`)
-		if pixelIndex >= htmlCloseIndex {
-			t.Error("pixel should be injected before </html> tag")
-		}
+		result := string(injectPixel(html, req, nil))
+		assertPixelInjected(t, result, "</html>")
 	})
 
 	t.Run("appends to end when no closing tags", func(t *testing.T) {
 		html := []byte("<div>Content without closing tags")
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
-
-		result := injectPixel(html, req, nil)
-		resultStr := string(result)
-
-		if !strings.Contains(resultStr, `<img src="/px.gif`) {
-			t.Error("should inject pixel")
-		}
-
-		if !strings.HasSuffix(strings.TrimSpace(resultStr), `alt="">`) {
+		result := string(injectPixel(html, req, nil))
+		assertPixelInjected(t, result, "")
+		if !strings.HasSuffix(strings.TrimSpace(result), `alt="">`) {
 			t.Error("pixel should be appended to end")
 		}
 	})
@@ -154,56 +138,28 @@ func TestInjectPixel(t *testing.T) {
 		html := []byte("<html><body>Test</body></html>")
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		auth := NewHMACAuth("test-secret", "", false)
-
-		result := injectPixel(html, req, auth)
-		resultStr := string(result)
-
-		if !strings.Contains(resultStr, `<script src="/hmac.js"></script>`) {
+		result := string(injectPixel(html, req, auth))
+		if !strings.Contains(result, `<script src="/hmac.js"></script>`) {
 			t.Error("should include HMAC script")
 		}
-
-		if !strings.Contains(resultStr, `<img src="/px.gif`) {
-			t.Error("should still include pixel")
-		}
+		assertPixelInjected(t, result, "")
 	})
 
 	t.Run("handles case insensitive closing tags", func(t *testing.T) {
 		html := []byte("<html><body>Test</BODY></html>")
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
-
-		result := injectPixel(html, req, nil)
-		resultStr := string(result)
-
-		if !strings.Contains(resultStr, `<img src="/px.gif`) {
-			t.Errorf("should inject pixel, got: %s", resultStr)
-		}
-
-		// The regex replaces </BODY> with pixel + </body>, so check for that
-		if !strings.Contains(resultStr, "</body>") && !strings.Contains(resultStr, "</BODY>") {
+		result := string(injectPixel(html, req, nil))
+		assertPixelInjected(t, result, "")
+		if !strings.Contains(result, "</body>") && !strings.Contains(result, "</BODY>") {
 			t.Error("should preserve body closing tag (case may change)")
-		}
-
-		// Pixel should be present before the closing tag
-		bodyCloseIndex := strings.LastIndex(resultStr, "body>")
-		pixelIndex := strings.Index(resultStr, `<img src="/px.gif`)
-		if bodyCloseIndex < 0 {
-			t.Error("body closing tag not found")
-		} else if pixelIndex < 0 {
-			t.Error("pixel not found")
-		} else if pixelIndex >= bodyCloseIndex {
-			t.Errorf("pixel should be injected before body closing tag, pixel at %d, body at %d", pixelIndex, bodyCloseIndex)
 		}
 	})
 
 	t.Run("escapes special characters in URL", func(t *testing.T) {
 		html := []byte("<html><body>Test</body></html>")
 		req := httptest.NewRequest(http.MethodGet, "/test?q=foo&bar=baz<script>", nil)
-
-		result := injectPixel(html, req, nil)
-		resultStr := string(result)
-
-		// URL should be properly escaped
-		if strings.Contains(resultStr, "<script>") && !strings.Contains(resultStr, `%3Cscript%3E`) {
+		result := string(injectPixel(html, req, nil))
+		if strings.Contains(result, "<script>") && !strings.Contains(result, `%3Cscript%3E`) {
 			t.Error("special characters should be escaped in URL")
 		}
 	})
@@ -211,11 +167,8 @@ func TestInjectPixel(t *testing.T) {
 	t.Run("handles path without query string", func(t *testing.T) {
 		html := []byte("<html><body>Test</body></html>")
 		req := httptest.NewRequest(http.MethodGet, "/simple", nil)
-
-		result := injectPixel(html, req, nil)
-		resultStr := string(result)
-
-		if !strings.Contains(resultStr, `url=%2Fsimple"`) {
+		result := string(injectPixel(html, req, nil))
+		if !strings.Contains(result, `url=%2Fsimple"`) {
 			t.Error("should encode simple path")
 		}
 	})

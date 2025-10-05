@@ -262,9 +262,60 @@ func TestGetStringSlice(t *testing.T) {
 	}
 }
 
+func assertConfigStringField(t *testing.T, got, want, field string) {
+	t.Helper()
+	if got != want {
+		t.Errorf("%s = %v, want %v", field, got, want)
+	}
+}
+
+func assertConfigBoolField(t *testing.T, got, want bool, field string) {
+	t.Helper()
+	if got != want {
+		t.Errorf("%s = %v, want %v", field, got, want)
+	}
+}
+
+func assertConfigFields(t *testing.T, cfg Config, expected map[string]interface{}) {
+	t.Helper()
+	if val, ok := expected["ServerAddr"].(string); ok {
+		assertConfigStringField(t, cfg.ServerAddr, val, "ServerAddr")
+	}
+	if val, ok := expected["TrustProxy"].(bool); ok {
+		assertConfigBoolField(t, cfg.TrustProxy, val, "TrustProxy")
+	}
+	if val, ok := expected["DNTRespect"].(bool); ok {
+		assertConfigBoolField(t, cfg.DNTRespect, val, "DNTRespect")
+	}
+	if val, ok := expected["MaxBodyBytes"].(int64); ok && cfg.MaxBodyBytes != val {
+		t.Errorf("MaxBodyBytes = %v, want %v", cfg.MaxBodyBytes, val)
+	}
+	if val, ok := expected["IPHashSecret"].(string); ok {
+		assertConfigStringField(t, cfg.IPHashSecret, val, "IPHashSecret")
+	}
+	if val, ok := expected["Outputs"].([]string); ok {
+		if len(cfg.Outputs) != len(val) {
+			t.Errorf("Outputs = %v, want %v", cfg.Outputs, val)
+		} else {
+			for i, want := range val {
+				if cfg.Outputs[i] != want {
+					t.Errorf("Outputs[%d] = %v, want %v", i, cfg.Outputs[i], want)
+				}
+			}
+		}
+	}
+	if val, ok := expected["TestMode"].(bool); ok {
+		assertConfigBoolField(t, cfg.TestMode, val, "TestMode")
+	}
+	if val, ok := expected["EnableHTTPS"].(bool); ok {
+		assertConfigBoolField(t, cfg.EnableHTTPS, val, "EnableHTTPS")
+	}
+	if val, ok := expected["MetricsEnabled"].(bool); ok {
+		assertConfigBoolField(t, cfg.MetricsEnabled, val, "MetricsEnabled")
+	}
+}
+
 func TestLoad(t *testing.T) {
-	// Save current env
-	oldEnv := make(map[string]string)
 	envVars := []string{
 		"SERVER_ADDR", "TRUST_PROXY", "DNT_RESPECT", "MAX_BODY_BYTES",
 		"IP_HASH_SECRET", "OUTPUTS", "TEST_MODE", "ENABLE_HTTPS",
@@ -274,6 +325,7 @@ func TestLoad(t *testing.T) {
 		"METRICS_ADDR", "METRICS_TLS_CERT", "METRICS_TLS_KEY",
 		"METRICS_CLIENT_CA", "METRICS_REQUIRE_TLS",
 	}
+	oldEnv := make(map[string]string)
 	for _, key := range envVars {
 		oldEnv[key] = os.Getenv(key)
 		os.Unsetenv(key)
@@ -288,22 +340,13 @@ func TestLoad(t *testing.T) {
 
 	t.Run("loads defaults when no env vars set", func(t *testing.T) {
 		cfg := Load()
-
-		if cfg.ServerAddr != ":19890" {
-			t.Errorf("ServerAddr = %v, want :19890", cfg.ServerAddr)
-		}
-		if cfg.TrustProxy != false {
-			t.Errorf("TrustProxy = %v, want false", cfg.TrustProxy)
-		}
-		if cfg.DNTRespect != true {
-			t.Errorf("DNTRespect = %v, want true", cfg.DNTRespect)
-		}
-		if cfg.MaxBodyBytes != 1<<20 {
-			t.Errorf("MaxBodyBytes = %v, want %v", cfg.MaxBodyBytes, 1<<20)
-		}
-		if len(cfg.Outputs) != 1 || cfg.Outputs[0] != "log" {
-			t.Errorf("Outputs = %v, want [log]", cfg.Outputs)
-		}
+		assertConfigFields(t, cfg, map[string]interface{}{
+			"ServerAddr":   ":19890",
+			"TrustProxy":   false,
+			"DNTRespect":   true,
+			"MaxBodyBytes": int64(1 << 20),
+			"Outputs":      []string{"log"},
+		})
 	})
 
 	t.Run("loads custom values from env", func(t *testing.T) {
@@ -316,35 +359,17 @@ func TestLoad(t *testing.T) {
 		os.Setenv("TEST_MODE", "yes")
 		os.Setenv("ENABLE_HTTPS", "1")
 		os.Setenv("METRICS_ENABLED", "true")
-
 		cfg := Load()
-
-		if cfg.ServerAddr != ":8080" {
-			t.Errorf("ServerAddr = %v, want :8080", cfg.ServerAddr)
-		}
-		if cfg.TrustProxy != true {
-			t.Errorf("TrustProxy = %v, want true", cfg.TrustProxy)
-		}
-		if cfg.DNTRespect != false {
-			t.Errorf("DNTRespect = %v, want false", cfg.DNTRespect)
-		}
-		if cfg.MaxBodyBytes != 2097152 {
-			t.Errorf("MaxBodyBytes = %v, want 2097152", cfg.MaxBodyBytes)
-		}
-		if cfg.IPHashSecret != "my-secret" {
-			t.Errorf("IPHashSecret = %v, want my-secret", cfg.IPHashSecret)
-		}
-		if len(cfg.Outputs) != 2 || cfg.Outputs[0] != "kafka" || cfg.Outputs[1] != "postgres" {
-			t.Errorf("Outputs = %v, want [kafka postgres]", cfg.Outputs)
-		}
-		if cfg.TestMode != true {
-			t.Errorf("TestMode = %v, want true", cfg.TestMode)
-		}
-		if cfg.EnableHTTPS != true {
-			t.Errorf("EnableHTTPS = %v, want true", cfg.EnableHTTPS)
-		}
-		if cfg.MetricsEnabled != true {
-			t.Errorf("MetricsEnabled = %v, want true", cfg.MetricsEnabled)
-		}
+		assertConfigFields(t, cfg, map[string]interface{}{
+			"ServerAddr":     ":8080",
+			"TrustProxy":     true,
+			"DNTRespect":     false,
+			"MaxBodyBytes":   int64(2097152),
+			"IPHashSecret":   "my-secret",
+			"Outputs":        []string{"kafka", "postgres"},
+			"TestMode":       true,
+			"EnableHTTPS":    true,
+			"MetricsEnabled": true,
+		})
 	})
 }

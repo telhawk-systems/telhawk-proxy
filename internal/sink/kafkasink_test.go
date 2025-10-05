@@ -6,130 +6,121 @@ import (
 	"testing"
 )
 
-// TestNewKafkaSinkFromEnv tests creation from environment variables
+func withEnvVars(t *testing.T, vars map[string]string, fn func()) {
+	t.Helper()
+	oldValues := make(map[string]string)
+	for key, val := range vars {
+		oldValues[key] = os.Getenv(key)
+		if val == "" {
+			os.Unsetenv(key)
+		} else {
+			os.Setenv(key, val)
+		}
+	}
+	defer func() {
+		for key, val := range oldValues {
+			if val != "" {
+				os.Setenv(key, val)
+			} else {
+				os.Unsetenv(key)
+			}
+		}
+	}()
+	fn()
+}
+
+func assertStringField(t *testing.T, got, want, field string) {
+	t.Helper()
+	if got != want {
+		t.Errorf("%s = %q, want %q", field, got, want)
+	}
+}
+
+func assertKafkaConfig(t *testing.T, cfg KafkaConfig, expected map[string]interface{}) {
+	t.Helper()
+	if brokers, ok := expected["brokers"].([]string); ok {
+		if len(cfg.Brokers) != len(brokers) {
+			t.Errorf("Brokers length = %d, want %d", len(cfg.Brokers), len(brokers))
+		}
+		for i, want := range brokers {
+			if i < len(cfg.Brokers) && cfg.Brokers[i] != want {
+				t.Errorf("Broker[%d] = %q, want %q", i, cfg.Brokers[i], want)
+			}
+		}
+	}
+	if val, ok := expected["topic"].(string); ok {
+		assertStringField(t, cfg.Topic, val, "Topic")
+	}
+	if val, ok := expected["acks"].(string); ok {
+		assertStringField(t, cfg.Acks, val, "Acks")
+	}
+	if val, ok := expected["compression"].(string); ok {
+		assertStringField(t, cfg.Compression, val, "Compression")
+	}
+	if val, ok := expected["sasl_mechanism"].(string); ok {
+		assertStringField(t, cfg.SASLMechanism, val, "SASLMechanism")
+	}
+	if val, ok := expected["sasl_user"].(string); ok {
+		assertStringField(t, cfg.SASLUser, val, "SASLUser")
+	}
+	if val, ok := expected["sasl_password"].(string); ok {
+		assertStringField(t, cfg.SASLPassword, val, "SASLPassword")
+	}
+	if val, ok := expected["tls_ca"].(string); ok {
+		assertStringField(t, cfg.TLSCAPath, val, "TLSCAPath")
+	}
+	if tlsSkip, ok := expected["tls_skip_verify"].(bool); ok && cfg.TLSSkipVerify != tlsSkip {
+		t.Errorf("TLSSkipVerify = %v, want %v", cfg.TLSSkipVerify, tlsSkip)
+	}
+}
+
 func TestNewKafkaSinkFromEnv(t *testing.T) {
 	t.Run("uses defaults when env not set", func(t *testing.T) {
-		// Clear all Kafka env vars
-		envVars := []string{
-			"KAFKA_BROKERS", "KAFKA_TOPIC", "KAFKA_ACKS", "KAFKA_COMPRESSION",
-			"KAFKA_SASL_MECHANISM", "KAFKA_SASL_USER", "KAFKA_SASL_PASSWORD",
-			"KAFKA_TLS_CA", "KAFKA_TLS_SKIP_VERIFY",
+		envVars := map[string]string{
+			"KAFKA_BROKERS": "", "KAFKA_TOPIC": "", "KAFKA_ACKS": "", "KAFKA_COMPRESSION": "",
+			"KAFKA_SASL_MECHANISM": "", "KAFKA_SASL_USER": "", "KAFKA_SASL_PASSWORD": "",
+			"KAFKA_TLS_CA": "", "KAFKA_TLS_SKIP_VERIFY": "",
 		}
-		oldValues := make(map[string]string)
-		for _, key := range envVars {
-			oldValues[key] = os.Getenv(key)
-			os.Unsetenv(key)
-		}
-		defer func() {
-			for key, val := range oldValues {
-				if val != "" {
-					os.Setenv(key, val)
-				}
-			}
-		}()
-
-		sink := NewKafkaSinkFromEnv()
-
-		if len(sink.config.Brokers) != 1 || sink.config.Brokers[0] != "localhost:9092" {
-			t.Errorf("Brokers = %v, want [localhost:9092]", sink.config.Brokers)
-		}
-		if sink.config.Topic != "gotrack.events" {
-			t.Errorf("Topic = %q, want gotrack.events", sink.config.Topic)
-		}
-		if sink.config.Acks != "all" {
-			t.Errorf("Acks = %q, want all", sink.config.Acks)
-		}
+		withEnvVars(t, envVars, func() {
+			sink := NewKafkaSinkFromEnv()
+			assertKafkaConfig(t, sink.config, map[string]interface{}{
+				"brokers": []string{"localhost:9092"},
+				"topic":   "gotrack.events",
+				"acks":    "all",
+			})
+		})
 	})
 
 	t.Run("uses env variables when set", func(t *testing.T) {
 		envVars := map[string]string{
-			"KAFKA_BROKERS":         "broker1:9092,broker2:9092,broker3:9092",
-			"KAFKA_TOPIC":           "custom.topic",
-			"KAFKA_ACKS":            "1",
-			"KAFKA_COMPRESSION":     "gzip",
-			"KAFKA_SASL_MECHANISM":  "PLAIN",
-			"KAFKA_SASL_USER":       "test-user",
-			"KAFKA_SASL_PASSWORD":   "test-pass",
-			"KAFKA_TLS_CA":          "/path/to/ca.pem",
-			"KAFKA_TLS_SKIP_VERIFY": "true",
+			"KAFKA_BROKERS": "broker1:9092,broker2:9092,broker3:9092", "KAFKA_TOPIC": "custom.topic",
+			"KAFKA_ACKS": "1", "KAFKA_COMPRESSION": "gzip", "KAFKA_SASL_MECHANISM": "PLAIN",
+			"KAFKA_SASL_USER": "test-user", "KAFKA_SASL_PASSWORD": "test-pass",
+			"KAFKA_TLS_CA": "/path/to/ca.pem", "KAFKA_TLS_SKIP_VERIFY": "true",
 		}
-
-		oldValues := make(map[string]string)
-		for key, val := range envVars {
-			oldValues[key] = os.Getenv(key)
-			os.Setenv(key, val)
-		}
-		defer func() {
-			for key, val := range oldValues {
-				if val != "" {
-					os.Setenv(key, val)
-				} else {
-					os.Unsetenv(key)
-				}
-			}
-		}()
-
-		sink := NewKafkaSinkFromEnv()
-
-		expectedBrokers := []string{"broker1:9092", "broker2:9092", "broker3:9092"}
-		if len(sink.config.Brokers) != 3 {
-			t.Errorf("Brokers length = %d, want 3", len(sink.config.Brokers))
-		}
-		for i, broker := range expectedBrokers {
-			if i >= len(sink.config.Brokers) || sink.config.Brokers[i] != broker {
-				t.Errorf("Broker[%d] = %q, want %q", i, sink.config.Brokers[i], broker)
-			}
-		}
-
-		if sink.config.Topic != "custom.topic" {
-			t.Errorf("Topic = %q, want custom.topic", sink.config.Topic)
-		}
-		if sink.config.Acks != "1" {
-			t.Errorf("Acks = %q, want 1", sink.config.Acks)
-		}
-		if sink.config.Compression != "gzip" {
-			t.Errorf("Compression = %q, want gzip", sink.config.Compression)
-		}
-		if sink.config.SASLMechanism != "PLAIN" {
-			t.Errorf("SASLMechanism = %q, want PLAIN", sink.config.SASLMechanism)
-		}
-		if sink.config.SASLUser != "test-user" {
-			t.Errorf("SASLUser = %q, want test-user", sink.config.SASLUser)
-		}
-		if sink.config.SASLPassword != "test-pass" {
-			t.Errorf("SASLPassword = %q, want test-pass", sink.config.SASLPassword)
-		}
-		if sink.config.TLSCAPath != "/path/to/ca.pem" {
-			t.Errorf("TLSCAPath = %q, want /path/to/ca.pem", sink.config.TLSCAPath)
-		}
-		if !sink.config.TLSSkipVerify {
-			t.Error("TLSSkipVerify should be true")
-		}
+		withEnvVars(t, envVars, func() {
+			sink := NewKafkaSinkFromEnv()
+			assertKafkaConfig(t, sink.config, map[string]interface{}{
+				"brokers":         []string{"broker1:9092", "broker2:9092", "broker3:9092"},
+				"topic":           "custom.topic",
+				"acks":            "1",
+				"compression":     "gzip",
+				"sasl_mechanism":  "PLAIN",
+				"sasl_user":       "test-user",
+				"sasl_password":   "test-pass",
+				"tls_ca":          "/path/to/ca.pem",
+				"tls_skip_verify": true,
+			})
+		})
 	})
 
 	t.Run("handles brokers with whitespace", func(t *testing.T) {
-		oldBrokers := os.Getenv("KAFKA_BROKERS")
-		defer func() {
-			if oldBrokers != "" {
-				os.Setenv("KAFKA_BROKERS", oldBrokers)
-			} else {
-				os.Unsetenv("KAFKA_BROKERS")
-			}
-		}()
-
-		os.Setenv("KAFKA_BROKERS", "broker1:9092 , broker2:9092 ,  broker3:9092")
-
-		sink := NewKafkaSinkFromEnv()
-
-		expectedBrokers := []string{"broker1:9092", "broker2:9092", "broker3:9092"}
-		if len(sink.config.Brokers) != 3 {
-			t.Errorf("Brokers length = %d, want 3", len(sink.config.Brokers))
-		}
-		for i, broker := range expectedBrokers {
-			if i >= len(sink.config.Brokers) || sink.config.Brokers[i] != broker {
-				t.Errorf("Broker[%d] = %q, want %q", i, sink.config.Brokers[i], broker)
-			}
-		}
+		withEnvVars(t, map[string]string{"KAFKA_BROKERS": "broker1:9092 , broker2:9092 ,  broker3:9092"}, func() {
+			sink := NewKafkaSinkFromEnv()
+			assertKafkaConfig(t, sink.config, map[string]interface{}{
+				"brokers": []string{"broker1:9092", "broker2:9092", "broker3:9092"},
+			})
+		})
 	})
 }
 
@@ -370,95 +361,52 @@ func TestGetBoolEnv(t *testing.T) {
 // TestKafkaConfigMap tests configuration building
 func TestKafkaConfigMap(t *testing.T) {
 	t.Run("validates broker list parsing", func(t *testing.T) {
-		oldBrokers := os.Getenv("KAFKA_BROKERS")
-		defer func() {
-			if oldBrokers != "" {
-				os.Setenv("KAFKA_BROKERS", oldBrokers)
-			} else {
-				os.Unsetenv("KAFKA_BROKERS")
+		withEnvVars(t, map[string]string{"KAFKA_BROKERS": "single:9092"}, func() {
+			sink := NewKafkaSinkFromEnv()
+			if len(sink.config.Brokers) != 1 {
+				t.Errorf("Single broker: got %d brokers, want 1", len(sink.config.Brokers))
 			}
-		}()
-
-		// Test single broker
-		os.Setenv("KAFKA_BROKERS", "single:9092")
-		sink := NewKafkaSinkFromEnv()
-		if len(sink.config.Brokers) != 1 {
-			t.Errorf("Single broker: got %d brokers, want 1", len(sink.config.Brokers))
-		}
-
-		// Test multiple brokers
-		os.Setenv("KAFKA_BROKERS", "broker1:9092,broker2:9092")
-		sink = NewKafkaSinkFromEnv()
-		if len(sink.config.Brokers) != 2 {
-			t.Errorf("Multiple brokers: got %d brokers, want 2", len(sink.config.Brokers))
-		}
-
-		// Test brokers are properly joined with commas
-		joined := strings.Join(sink.config.Brokers, ",")
-		if joined != "broker1:9092,broker2:9092" {
-			t.Errorf("Joined brokers = %q, want broker1:9092,broker2:9092", joined)
-		}
+		})
+		
+		withEnvVars(t, map[string]string{"KAFKA_BROKERS": "broker1:9092,broker2:9092"}, func() {
+			sink := NewKafkaSinkFromEnv()
+			if len(sink.config.Brokers) != 2 {
+				t.Errorf("Multiple brokers: got %d brokers, want 2", len(sink.config.Brokers))
+			}
+			joined := strings.Join(sink.config.Brokers, ",")
+			if joined != "broker1:9092,broker2:9092" {
+				t.Errorf("Joined brokers = %q, want broker1:9092,broker2:9092", joined)
+			}
+		})
 	})
 
 	t.Run("SASL configuration parsing", func(t *testing.T) {
-		oldValues := make(map[string]string)
-		saslVars := []string{"KAFKA_SASL_MECHANISM", "KAFKA_SASL_USER", "KAFKA_SASL_PASSWORD"}
-		for _, key := range saslVars {
-			oldValues[key] = os.Getenv(key)
-			os.Unsetenv(key)
+		envVars := map[string]string{
+			"KAFKA_SASL_MECHANISM": "SCRAM-SHA-256",
+			"KAFKA_SASL_USER":      "test-user",
+			"KAFKA_SASL_PASSWORD":  "secret",
 		}
-		defer func() {
-			for key, val := range oldValues {
-				if val != "" {
-					os.Setenv(key, val)
-				}
-			}
-		}()
-
-		// Test with SASL enabled
-		os.Setenv("KAFKA_SASL_MECHANISM", "SCRAM-SHA-256")
-		os.Setenv("KAFKA_SASL_USER", "test-user")
-		os.Setenv("KAFKA_SASL_PASSWORD", "secret")
-
-		sink := NewKafkaSinkFromEnv()
-
-		if sink.config.SASLMechanism != "SCRAM-SHA-256" {
-			t.Errorf("SASLMechanism = %q, want SCRAM-SHA-256", sink.config.SASLMechanism)
-		}
-		if sink.config.SASLUser != "test-user" {
-			t.Errorf("SASLUser = %q, want test-user", sink.config.SASLUser)
-		}
-		if sink.config.SASLPassword != "secret" {
-			t.Errorf("SASLPassword should be set but was %q", sink.config.SASLPassword)
-		}
+		withEnvVars(t, envVars, func() {
+			sink := NewKafkaSinkFromEnv()
+			assertKafkaConfig(t, sink.config, map[string]interface{}{
+				"sasl_mechanism": "SCRAM-SHA-256",
+				"sasl_user":      "test-user",
+				"sasl_password":  "secret",
+			})
+		})
 	})
 
 	t.Run("TLS configuration parsing", func(t *testing.T) {
-		oldValues := make(map[string]string)
-		tlsVars := []string{"KAFKA_TLS_CA", "KAFKA_TLS_SKIP_VERIFY"}
-		for _, key := range tlsVars {
-			oldValues[key] = os.Getenv(key)
-			os.Unsetenv(key)
+		envVars := map[string]string{
+			"KAFKA_TLS_CA":          "/etc/kafka/ca.pem",
+			"KAFKA_TLS_SKIP_VERIFY": "false",
 		}
-		defer func() {
-			for key, val := range oldValues {
-				if val != "" {
-					os.Setenv(key, val)
-				}
-			}
-		}()
-
-		// Test with TLS enabled
-		os.Setenv("KAFKA_TLS_CA", "/etc/kafka/ca.pem")
-		os.Setenv("KAFKA_TLS_SKIP_VERIFY", "false")
-
-		sink := NewKafkaSinkFromEnv()
-
-		if sink.config.TLSCAPath != "/etc/kafka/ca.pem" {
-			t.Errorf("TLSCAPath = %q, want /etc/kafka/ca.pem", sink.config.TLSCAPath)
-		}
-		if sink.config.TLSSkipVerify {
-			t.Error("TLSSkipVerify should be false")
-		}
+		withEnvVars(t, envVars, func() {
+			sink := NewKafkaSinkFromEnv()
+			assertKafkaConfig(t, sink.config, map[string]interface{}{
+				"tls_ca":          "/etc/kafka/ca.pem",
+				"tls_skip_verify": false,
+			})
+		})
 	})
 }

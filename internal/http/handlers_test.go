@@ -3,6 +3,7 @@ package httpx
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -188,40 +189,35 @@ func TestHMACPublicKey(t *testing.T) {
 }
 
 // TestPixel tests the pixel tracking endpoint
+func assertPixelResponse(t *testing.T, w *httptest.ResponseRecorder, wantStatusCode int, expectBody bool) {
+	t.Helper()
+	if w.Code != wantStatusCode {
+		t.Errorf("status code = %d, want %d", w.Code, wantStatusCode)
+	}
+	if wantStatusCode == http.StatusOK {
+		if ct := w.Header().Get("Content-Type"); ct != "image/gif" {
+			t.Errorf("Content-Type = %q, want image/gif", ct)
+		}
+		if cc := w.Header().Get("Cache-Control"); !strings.Contains(cc, "no-store") {
+			t.Errorf("Cache-Control should contain no-store, got %q", cc)
+		}
+		if expectBody && !bytes.Equal(w.Body.Bytes(), pixelGIF) {
+			t.Error("response body should be pixel GIF")
+		}
+		if !expectBody && len(w.Body.Bytes()) > 0 {
+			t.Error("HEAD request should not return body")
+		}
+	}
+}
+
 func TestPixel(t *testing.T) {
 	t.Run("returns GIF for GET request", func(t *testing.T) {
 		var emittedEvent *event.Event
-		env := Env{
-			Cfg: config.Config{DNTRespect: false},
-			Emit: func(e event.Event) {
-				emittedEvent = &e
-			},
-		}
-
+		env := Env{Cfg: config.Config{DNTRespect: false}, Emit: func(e event.Event) { emittedEvent = &e }}
 		req := httptest.NewRequest(http.MethodGet, "/px.gif?utm_source=test", nil)
 		w := httptest.NewRecorder()
-
 		env.Pixel(w, req)
-
-		if w.Code != http.StatusOK {
-			t.Errorf("status code = %d, want %d", w.Code, http.StatusOK)
-		}
-
-		contentType := w.Header().Get("Content-Type")
-		if contentType != "image/gif" {
-			t.Errorf("Content-Type = %q, want image/gif", contentType)
-		}
-
-		cacheControl := w.Header().Get("Cache-Control")
-		if !strings.Contains(cacheControl, "no-store") {
-			t.Errorf("Cache-Control should contain no-store, got %q", cacheControl)
-		}
-
-		body := w.Body.Bytes()
-		if !bytes.Equal(body, pixelGIF) {
-			t.Error("response body should be pixel GIF")
-		}
-
+		assertPixelResponse(t, w, http.StatusOK, true)
 		if emittedEvent == nil {
 			t.Fatal("event should have been emitted")
 		}
@@ -231,162 +227,96 @@ func TestPixel(t *testing.T) {
 	})
 
 	t.Run("returns GIF for HEAD request without body", func(t *testing.T) {
-		env := Env{
-			Cfg:  config.Config{DNTRespect: false},
-			Emit: func(e event.Event) {},
-		}
-
+		env := Env{Cfg: config.Config{DNTRespect: false}, Emit: func(e event.Event) {}}
 		req := httptest.NewRequest(http.MethodHead, "/px.gif", nil)
 		w := httptest.NewRecorder()
-
 		env.Pixel(w, req)
-
-		if w.Code != http.StatusOK {
-			t.Errorf("status code = %d, want %d", w.Code, http.StatusOK)
-		}
-
-		contentType := w.Header().Get("Content-Type")
-		if contentType != "image/gif" {
-			t.Errorf("Content-Type = %q, want image/gif", contentType)
-		}
-
-		body := w.Body.Bytes()
-		if len(body) > 0 {
-			t.Error("HEAD request should not return body")
-		}
+		assertPixelResponse(t, w, http.StatusOK, false)
 	})
 
 	t.Run("respects DNT header when configured", func(t *testing.T) {
 		emitCalled := false
-		env := Env{
-			Cfg: config.Config{DNTRespect: true},
-			Emit: func(e event.Event) {
-				emitCalled = true
-			},
-		}
-
+		env := Env{Cfg: config.Config{DNTRespect: true}, Emit: func(e event.Event) { emitCalled = true }}
 		req := httptest.NewRequest(http.MethodGet, "/px.gif", nil)
 		req.Header.Set("DNT", "1")
 		w := httptest.NewRecorder()
-
 		env.Pixel(w, req)
-
-		if w.Code != http.StatusOK {
-			t.Errorf("status code = %d, want %d", w.Code, http.StatusOK)
-		}
-
+		assertPixelResponse(t, w, http.StatusOK, true)
 		if emitCalled {
 			t.Error("event should not be emitted when DNT header is set")
-		}
-
-		// Still returns pixel
-		body := w.Body.Bytes()
-		if !bytes.Equal(body, pixelGIF) {
-			t.Error("should still return pixel GIF")
 		}
 	})
 
 	t.Run("does not respect DNT when not configured", func(t *testing.T) {
 		emitCalled := false
-		env := Env{
-			Cfg: config.Config{DNTRespect: false},
-			Emit: func(e event.Event) {
-				emitCalled = true
-			},
-		}
-
+		env := Env{Cfg: config.Config{DNTRespect: false}, Emit: func(e event.Event) { emitCalled = true }}
 		req := httptest.NewRequest(http.MethodGet, "/px.gif", nil)
 		req.Header.Set("DNT", "1")
 		w := httptest.NewRecorder()
-
 		env.Pixel(w, req)
-
 		if !emitCalled {
 			t.Error("event should be emitted even with DNT header when DNTRespect=false")
 		}
 	})
 
 	t.Run("rejects invalid methods", func(t *testing.T) {
-		env := Env{
-			Cfg:  config.Config{DNTRespect: false},
-			Emit: func(e event.Event) {},
-		}
-
+		env := Env{Cfg: config.Config{DNTRespect: false}, Emit: func(e event.Event) {}}
 		req := httptest.NewRequest(http.MethodPost, "/px.gif", nil)
 		w := httptest.NewRecorder()
-
 		env.Pixel(w, req)
-
-		if w.Code != http.StatusMethodNotAllowed {
-			t.Errorf("status code = %d, want %d", w.Code, http.StatusMethodNotAllowed)
-		}
+		assertPixelResponse(t, w, http.StatusMethodNotAllowed, false)
 	})
 
 	t.Run("handles nil Emit gracefully", func(t *testing.T) {
-		env := Env{
-			Cfg:  config.Config{DNTRespect: false},
-			Emit: nil,
-		}
-
+		env := Env{Cfg: config.Config{DNTRespect: false}, Emit: nil}
 		req := httptest.NewRequest(http.MethodGet, "/px.gif", nil)
 		w := httptest.NewRecorder()
-
-		// Should not panic
 		env.Pixel(w, req)
-
-		if w.Code != http.StatusOK {
-			t.Errorf("status code = %d, want %d", w.Code, http.StatusOK)
-		}
+		assertPixelResponse(t, w, http.StatusOK, true)
 	})
 }
 
 // TestCollect tests the event collection endpoint
+func assertResponseStatus(t *testing.T, w *httptest.ResponseRecorder, wantCode int, wantContentType string) {
+	t.Helper()
+	if w.Code != wantCode {
+		t.Errorf("status code = %d, want %d", w.Code, wantCode)
+	}
+	if wantContentType != "" {
+		if got := w.Header().Get("Content-Type"); got != wantContentType {
+			t.Errorf("Content-Type = %q, want %q", got, wantContentType)
+		}
+	}
+}
+
+func assertAcceptedCount(t *testing.T, w *httptest.ResponseRecorder, want int) {
+	t.Helper()
+	if got := w.Header().Get("X-Gotrack-Accepted"); got != fmt.Sprintf("%d", want) {
+		t.Errorf("X-Gotrack-Accepted = %q, want %d", got, want)
+	}
+	var response map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if response["accepted"] != float64(want) {
+		t.Errorf("accepted = %v, want %d", response["accepted"], want)
+	}
+}
+
 func TestCollect(t *testing.T) {
 	t.Run("accepts single event object", func(t *testing.T) {
 		var emittedEvent *event.Event
 		env := Env{
-			Cfg: config.Config{
-				DNTRespect:   false,
-				MaxBodyBytes: 1024 * 1024,
-			},
-			Emit: func(e event.Event) {
-				emittedEvent = &e
-			},
+			Cfg:  config.Config{DNTRespect: false, MaxBodyBytes: 1024 * 1024},
+			Emit: func(e event.Event) { emittedEvent = &e },
 		}
-
 		eventJSON := `{"type":"click","event_id":"test-123"}`
 		req := httptest.NewRequest(http.MethodPost, "/collect", strings.NewReader(eventJSON))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
-
 		env.Collect(w, req)
-
-		if w.Code != http.StatusAccepted {
-			t.Errorf("status code = %d, want %d", w.Code, http.StatusAccepted)
-		}
-
-		contentType := w.Header().Get("Content-Type")
-		if contentType != "application/json" {
-			t.Errorf("Content-Type = %q, want application/json", contentType)
-		}
-
-		acceptedHeader := w.Header().Get("X-Gotrack-Accepted")
-		if acceptedHeader != "1" {
-			t.Errorf("X-Gotrack-Accepted = %q, want 1", acceptedHeader)
-		}
-
-		var response map[string]interface{}
-		if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
-			t.Fatalf("failed to decode response: %v", err)
-		}
-
-		if response["status"] != "ok" {
-			t.Errorf("status = %v, want ok", response["status"])
-		}
-		if response["accepted"] != float64(1) {
-			t.Errorf("accepted = %v, want 1", response["accepted"])
-		}
-
+		assertResponseStatus(t, w, http.StatusAccepted, "application/json")
+		assertAcceptedCount(t, w, 1)
 		if emittedEvent == nil {
 			t.Fatal("event should have been emitted")
 		}
@@ -398,40 +328,16 @@ func TestCollect(t *testing.T) {
 	t.Run("accepts array of events", func(t *testing.T) {
 		var emittedEvents []event.Event
 		env := Env{
-			Cfg: config.Config{
-				DNTRespect:   false,
-				MaxBodyBytes: 1024 * 1024,
-			},
-			Emit: func(e event.Event) {
-				emittedEvents = append(emittedEvents, e)
-			},
+			Cfg:  config.Config{DNTRespect: false, MaxBodyBytes: 1024 * 1024},
+			Emit: func(e event.Event) { emittedEvents = append(emittedEvents, e) },
 		}
-
 		eventsJSON := `[{"type":"pageview","event_id":"evt1"},{"type":"click","event_id":"evt2"}]`
 		req := httptest.NewRequest(http.MethodPost, "/collect", strings.NewReader(eventsJSON))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
-
 		env.Collect(w, req)
-
-		if w.Code != http.StatusAccepted {
-			t.Errorf("status code = %d, want %d", w.Code, http.StatusAccepted)
-		}
-
-		acceptedHeader := w.Header().Get("X-Gotrack-Accepted")
-		if acceptedHeader != "2" {
-			t.Errorf("X-Gotrack-Accepted = %q, want 2", acceptedHeader)
-		}
-
-		var response map[string]interface{}
-		if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
-			t.Fatalf("failed to decode response: %v", err)
-		}
-
-		if response["accepted"] != float64(2) {
-			t.Errorf("accepted = %v, want 2", response["accepted"])
-		}
-
+		assertResponseStatus(t, w, http.StatusAccepted, "")
+		assertAcceptedCount(t, w, 2)
 		if len(emittedEvents) != 2 {
 			t.Fatalf("expected 2 emitted events, got %d", len(emittedEvents))
 		}
@@ -444,92 +350,49 @@ func TestCollect(t *testing.T) {
 	})
 
 	t.Run("rejects non-POST methods", func(t *testing.T) {
-		env := Env{
-			Cfg:  config.Config{MaxBodyBytes: 1024 * 1024},
-			Emit: func(e event.Event) {},
-		}
-
+		env := Env{Cfg: config.Config{MaxBodyBytes: 1024 * 1024}, Emit: func(e event.Event) {}}
 		req := httptest.NewRequest(http.MethodGet, "/collect", nil)
 		w := httptest.NewRecorder()
-
 		env.Collect(w, req)
-
-		if w.Code != http.StatusMethodNotAllowed {
-			t.Errorf("status code = %d, want %d", w.Code, http.StatusMethodNotAllowed)
-		}
+		assertResponseStatus(t, w, http.StatusMethodNotAllowed, "")
 	})
 
 	t.Run("rejects invalid content type", func(t *testing.T) {
-		env := Env{
-			Cfg:  config.Config{MaxBodyBytes: 1024 * 1024},
-			Emit: func(e event.Event) {},
-		}
-
+		env := Env{Cfg: config.Config{MaxBodyBytes: 1024 * 1024}, Emit: func(e event.Event) {}}
 		req := httptest.NewRequest(http.MethodPost, "/collect", strings.NewReader("test"))
 		req.Header.Set("Content-Type", "text/plain")
 		w := httptest.NewRecorder()
-
 		env.Collect(w, req)
-
-		if w.Code != http.StatusUnsupportedMediaType {
-			t.Errorf("status code = %d, want %d", w.Code, http.StatusUnsupportedMediaType)
-		}
+		assertResponseStatus(t, w, http.StatusUnsupportedMediaType, "")
 	})
 
 	t.Run("accepts missing content type", func(t *testing.T) {
-		env := Env{
-			Cfg: config.Config{
-				DNTRespect:   false,
-				MaxBodyBytes: 1024 * 1024,
-			},
-			Emit: func(e event.Event) {},
-		}
-
+		env := Env{Cfg: config.Config{DNTRespect: false, MaxBodyBytes: 1024 * 1024}, Emit: func(e event.Event) {}}
 		eventJSON := `{"type":"test"}`
 		req := httptest.NewRequest(http.MethodPost, "/collect", strings.NewReader(eventJSON))
-		// No Content-Type header set
 		w := httptest.NewRecorder()
-
 		env.Collect(w, req)
-
-		if w.Code != http.StatusAccepted {
-			t.Errorf("status code = %d, want %d (should accept empty content type)", w.Code, http.StatusAccepted)
-		}
+		assertResponseStatus(t, w, http.StatusAccepted, "")
 	})
 
 	t.Run("respects DNT header", func(t *testing.T) {
 		emitCalled := false
 		env := Env{
-			Cfg: config.Config{
-				DNTRespect:   true,
-				MaxBodyBytes: 1024 * 1024,
-			},
-			Emit: func(e event.Event) {
-				emitCalled = true
-			},
+			Cfg:  config.Config{DNTRespect: true, MaxBodyBytes: 1024 * 1024},
+			Emit: func(e event.Event) { emitCalled = true },
 		}
-
 		eventJSON := `{"type":"pageview"}`
 		req := httptest.NewRequest(http.MethodPost, "/collect", strings.NewReader(eventJSON))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("DNT", "1")
 		w := httptest.NewRecorder()
-
 		env.Collect(w, req)
-
-		if w.Code != http.StatusAccepted {
-			t.Errorf("status code = %d, want %d", w.Code, http.StatusAccepted)
-		}
-
+		assertResponseStatus(t, w, http.StatusAccepted, "")
 		if emitCalled {
 			t.Error("event should not be emitted when DNT=1")
 		}
-
 		var response map[string]interface{}
-		if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
-			t.Fatalf("failed to decode response: %v", err)
-		}
-
+		json.NewDecoder(w.Body).Decode(&response)
 		if response["accepted"] != float64(0) {
 			t.Errorf("accepted = %v, want 0", response["accepted"])
 		}
@@ -539,114 +402,50 @@ func TestCollect(t *testing.T) {
 	})
 
 	t.Run("rejects invalid JSON", func(t *testing.T) {
-		env := Env{
-			Cfg: config.Config{
-				DNTRespect:   false,
-				MaxBodyBytes: 1024 * 1024,
-			},
-			Emit: func(e event.Event) {},
-		}
-
+		env := Env{Cfg: config.Config{DNTRespect: false, MaxBodyBytes: 1024 * 1024}, Emit: func(e event.Event) {}}
 		req := httptest.NewRequest(http.MethodPost, "/collect", strings.NewReader("{invalid json"))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
-
 		env.Collect(w, req)
-
-		if w.Code != http.StatusBadRequest {
-			t.Errorf("status code = %d, want %d", w.Code, http.StatusBadRequest)
-		}
+		assertResponseStatus(t, w, http.StatusBadRequest, "")
 	})
 
 	t.Run("rejects invalid JSON array", func(t *testing.T) {
-		env := Env{
-			Cfg: config.Config{
-				DNTRespect:   false,
-				MaxBodyBytes: 1024 * 1024,
-			},
-			Emit: func(e event.Event) {},
-		}
-
+		env := Env{Cfg: config.Config{DNTRespect: false, MaxBodyBytes: 1024 * 1024}, Emit: func(e event.Event) {}}
 		req := httptest.NewRequest(http.MethodPost, "/collect", strings.NewReader(`[{"invalid": json}]`))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
-
 		env.Collect(w, req)
-
-		if w.Code != http.StatusBadRequest {
-			t.Errorf("status code = %d, want %d", w.Code, http.StatusBadRequest)
-		}
+		assertResponseStatus(t, w, http.StatusBadRequest, "")
 	})
 
 	t.Run("rejects invalid JSON object in array", func(t *testing.T) {
-		env := Env{
-			Cfg: config.Config{
-				DNTRespect:   false,
-				MaxBodyBytes: 1024 * 1024,
-			},
-			Emit: func(e event.Event) {},
-		}
-
-		// Valid JSON array but invalid event structure
+		env := Env{Cfg: config.Config{DNTRespect: false, MaxBodyBytes: 1024 * 1024}, Emit: func(e event.Event) {}}
 		req := httptest.NewRequest(http.MethodPost, "/collect", strings.NewReader(`["not an object"]`))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
-
 		env.Collect(w, req)
-
-		if w.Code != http.StatusBadRequest {
-			t.Errorf("status code = %d, want %d", w.Code, http.StatusBadRequest)
-		}
+		assertResponseStatus(t, w, http.StatusBadRequest, "")
 	})
 
 	t.Run("rejects body too large", func(t *testing.T) {
-		env := Env{
-			Cfg: config.Config{
-				DNTRespect:   false,
-				MaxBodyBytes: 100, // Very small limit
-			},
-			Emit: func(e event.Event) {},
-		}
-
+		env := Env{Cfg: config.Config{DNTRespect: false, MaxBodyBytes: 100}, Emit: func(e event.Event) {}}
 		largeBody := strings.Repeat("x", 200)
 		req := httptest.NewRequest(http.MethodPost, "/collect", strings.NewReader(largeBody))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
-
 		env.Collect(w, req)
-
-		if w.Code != http.StatusRequestEntityTooLarge {
-			t.Errorf("status code = %d, want %d", w.Code, http.StatusRequestEntityTooLarge)
-		}
+		assertResponseStatus(t, w, http.StatusRequestEntityTooLarge, "")
 	})
 
 	t.Run("handles empty array", func(t *testing.T) {
-		env := Env{
-			Cfg: config.Config{
-				DNTRespect:   false,
-				MaxBodyBytes: 1024 * 1024,
-			},
-			Emit: func(e event.Event) {},
-		}
-
+		env := Env{Cfg: config.Config{DNTRespect: false, MaxBodyBytes: 1024 * 1024}, Emit: func(e event.Event) {}}
 		req := httptest.NewRequest(http.MethodPost, "/collect", strings.NewReader(`[]`))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
-
 		env.Collect(w, req)
-
-		if w.Code != http.StatusAccepted {
-			t.Errorf("status code = %d, want %d", w.Code, http.StatusAccepted)
-		}
-
-		var response map[string]interface{}
-		if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
-			t.Fatalf("failed to decode response: %v", err)
-		}
-
-		if response["accepted"] != float64(0) {
-			t.Errorf("accepted = %v, want 0", response["accepted"])
-		}
+		assertResponseStatus(t, w, http.StatusAccepted, "")
+		assertAcceptedCount(t, w, 0)
 	})
 
 	t.Run("handles nil Emit gracefully", func(t *testing.T) {

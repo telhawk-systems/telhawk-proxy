@@ -10,10 +10,33 @@ import (
 	"time"
 )
 
-// TestLoadConfig tests the configuration loading from environment
+func assertMetricsConfig(t *testing.T, cfg Config, expected map[string]interface{}) {
+	t.Helper()
+	if val, ok := expected["Enabled"].(bool); ok && cfg.Enabled != val {
+		t.Errorf("Enabled = %v, want %v", cfg.Enabled, val)
+	}
+	if val, ok := expected["Addr"].(string); ok && cfg.Addr != val {
+		t.Errorf("Addr = %q, want %q", cfg.Addr, val)
+	}
+	if val, ok := expected["TLSCert"].(string); ok && cfg.TLSCert != val {
+		t.Errorf("TLSCert = %q, want %q", cfg.TLSCert, val)
+	}
+	if val, ok := expected["TLSKey"].(string); ok && cfg.TLSKey != val {
+		t.Errorf("TLSKey = %q, want %q", cfg.TLSKey, val)
+	}
+	if val, ok := expected["ClientCA"].(string); ok && cfg.ClientCA != val {
+		t.Errorf("ClientCA = %q, want %q", cfg.ClientCA, val)
+	}
+	if val, ok := expected["RequireTLS"].(bool); ok && cfg.RequireTLS != val {
+		t.Errorf("RequireTLS = %v, want %v", cfg.RequireTLS, val)
+	}
+	if val, ok := expected["RequireAuth"].(bool); ok && cfg.RequireAuth != val {
+		t.Errorf("RequireAuth = %v, want %v", cfg.RequireAuth, val)
+	}
+}
+
 func TestLoadConfig(t *testing.T) {
 	t.Run("returns defaults when env not set", func(t *testing.T) {
-		// Clear all env vars
 		envVars := []string{
 			"METRICS_ENABLED", "METRICS_ADDR", "METRICS_TLS_CERT",
 			"METRICS_TLS_KEY", "METRICS_CLIENT_CA", "METRICS_REQUIRE_TLS",
@@ -31,43 +54,20 @@ func TestLoadConfig(t *testing.T) {
 				}
 			}
 		}()
-
 		cfg := LoadConfig()
-
-		if cfg.Enabled {
-			t.Error("Enabled should be false by default")
-		}
-		if cfg.Addr != "127.0.0.1:9090" {
-			t.Errorf("Addr = %q, want 127.0.0.1:9090", cfg.Addr)
-		}
-		if cfg.TLSCert != "" {
-			t.Errorf("TLSCert should be empty, got %q", cfg.TLSCert)
-		}
-		if cfg.TLSKey != "" {
-			t.Errorf("TLSKey should be empty, got %q", cfg.TLSKey)
-		}
-		if cfg.ClientCA != "" {
-			t.Errorf("ClientCA should be empty, got %q", cfg.ClientCA)
-		}
-		if cfg.RequireTLS {
-			t.Error("RequireTLS should be false by default")
-		}
-		if cfg.RequireAuth {
-			t.Error("RequireAuth should be false by default")
-		}
+		assertMetricsConfig(t, cfg, map[string]interface{}{
+			"Enabled": false, "Addr": "127.0.0.1:9090", "TLSCert": "", "TLSKey": "",
+			"ClientCA": "", "RequireTLS": false, "RequireAuth": false,
+		})
 	})
 
 	t.Run("loads custom values from environment", func(t *testing.T) {
 		envVars := map[string]string{
-			"METRICS_ENABLED":      "true",
-			"METRICS_ADDR":         "0.0.0.0:8080",
-			"METRICS_TLS_CERT":     "/path/to/cert.pem",
-			"METRICS_TLS_KEY":      "/path/to/key.pem",
-			"METRICS_CLIENT_CA":    "/path/to/ca.pem",
-			"METRICS_REQUIRE_TLS":  "true",
+			"METRICS_ENABLED": "true", "METRICS_ADDR": "0.0.0.0:8080",
+			"METRICS_TLS_CERT": "/path/to/cert.pem", "METRICS_TLS_KEY": "/path/to/key.pem",
+			"METRICS_CLIENT_CA": "/path/to/ca.pem", "METRICS_REQUIRE_TLS": "true",
 			"METRICS_REQUIRE_AUTH": "true",
 		}
-
 		oldValues := make(map[string]string)
 		for key, val := range envVars {
 			oldValues[key] = os.Getenv(key)
@@ -82,30 +82,12 @@ func TestLoadConfig(t *testing.T) {
 				}
 			}
 		}()
-
 		cfg := LoadConfig()
-
-		if !cfg.Enabled {
-			t.Error("Enabled should be true")
-		}
-		if cfg.Addr != "0.0.0.0:8080" {
-			t.Errorf("Addr = %q, want 0.0.0.0:8080", cfg.Addr)
-		}
-		if cfg.TLSCert != "/path/to/cert.pem" {
-			t.Errorf("TLSCert = %q, want /path/to/cert.pem", cfg.TLSCert)
-		}
-		if cfg.TLSKey != "/path/to/key.pem" {
-			t.Errorf("TLSKey = %q, want /path/to/key.pem", cfg.TLSKey)
-		}
-		if cfg.ClientCA != "/path/to/ca.pem" {
-			t.Errorf("ClientCA = %q, want /path/to/ca.pem", cfg.ClientCA)
-		}
-		if !cfg.RequireTLS {
-			t.Error("RequireTLS should be true")
-		}
-		if !cfg.RequireAuth {
-			t.Error("RequireAuth should be true")
-		}
+		assertMetricsConfig(t, cfg, map[string]interface{}{
+			"Enabled": true, "Addr": "0.0.0.0:8080", "TLSCert": "/path/to/cert.pem",
+			"TLSKey": "/path/to/key.pem", "ClientCA": "/path/to/ca.pem",
+			"RequireTLS": true, "RequireAuth": true,
+		})
 	})
 }
 

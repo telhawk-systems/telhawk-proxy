@@ -102,171 +102,106 @@ func TestLogSinkStart(t *testing.T) {
 }
 
 // TestLogSinkEnqueue tests enqueueing events
+func setupLogSink(t *testing.T, logPath string) (*LogSink, func()) {
+	t.Helper()
+	oldPath := os.Getenv("LOG_PATH")
+	os.Setenv("LOG_PATH", logPath)
+	sink := NewLogSink()
+	ctx := context.Background()
+	if err := sink.Start(ctx); err != nil {
+		t.Fatalf("Start() failed: %v", err)
+	}
+	cleanup := func() {
+		sink.Close()
+		os.Setenv("LOG_PATH", oldPath)
+	}
+	return sink, cleanup
+}
+
+func verifyEventInLog(t *testing.T, logPath string, wantID, wantType string) {
+	t.Helper()
+	content, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("failed to read log file: %v", err)
+	}
+	var decoded event.Event
+	if err := json.Unmarshal(content[:len(content)-1], &decoded); err != nil {
+		t.Fatalf("log content is not valid JSON: %v", err)
+	}
+	if decoded.EventID != wantID {
+		t.Errorf("event_id = %q, want %q", decoded.EventID, wantID)
+	}
+	if decoded.Type != wantType {
+		t.Errorf("type = %q, want %q", decoded.Type, wantType)
+	}
+}
+
 func TestLogSinkEnqueue(t *testing.T) {
 	t.Run("writes event to file", func(t *testing.T) {
-		tmpDir := t.TempDir()
-		logPath := filepath.Join(tmpDir, "events.log")
-
-		oldPath := os.Getenv("LOG_PATH")
-		defer os.Setenv("LOG_PATH", oldPath)
-		os.Setenv("LOG_PATH", logPath)
-
-		sink := NewLogSink()
-		ctx := context.Background()
-
-		if err := sink.Start(ctx); err != nil {
-			t.Fatalf("Start() failed: %v", err)
-		}
-		defer sink.Close()
-
-		// Enqueue an event
-		evt := event.Event{
-			EventID: "test-123",
-			Type:    "pageview",
-			TS:      time.Now().Format(time.RFC3339),
-		}
-
-		err := sink.Enqueue(evt)
-		if err != nil {
+		logPath := filepath.Join(t.TempDir(), "events.log")
+		sink, cleanup := setupLogSink(t, logPath)
+		defer cleanup()
+		evt := event.Event{EventID: "test-123", Type: "pageview", TS: time.Now().Format(time.RFC3339)}
+		if err := sink.Enqueue(evt); err != nil {
 			t.Fatalf("Enqueue() failed: %v", err)
 		}
-
-		// Close to flush
 		sink.Close()
-
-		// Read the file and verify content
-		content, err := os.ReadFile(logPath)
-		if err != nil {
-			t.Fatalf("failed to read log file: %v", err)
-		}
-
-		// Verify it's valid JSON
-		var decoded event.Event
-		if err := json.Unmarshal(content[:len(content)-1], &decoded); err != nil {
-			t.Fatalf("log content is not valid JSON: %v", err)
-		}
-
-		if decoded.EventID != "test-123" {
-			t.Errorf("event_id = %q, want test-123", decoded.EventID)
-		}
-		if decoded.Type != "pageview" {
-			t.Errorf("type = %q, want pageview", decoded.Type)
-		}
+		verifyEventInLog(t, logPath, "test-123", "pageview")
 	})
 
 	t.Run("appends multiple events with newlines", func(t *testing.T) {
-		tmpDir := t.TempDir()
-		logPath := filepath.Join(tmpDir, "events.log")
-
-		oldPath := os.Getenv("LOG_PATH")
-		defer os.Setenv("LOG_PATH", oldPath)
-		os.Setenv("LOG_PATH", logPath)
-
-		sink := NewLogSink()
-		ctx := context.Background()
-
-		if err := sink.Start(ctx); err != nil {
-			t.Fatalf("Start() failed: %v", err)
-		}
-		defer sink.Close()
-
-		// Enqueue multiple events
+		logPath := filepath.Join(t.TempDir(), "events.log")
+		sink, cleanup := setupLogSink(t, logPath)
+		defer cleanup()
 		for i := 1; i <= 3; i++ {
-			evt := event.Event{
-				EventID: "test-" + string(rune('0'+i)),
-				Type:    "click",
-			}
+			evt := event.Event{EventID: "test-" + string(rune('0'+i)), Type: "click"}
 			if err := sink.Enqueue(evt); err != nil {
 				t.Fatalf("Enqueue() failed: %v", err)
 			}
 		}
-
 		sink.Close()
-
-		// Read and verify
 		content, err := os.ReadFile(logPath)
 		if err != nil {
 			t.Fatalf("failed to read log file: %v", err)
 		}
-
-		lines := len(content)
-		if lines == 0 {
+		if len(content) == 0 {
 			t.Error("log file should not be empty")
 		}
-
-		// Count newlines
 		newlineCount := 0
 		for _, b := range content {
 			if b == '\n' {
 				newlineCount++
 			}
 		}
-
 		if newlineCount != 3 {
 			t.Errorf("expected 3 newlines, got %d", newlineCount)
 		}
 	})
 
 	t.Run("handles stdout mode without error", func(t *testing.T) {
-		oldPath := os.Getenv("LOG_PATH")
-		defer os.Setenv("LOG_PATH", oldPath)
-		os.Setenv("LOG_PATH", "stdout")
-
-		sink := NewLogSink()
-		ctx := context.Background()
-
-		if err := sink.Start(ctx); err != nil {
-			t.Fatalf("Start() failed: %v", err)
-		}
-		defer sink.Close()
-
-		evt := event.Event{
-			EventID: "stdout-test",
-			Type:    "test",
-		}
-
-		// Should not error even though we can't easily verify stdout
-		err := sink.Enqueue(evt)
-		if err != nil {
+		sink, cleanup := setupLogSink(t, "stdout")
+		defer cleanup()
+		evt := event.Event{EventID: "stdout-test", Type: "test"}
+		if err := sink.Enqueue(evt); err != nil {
 			t.Errorf("Enqueue() to stdout failed: %v", err)
 		}
 	})
 
 	t.Run("handles concurrent writes safely", func(t *testing.T) {
-		tmpDir := t.TempDir()
-		logPath := filepath.Join(tmpDir, "concurrent.log")
-
-		oldPath := os.Getenv("LOG_PATH")
-		defer os.Setenv("LOG_PATH", oldPath)
-		os.Setenv("LOG_PATH", logPath)
-
-		sink := NewLogSink()
-		ctx := context.Background()
-
-		if err := sink.Start(ctx); err != nil {
-			t.Fatalf("Start() failed: %v", err)
-		}
-		defer sink.Close()
-
-		// Write concurrently
+		logPath := filepath.Join(t.TempDir(), "concurrent.log")
+		sink, cleanup := setupLogSink(t, logPath)
+		defer cleanup()
 		done := make(chan bool)
 		for i := 0; i < 10; i++ {
 			go func(id int) {
-				evt := event.Event{
-					EventID: "concurrent-" + string(rune('0'+id)),
-					Type:    "test",
-				}
+				evt := event.Event{EventID: "concurrent-" + string(rune('0'+id)), Type: "test"}
 				_ = sink.Enqueue(evt)
 				done <- true
 			}(i)
 		}
-
-		// Wait for all goroutines
 		for i := 0; i < 10; i++ {
 			<-done
 		}
-
-		// Should not panic or corrupt the file
 	})
 }
 
