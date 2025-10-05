@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/lib/pq"
-	_ "github.com/lib/pq" // PostgreSQL driver
 	"revinar.io/go.track/internal/event"
 )
 
@@ -104,7 +103,7 @@ func (s *PGSink) Start(ctx context.Context) error {
 	
 	// Test connection
 	if err := db.PingContext(s.ctx); err != nil {
-		db.Close()
+		_ = db.Close() // Best effort close on error
 		return fmt.Errorf("failed to ping postgres: %w", err)
 	}
 	
@@ -157,7 +156,7 @@ func (s *PGSink) Close() error {
 	
 	// Flush any remaining events
 	s.batchMutex.Lock()
-	s.flushBatch()
+	_ = s.flushBatch() // Best effort flush on close
 	s.batchMutex.Unlock()
 	
 	if s.db != nil {
@@ -173,6 +172,7 @@ func (s *PGSink) Name() string {
 
 // ensureSchema creates the table and indexes if they don't exist
 func (s *PGSink) ensureSchema() error {
+	// Note: Table name is validated in Start() method to prevent SQL injection
 	// Create table
 	createTable := fmt.Sprintf(`
 		CREATE TABLE IF NOT EXISTS %s (
@@ -333,6 +333,7 @@ func (s *PGSink) flushWithInsert() error {
 		args[i*3+2] = string(payload)
 	}
 	
+	// Note: Table name is validated in Start() method to prevent SQL injection
 	query := fmt.Sprintf(`
 		INSERT INTO %s (event_id, ts, payload) 
 		VALUES %s 

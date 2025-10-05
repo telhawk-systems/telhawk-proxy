@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"html/template"
 	"io"
 	"log"
 	"net/http"
@@ -156,11 +157,13 @@ func injectPixel(body []byte, r *http.Request, hmacAuth *HMACAuth) []byte {
 	var injectedContent string
 	if hmacAuth != nil {
 		// Include HMAC script for automatic authentication
+		// Escape pixel URL for safe HTML insertion
 		injectedContent = fmt.Sprintf(`<script src="/hmac.js"></script>
-<img src="%s" width="1" height="1" style="display:none" alt="">`, pixelURL)
+<img src="%s" width="1" height="1" style="display:none" alt="">`, template.HTMLEscapeString(pixelURL))
 	} else {
 		// Just the pixel without HMAC
-		injectedContent = fmt.Sprintf(`<img src="%s" width="1" height="1" style="display:none" alt="">`, pixelURL)
+		// Escape pixel URL for safe HTML insertion
+		injectedContent = fmt.Sprintf(`<img src="%s" width="1" height="1" style="display:none" alt="">`, template.HTMLEscapeString(pixelURL))
 	}
 	
 	// Try to inject before </body> tag (case-insensitive)

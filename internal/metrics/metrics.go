@@ -132,7 +132,7 @@ func NewServer(config Config) *Server {
 	// Add a simple health check endpoint for the metrics server
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		_, _ = w.Write([]byte("OK")) // Ignore write errors for health check
 	})
 	
 	srv := &http.Server{

@@ -143,8 +143,9 @@ func main() {
 	}
 
 	srv := &http.Server{
-		Addr:    cfg.ServerAddr,
-		Handler: httpx.NewMux(env),
+		Addr:              cfg.ServerAddr,
+		Handler:           httpx.NewMux(env),
+		ReadHeaderTimeout: 10 * time.Second, // Prevent Slowloris attacks
 	}
 
 	go func() {
