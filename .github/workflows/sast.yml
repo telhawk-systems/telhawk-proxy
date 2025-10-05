@@ -39,7 +39,31 @@ jobs:
         run: gosec -fmt sarif -out gosec.sarif ./... || true
 
       - name: Staticcheck (Go static analysis)
-        run: staticcheck -f sarif ./... > staticcheck.sarif || true
+        run: |
+          staticcheck -f sarif ./... > staticcheck.sarif || true
+          # Ensure SARIF file has valid structure
+          if [ -f staticcheck.sarif ]; then
+            if ! grep -q '"results"' staticcheck.sarif; then
+              echo "Fixing staticcheck SARIF file - adding missing results array"
+              # Add a minimal valid SARIF structure if it's missing
+              python3 -c '
+import json
+import sys
+try:
+    with open("staticcheck.sarif", "r") as f:
+        data = json.load(f)
+    if "runs" in data:
+        for run in data["runs"]:
+            if "results" not in run:
+                run["results"] = []
+    with open("staticcheck.sarif", "w") as f:
+        json.dump(data, f, indent=2)
+except Exception as e:
+    print(f"Error fixing SARIF: {e}")
+    sys.exit(1)
+'
+            fi
+          fi
 
       - name: List SARIF
         run: ls -lah *.sarif && head -n 20 gosec.sarif || true
