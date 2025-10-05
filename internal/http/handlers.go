@@ -51,6 +51,8 @@ func (e Env) ServePixelJS(w http.ResponseWriter, r *http.Request) {
 
 	// Try to read from the static directory
 	staticPath := filepath.Join("static", filename)
+	// filename is set only by the switch above to one of two constants.
+	// #nosec G304
 	content, err := os.ReadFile(staticPath)
 	if err != nil {
 		// If file doesn't exist, return 404
@@ -61,7 +63,7 @@ func (e Env) ServePixelJS(w http.ResponseWriter, r *http.Request) {
 	// Set appropriate headers
 	w.Header().Set("Content-Type", "application/javascript")
 	w.Header().Set("Cache-Control", "public, max-age=3600") // Cache for 1 hour
-	w.Header().Set("Access-Control-Allow-Origin", "*")       // Allow CORS for pixel script
+	w.Header().Set("Access-Control-Allow-Origin", "*")      // Allow CORS for pixel script
 
 	if r.Method == http.MethodHead {
 		w.WriteHeader(http.StatusOK)
