@@ -54,99 +54,62 @@ func parseUTMAndClickIDsFromRequest(r *http.Request, e *Event) {
 	}
 	q := r.URL.Query()
 
-	// UTM
-	if e.URL.UTM.Source == "" {
-		e.URL.UTM.Source = q.Get("utm_source")
-	}
-	if e.URL.UTM.Medium == "" {
-		e.URL.UTM.Medium = q.Get("utm_medium")
-	}
-	if e.URL.UTM.Campaign == "" {
-		e.URL.UTM.Campaign = q.Get("utm_campaign")
-	}
-	if e.URL.UTM.Term == "" {
-		e.URL.UTM.Term = q.Get("utm_term")
-	}
-	if e.URL.UTM.Content == "" {
-		e.URL.UTM.Content = q.Get("utm_content")
-	}
-	if e.URL.UTM.ID == "" {
-		e.URL.UTM.ID = q.Get("utm_id")
-	}
-	if e.URL.UTM.CampaignID == "" {
-		e.URL.UTM.CampaignID = q.Get("utm_campaign_id")
-	}
+	parseUTMParams(q, e)
+	parseGoogleParams(q, e)
+	parseMetaParams(q, e)
+	parseMicrosoftParams(q, e)
+	parseOtherClickIDs(q, e)
+}
 
-	// Google
-	if e.URL.Google.GCLID == "" {
-		e.URL.Google.GCLID = q.Get("gclid")
-	}
-	if e.URL.Google.GCLSRC == "" {
-		e.URL.Google.GCLSRC = q.Get("gclsrc")
-	}
-	if e.URL.Google.GBRAID == "" {
-		e.URL.Google.GBRAID = q.Get("gbraid")
-	}
-	if e.URL.Google.WBRAID == "" {
-		e.URL.Google.WBRAID = q.Get("wbraid")
-	}
+func parseUTMParams(q url.Values, e *Event) {
+	setIfEmpty(&e.URL.UTM.Source, q.Get("utm_source"))
+	setIfEmpty(&e.URL.UTM.Medium, q.Get("utm_medium"))
+	setIfEmpty(&e.URL.UTM.Campaign, q.Get("utm_campaign"))
+	setIfEmpty(&e.URL.UTM.Term, q.Get("utm_term"))
+	setIfEmpty(&e.URL.UTM.Content, q.Get("utm_content"))
+	setIfEmpty(&e.URL.UTM.ID, q.Get("utm_id"))
+	setIfEmpty(&e.URL.UTM.CampaignID, q.Get("utm_campaign_id"))
+}
 
-	if e.URL.Google.CampaignID == "" {
-		e.URL.Google.CampaignID = q.Get("campaignid")
-	}
-	if e.URL.Google.AdGroupID == "" {
-		e.URL.Google.AdGroupID = q.Get("adgroupid")
-	}
-	if e.URL.Google.AdID == "" {
-		e.URL.Google.AdID = q.Get("creative")
-	}
-	if e.URL.Google.KeywordID == "" {
-		e.URL.Google.KeywordID = q.Get("keyword")
-	}
+func parseGoogleParams(q url.Values, e *Event) {
+	setIfEmpty(&e.URL.Google.GCLID, q.Get("gclid"))
+	setIfEmpty(&e.URL.Google.GCLSRC, q.Get("gclsrc"))
+	setIfEmpty(&e.URL.Google.GBRAID, q.Get("gbraid"))
+	setIfEmpty(&e.URL.Google.WBRAID, q.Get("wbraid"))
+	setIfEmpty(&e.URL.Google.CampaignID, q.Get("campaignid"))
+	setIfEmpty(&e.URL.Google.AdGroupID, q.Get("adgroupid"))
+	setIfEmpty(&e.URL.Google.AdID, q.Get("creative"))
+	setIfEmpty(&e.URL.Google.KeywordID, q.Get("keyword"))
+	setIfEmpty(&e.URL.Google.MatchType, q.Get("matchtype"))
+	setIfEmpty(&e.URL.Google.Network, q.Get("network"))
+	setIfEmpty(&e.URL.Google.Device, q.Get("device"))
+	setIfEmpty(&e.URL.Google.Placement, q.Get("placement"))
+}
 
-	if e.URL.Google.MatchType == "" {
-		e.URL.Google.MatchType = q.Get("matchtype")
-	}
-	if e.URL.Google.Network == "" {
-		e.URL.Google.Network = q.Get("network")
-	}
-	if e.URL.Google.Device == "" {
-		e.URL.Google.Device = q.Get("device")
-	}
-	if e.URL.Google.Placement == "" {
-		e.URL.Google.Placement = q.Get("placement")
-	}
+func parseMetaParams(q url.Values, e *Event) {
+	setIfEmpty(&e.URL.Meta.FBCLID, q.Get("fbclid"))
+	setIfEmpty(&e.URL.Meta.FBC, q.Get("fbc"))
+	setIfEmpty(&e.URL.Meta.FBP, q.Get("fbp"))
+	setIfEmpty(&e.URL.Meta.CampaignID, q.Get("campaign_id"))
+	setIfEmpty(&e.URL.Meta.AdSetID, q.Get("adset_id"))
+	setIfEmpty(&e.URL.Meta.AdID, q.Get("ad_id"))
+}
 
-	// Meta
-	if e.URL.Meta.FBCLID == "" {
-		e.URL.Meta.FBCLID = q.Get("fbclid")
-	}
-	if e.URL.Meta.FBC == "" {
-		e.URL.Meta.FBC = q.Get("fbc")
-	}
-	if e.URL.Meta.FBP == "" {
-		e.URL.Meta.FBP = q.Get("fbp")
-	}
-	if e.URL.Meta.CampaignID == "" {
-		e.URL.Meta.CampaignID = q.Get("campaign_id")
-	}
-	if e.URL.Meta.AdSetID == "" {
-		e.URL.Meta.AdSetID = q.Get("adset_id")
-	}
-	if e.URL.Meta.AdID == "" {
-		e.URL.Meta.AdID = q.Get("ad_id")
-	}
+func parseMicrosoftParams(q url.Values, e *Event) {
+	setIfEmpty(&e.URL.Microsoft.MSCLKID, q.Get("msclkid"))
+}
 
-	// Microsoft
-	if e.URL.Microsoft.MSCLKID == "" {
-		e.URL.Microsoft.MSCLKID = q.Get("msclkid")
-	}
-
-	// Other common click ids
+func parseOtherClickIDs(q url.Values, e *Event) {
 	if e.URL.OtherIDs == nil {
 		e.URL.OtherIDs = map[string]string{}
 	}
 	copyIf(q, e.URL.OtherIDs, "ttclid", "li_fat_id", "epik", "twclid", "dclid")
+}
+
+func setIfEmpty(dst *string, value string) {
+	if *dst == "" {
+		*dst = value
+	}
 }
 
 func copyIf(q url.Values, dst map[string]string, keys ...string) {

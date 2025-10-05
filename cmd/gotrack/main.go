@@ -58,10 +58,42 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	sinks := initializeSinks(ctx, cfg.Outputs)
+	if len(sinks) == 0 {
+		log.Fatal("no valid sinks configured")
+	}
+
+	hmacAuth := initializeHMACAuth(cfg)
+
+	env := httpx.Env{
+		Cfg:      cfg,
+		HMACAuth: hmacAuth,
+		Metrics:  appMetrics,
+		Emit:     createEmitFunc(sinks, appMetrics),
+	}
+
+	// Start metrics server
+	if err := metricsServer.Start(ctx); err != nil {
+		log.Printf("failed to start metrics server: %v", err)
+	}
+
+	// Run test mode if enabled (generate test events)
+	if cfg.TestMode {
+		go func() {
+			// Wait a moment for sinks to be fully initialized
+			time.Sleep(2 * time.Second)
+			runTestMode(env.Emit)
+		}()
+	}
+
+	srv := startHTTPServer(cfg, env)
+	waitForShutdown(srv, metricsServer, sinks)
+}
+
+func initializeSinks(ctx context.Context, outputs []string) []sink.Sink {
 	var sinks []sink.Sink
 
-	// Initialize sinks based on configuration
-	for _, output := range cfg.Outputs {
+	for _, output := range outputs {
 		switch output {
 		case "log":
 			logSink := sink.NewLogSink()
@@ -92,11 +124,10 @@ func main() {
 		}
 	}
 
-	if len(sinks) == 0 {
-		log.Fatal("no valid sinks configured")
-	}
+	return sinks
+}
 
-	// Initialize HMAC authentication if configured
+func initializeHMACAuth(cfg config.Config) *httpx.HMACAuth {
 	var hmacAuth *httpx.HMACAuth
 	if cfg.HMACSecret != "" {
 		hmacAuth = httpx.NewHMACAuth(cfg.HMACSecret, cfg.HMACPublicKey, cfg.RequireHMAC)
@@ -108,40 +139,26 @@ func main() {
 		log.Printf("HMAC client script available at /hmac.js")
 		log.Printf("HMAC public key available at /hmac/public-key")
 	}
+	return hmacAuth
+}
 
-	env := httpx.Env{
-		Cfg:      cfg,
-		HMACAuth: hmacAuth,
-		Metrics:  appMetrics,
-		Emit: func(ev event.Event) {
-			// Send event to all configured sinks
-			for _, s := range sinks {
-				if err := s.Enqueue(ev); err != nil {
-					log.Printf("failed to enqueue event to sink: %v", err)
-					// Track sink errors in metrics
-					appMetrics.IncrementSinkErrors(s.Name(), "enqueue_error")
-				} else {
-					// Track successful ingestion
-					appMetrics.IncrementEventsIngested(s.Name())
-				}
+func createEmitFunc(sinks []sink.Sink, appMetrics *metrics.Metrics) func(event.Event) {
+	return func(ev event.Event) {
+		// Send event to all configured sinks
+		for _, s := range sinks {
+			if err := s.Enqueue(ev); err != nil {
+				log.Printf("failed to enqueue event to sink: %v", err)
+				// Track sink errors in metrics
+				appMetrics.IncrementSinkErrors(s.Name(), "enqueue_error")
+			} else {
+				// Track successful ingestion
+				appMetrics.IncrementEventsIngested(s.Name())
 			}
-		},
+		}
 	}
+}
 
-	// Start metrics server
-	if err := metricsServer.Start(ctx); err != nil {
-		log.Printf("failed to start metrics server: %v", err)
-	}
-
-	// Run test mode if enabled (generate test events)
-	if cfg.TestMode {
-		go func() {
-			// Wait a moment for sinks to be fully initialized
-			time.Sleep(2 * time.Second)
-			runTestMode(env.Emit)
-		}()
-	}
-
+func startHTTPServer(cfg config.Config, env httpx.Env) *http.Server {
 	srv := &http.Server{
 		Addr:              cfg.ServerAddr,
 		Handler:           httpx.NewMux(env),
@@ -162,13 +179,17 @@ func main() {
 		}
 	}()
 
+	return srv
+}
+
+func waitForShutdown(srv *http.Server, metricsServer *metrics.Server, sinks []sink.Sink) {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	<-stop
 
 	log.Println("shutting down...")
-	shutdownCtx, cancel2 := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel2()
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 	_ = srv.Shutdown(shutdownCtx)
 
 	// Shutdown metrics server

@@ -119,69 +119,100 @@ func writePixel(w http.ResponseWriter, headOnly bool) {
 
 // POST /collect — accepts a single Event object or an array of Events from JS.
 func (e Env) Collect(w http.ResponseWriter, r *http.Request) {
+	if !e.validateCollectRequest(w, r) {
+		return
+	}
+
+	body, ok := e.readAndVerifyBody(w, r)
+	if !ok {
+		return
+	}
+
+	accepted, ok := e.processEvents(w, r, body)
+	if !ok {
+		return
+	}
+
+	e.sendCollectResponse(w, accepted)
+}
+
+func (e Env) validateCollectRequest(w http.ResponseWriter, r *http.Request) bool {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
+		return false
 	}
 	if ct := r.Header.Get("Content-Type"); ct != "" && !strings.Contains(ct, "application/json") {
 		http.Error(w, "content-type must be application/json", http.StatusUnsupportedMediaType)
-		return
+		return false
 	}
 	if e.Cfg.DNTRespect && r.Header.Get("DNT") == "1" {
 		w.WriteHeader(http.StatusAccepted)
 		_ = json.NewEncoder(w).Encode(map[string]any{"accepted": 0, "status": "dnt"})
-		return
+		return false
 	}
+	return true
+}
 
+func (e Env) readAndVerifyBody(w http.ResponseWriter, r *http.Request) ([]byte, bool) {
 	defer r.Body.Close()
 
-	// Read the body for HMAC verification
 	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, e.Cfg.MaxBodyBytes))
 	if err != nil {
 		http.Error(w, "request body too large", http.StatusRequestEntityTooLarge)
-		return
+		return nil, false
 	}
 
 	// Verify HMAC if authentication is enabled
 	if e.HMACAuth != nil && !e.HMACAuth.VerifyHMAC(r, body) {
 		http.Error(w, "invalid or missing HMAC signature", http.StatusUnauthorized)
-		return
+		return nil, false
 	}
 
-	// Parse the JSON
+	return body, true
+}
+
+func (e Env) processEvents(w http.ResponseWriter, r *http.Request, body []byte) (int, bool) {
 	var raw json.RawMessage
 	if err := json.Unmarshal(body, &raw); err != nil {
 		http.Error(w, "invalid json", http.StatusBadRequest)
-		return
+		return 0, false
 	}
 
-	accepted := 0
 	if len(raw) > 0 && raw[0] == '[' {
-		var arr []event.Event
-		if err := json.Unmarshal(raw, &arr); err != nil {
-			http.Error(w, "invalid json array", http.StatusBadRequest)
-			return
-		}
-		for i := range arr {
-			event.EnrichServerFields(r, &arr[i], e.Cfg)
-			if e.Emit != nil {
-				e.Emit(arr[i])
-			}
-			accepted++
-		}
-	} else {
-		var ev event.Event
-		if err := json.Unmarshal(raw, &ev); err != nil {
-			http.Error(w, "invalid json object", http.StatusBadRequest)
-			return
-		}
-		event.EnrichServerFields(r, &ev, e.Cfg)
-		if e.Emit != nil {
-			e.Emit(ev)
-		}
-		accepted = 1
+		return e.processEventArray(w, r, raw)
 	}
+	return e.processSingleEvent(w, r, raw)
+}
 
+func (e Env) processEventArray(w http.ResponseWriter, r *http.Request, raw json.RawMessage) (int, bool) {
+	var arr []event.Event
+	if err := json.Unmarshal(raw, &arr); err != nil {
+		http.Error(w, "invalid json array", http.StatusBadRequest)
+		return 0, false
+	}
+	for i := range arr {
+		event.EnrichServerFields(r, &arr[i], e.Cfg)
+		if e.Emit != nil {
+			e.Emit(arr[i])
+		}
+	}
+	return len(arr), true
+}
+
+func (e Env) processSingleEvent(w http.ResponseWriter, r *http.Request, raw json.RawMessage) (int, bool) {
+	var ev event.Event
+	if err := json.Unmarshal(raw, &ev); err != nil {
+		http.Error(w, "invalid json object", http.StatusBadRequest)
+		return 0, false
+	}
+	event.EnrichServerFields(r, &ev, e.Cfg)
+	if e.Emit != nil {
+		e.Emit(ev)
+	}
+	return 1, true
+}
+
+func (e Env) sendCollectResponse(w http.ResponseWriter, accepted int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Gotrack-Accepted", itoa(accepted))
 	w.WriteHeader(http.StatusAccepted)
