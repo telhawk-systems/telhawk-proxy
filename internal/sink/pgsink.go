@@ -226,6 +226,11 @@ func (s *PGSink) flushBatch() error {
 		return nil
 	}
 	
+	// Skip flush if database is not initialized (e.g., Start() was never called)
+	if s.db == nil {
+		return nil
+	}
+	
 	var err error
 	if s.config.UseCopy {
 		err = s.flushWithCopy()
