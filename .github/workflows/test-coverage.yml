@@ -46,11 +46,11 @@ jobs:
           echo "color=$COLOR" >> $GITHUB_OUTPUT
 
       - name: Create coverage badge
-        if: github.ref == 'refs/heads/main' && vars.COVERAGE_GIST_ID != ''
+        if: github.ref == 'refs/heads/main'
         uses: schneegans/dynamic-badges-action@v1.7.0
         with:
           auth: ${{ secrets.GIST_TOKEN }}
-          gistID: ${{ vars.COVERAGE_GIST_ID }}
+          gistID: 06522d3b723a877fce2c749350f6dc83
           filename: gotrack-coverage.json
           label: coverage
           message: ${{ steps.coverage.outputs.coverage }}%
