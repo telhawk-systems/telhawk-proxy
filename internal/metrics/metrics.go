@@ -20,10 +20,10 @@ type Metrics struct {
 	EventsIngested *prometheus.CounterVec
 	SinkErrors     *prometheus.CounterVec
 	HTTPRequests   *prometheus.CounterVec
-	
+
 	// Gauges
 	QueueDepth *prometheus.GaugeVec
-	
+
 	// Histograms
 	BatchFlushLatency *prometheus.HistogramVec
 	HTTPDuration      *prometheus.HistogramVec
@@ -63,7 +63,7 @@ func NewMetrics() *Metrics {
 			},
 			[]string{"sink"},
 		),
-		
+
 		SinkErrors: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "gotrack_sink_errors_total",
@@ -71,7 +71,7 @@ func NewMetrics() *Metrics {
 			},
 			[]string{"sink", "error_type"},
 		),
-		
+
 		HTTPRequests: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "gotrack_http_requests_total",
@@ -79,7 +79,7 @@ func NewMetrics() *Metrics {
 			},
 			[]string{"endpoint", "method", "status"},
 		),
-		
+
 		QueueDepth: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "gotrack_queue_depth",
@@ -87,7 +87,7 @@ func NewMetrics() *Metrics {
 			},
 			[]string{"sink"},
 		),
-		
+
 		BatchFlushLatency: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "gotrack_batch_flush_latency_seconds",
@@ -96,7 +96,7 @@ func NewMetrics() *Metrics {
 			},
 			[]string{"sink"},
 		),
-		
+
 		HTTPDuration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "gotrack_http_duration_seconds",
@@ -106,7 +106,7 @@ func NewMetrics() *Metrics {
 			[]string{"endpoint", "method"},
 		),
 	}
-	
+
 	// Register all metrics
 	prometheus.MustRegister(m.EventsIngested)
 	prometheus.MustRegister(m.SinkErrors)
@@ -114,7 +114,7 @@ func NewMetrics() *Metrics {
 	prometheus.MustRegister(m.QueueDepth)
 	prometheus.MustRegister(m.BatchFlushLatency)
 	prometheus.MustRegister(m.HTTPDuration)
-	
+
 	return m
 }
 
@@ -128,13 +128,13 @@ type Server struct {
 func NewServer(config Config) *Server {
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
-	
+
 	// Add a simple health check endpoint for the metrics server
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("OK")) // Ignore write errors for health check
 	})
-	
+
 	srv := &http.Server{
 		Addr:    config.Addr,
 		Handler: mux,
@@ -143,13 +143,13 @@ func NewServer(config Config) *Server {
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
-	
+
 	// Configure TLS if enabled
 	if config.RequireTLS && config.TLSCert != "" && config.TLSKey != "" {
 		tlsConfig := &tls.Config{
 			MinVersion: tls.VersionTLS12,
 		}
-		
+
 		// Configure mTLS if client CA is provided
 		if config.ClientCA != "" {
 			clientCAs, err := loadCertPool(config.ClientCA)
@@ -161,10 +161,10 @@ func NewServer(config Config) *Server {
 				log.Printf("metrics: mTLS enabled with client CA: %s", config.ClientCA)
 			}
 		}
-		
+
 		srv.TLSConfig = tlsConfig
 	}
-	
+
 	return &Server{
 		server: srv,
 		config: config,
@@ -177,7 +177,7 @@ func (s *Server) Start(ctx context.Context) error {
 		log.Printf("metrics: disabled (METRICS_ENABLED=false)")
 		return nil
 	}
-	
+
 	go func() {
 		var err error
 		if s.config.RequireTLS && s.config.TLSCert != "" && s.config.TLSKey != "" {
@@ -187,12 +187,12 @@ func (s *Server) Start(ctx context.Context) error {
 			log.Printf("metrics: HTTP server listening on %s", s.config.Addr)
 			err = s.server.ListenAndServe()
 		}
-		
+
 		if err != nil && err != http.ErrServerClosed {
 			log.Printf("metrics: server error: %v", err)
 		}
 	}()
-	
+
 	// Wait for server to start (give it a moment)
 	time.Sleep(100 * time.Millisecond)
 	return nil
@@ -203,7 +203,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	if !s.config.Enabled {
 		return nil
 	}
-	
+
 	log.Printf("metrics: shutting down server...")
 	return s.server.Shutdown(ctx)
 }
@@ -221,7 +221,7 @@ func getBool(key string, defaultValue bool) bool {
 	if value == "" {
 		return defaultValue
 	}
-	
+
 	parsed, err := strconv.ParseBool(value)
 	if err != nil {
 		return defaultValue

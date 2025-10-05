@@ -17,15 +17,15 @@ type KafkaConfig struct {
 	Topic       string
 	Acks        string
 	Compression string
-	
+
 	// SASL config
 	SASLMechanism string
 	SASLUser      string
 	SASLPassword  string
-	
+
 	// TLS config
-	TLSCAPath      string
-	TLSSkipVerify  bool
+	TLSCAPath     string
+	TLSSkipVerify bool
 }
 
 // KafkaSink produces events to Kafka with key=event_id for idempotency
@@ -44,19 +44,19 @@ func NewKafkaSinkFromEnv() *KafkaSink {
 	for i, broker := range brokers {
 		brokers[i] = strings.TrimSpace(broker)
 	}
-	
+
 	config := KafkaConfig{
-		Brokers:        brokers,
-		Topic:          getEnvOr("KAFKA_TOPIC", "gotrack.events"),
-		Acks:           getEnvOr("KAFKA_ACKS", "all"),
-		Compression:    getEnvOr("KAFKA_COMPRESSION", ""),
-		SASLMechanism:  os.Getenv("KAFKA_SASL_MECHANISM"),
-		SASLUser:       os.Getenv("KAFKA_SASL_USER"),
-		SASLPassword:   os.Getenv("KAFKA_SASL_PASSWORD"),
-		TLSCAPath:      os.Getenv("KAFKA_TLS_CA"),
-		TLSSkipVerify:  getBoolEnv("KAFKA_TLS_SKIP_VERIFY", false),
+		Brokers:       brokers,
+		Topic:         getEnvOr("KAFKA_TOPIC", "gotrack.events"),
+		Acks:          getEnvOr("KAFKA_ACKS", "all"),
+		Compression:   getEnvOr("KAFKA_COMPRESSION", ""),
+		SASLMechanism: os.Getenv("KAFKA_SASL_MECHANISM"),
+		SASLUser:      os.Getenv("KAFKA_SASL_USER"),
+		SASLPassword:  os.Getenv("KAFKA_SASL_PASSWORD"),
+		TLSCAPath:     os.Getenv("KAFKA_TLS_CA"),
+		TLSSkipVerify: getBoolEnv("KAFKA_TLS_SKIP_VERIFY", false),
 	}
-	
+
 	return &KafkaSink{config: config}
 }
 
@@ -74,18 +74,18 @@ func NewKafkaSink(brokers []string, topic string) *KafkaSink {
 func (s *KafkaSink) Start(ctx context.Context) error {
 	configMap := kafka.ConfigMap{
 		"bootstrap.servers": strings.Join(s.config.Brokers, ","),
-		"acks":             s.config.Acks,
-		"retries":          10,
-		"retry.backoff.ms": 100,
-		"batch.size":       16384,
-		"linger.ms":        10,
+		"acks":              s.config.Acks,
+		"retries":           10,
+		"retry.backoff.ms":  100,
+		"batch.size":        16384,
+		"linger.ms":         10,
 	}
-	
+
 	// Set compression if specified
 	if s.config.Compression != "" {
 		configMap["compression.type"] = s.config.Compression
 	}
-	
+
 	// Configure SASL if specified
 	if s.config.SASLMechanism != "" {
 		configMap["security.protocol"] = "SASL_SSL"
@@ -97,7 +97,7 @@ func (s *KafkaSink) Start(ctx context.Context) error {
 			configMap["sasl.password"] = s.config.SASLPassword
 		}
 	}
-	
+
 	// Configure TLS if CA path is provided
 	if s.config.TLSCAPath != "" {
 		if s.config.SASLMechanism == "" {
@@ -105,22 +105,22 @@ func (s *KafkaSink) Start(ctx context.Context) error {
 		}
 		configMap["ssl.ca.location"] = s.config.TLSCAPath
 	}
-	
+
 	// Configure TLS verification
 	if s.config.TLSSkipVerify {
 		configMap["ssl.endpoint.identification.algorithm"] = "none"
 	}
-	
+
 	producer, err := kafka.NewProducer(&configMap)
 	if err != nil {
 		return fmt.Errorf("failed to create Kafka producer: %w", err)
 	}
-	
+
 	s.producer = producer
-	
+
 	// Start delivery report handler in background
 	go s.handleDeliveryReports(ctx)
-	
+
 	return nil
 }
 
@@ -128,13 +128,13 @@ func (s *KafkaSink) Enqueue(e event.Event) error {
 	if s.producer == nil {
 		return fmt.Errorf("kafka producer not initialized")
 	}
-	
+
 	// Serialize event to JSON
 	value, err := json.Marshal(e)
 	if err != nil {
 		return fmt.Errorf("failed to serialize event: %w", err)
 	}
-	
+
 	// Create Kafka message with event_id as key for idempotency
 	msg := &kafka.Message{
 		TopicPartition: kafka.TopicPartition{
@@ -148,13 +148,13 @@ func (s *KafkaSink) Enqueue(e event.Event) error {
 			{Key: "schema", Value: []byte("v1")},
 		},
 	}
-	
+
 	// Send message asynchronously
 	err = s.producer.Produce(msg, nil)
 	if err != nil {
 		return fmt.Errorf("failed to produce message: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -162,13 +162,13 @@ func (s *KafkaSink) Close() error {
 	if s.producer == nil {
 		return nil
 	}
-	
+
 	// Flush any remaining messages (wait up to 10 seconds)
 	remaining := s.producer.Flush(10 * 1000)
 	if remaining > 0 {
 		return fmt.Errorf("failed to flush %d remaining messages", remaining)
 	}
-	
+
 	s.producer.Close()
 	return nil
 }

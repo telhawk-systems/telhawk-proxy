@@ -145,8 +145,8 @@ type SessionInfo struct {
 // --- Server enrich ---
 
 type ServerMeta struct {
-	IP        string                          `json:"ip_hash,omitempty"` // hash of client IP (if enabled)
-	Geo       map[string]string               `json:"geo,omitempty"`     // coarse {country,region,city}
+	IP        string                           `json:"ip_hash,omitempty"`   // hash of client IP (if enabled)
+	Geo       map[string]string                `json:"geo,omitempty"`       // coarse {country,region,city}
 	Detection detection.ServerDetectionSignals `json:"detection,omitempty"` // Raw detection signals
 }
 

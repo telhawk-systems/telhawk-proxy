@@ -10,26 +10,26 @@ type Config struct {
 	ServerAddr   string
 	TrustProxy   bool
 	DNTRespect   bool
-	MaxBodyBytes int64  // bytes for /collect payload
-	IPHashSecret string // daily salt secret seed; if empty, we won’t hash
+	MaxBodyBytes int64    // bytes for /collect payload
+	IPHashSecret string   // daily salt secret seed; if empty, we won’t hash
 	Outputs      []string // enabled sinks: log, kafka, postgres
 	TestMode     bool     // if true, generate test events on startup
-	
+
 	// HTTPS Configuration
 	EnableHTTPS bool   // enable HTTPS server
 	CertFile    string // path to SSL certificate file (server.crt)
 	KeyFile     string // path to SSL private key file (server.key)
-	
+
 	// Middleware/Proxy Configuration
 	MiddlewareMode     bool   // enable middleware mode - forward 404s to destination
 	ForwardDestination string // destination hostname to forward non-tracking requests to
 	AutoInjectPixel    bool   // automatically inject tracking pixel into HTML responses
-	
+
 	// HMAC Authentication Configuration
 	HMACSecret    string // secret key for HMAC generation/verification
 	RequireHMAC   bool   // require HMAC verification for /collect endpoint
 	HMACPublicKey string // public key for client-side HMAC generation (base64 encoded)
-	
+
 	// Metrics Configuration
 	MetricsEnabled    bool   // enable Prometheus metrics server
 	MetricsAddr       string // metrics server bind address
@@ -91,22 +91,22 @@ func Load() Config {
 		IPHashSecret: getOr("IP_HASH_SECRET", ""),       // set to enable hashing
 		Outputs:      getStringSlice("OUTPUTS", "log"),  // default to log only
 		TestMode:     getBool("TEST_MODE", false),       // enable test event generation
-		
+
 		// HTTPS Configuration
-		EnableHTTPS: getBool("ENABLE_HTTPS", false),     // disabled by default
+		EnableHTTPS: getBool("ENABLE_HTTPS", false),       // disabled by default
 		CertFile:    getOr("SSL_CERT_FILE", "server.crt"), // default cert file path
-		KeyFile:     getOr("SSL_KEY_FILE", "server.key"),   // default key file path
-		
+		KeyFile:     getOr("SSL_KEY_FILE", "server.key"),  // default key file path
+
 		// Middleware/Proxy Configuration
-		MiddlewareMode:     getBool("MIDDLEWARE_MODE", false), // disabled by default
-		ForwardDestination: getOr("FORWARD_DESTINATION", ""),  // no default destination
+		MiddlewareMode:     getBool("MIDDLEWARE_MODE", false),  // disabled by default
+		ForwardDestination: getOr("FORWARD_DESTINATION", ""),   // no default destination
 		AutoInjectPixel:    getBool("AUTO_INJECT_PIXEL", true), // enabled by default for HTML
-		
+
 		// HMAC Authentication Configuration
-		HMACSecret:    getOr("HMAC_SECRET", ""),           // no default - must be set explicitly
-		RequireHMAC:   getBool("REQUIRE_HMAC", false),     // disabled by default
-		HMACPublicKey: getOr("HMAC_PUBLIC_KEY", ""),       // derived from secret if not set
-		
+		HMACSecret:    getOr("HMAC_SECRET", ""),       // no default - must be set explicitly
+		RequireHMAC:   getBool("REQUIRE_HMAC", false), // disabled by default
+		HMACPublicKey: getOr("HMAC_PUBLIC_KEY", ""),   // derived from secret if not set
+
 		// Metrics Configuration
 		MetricsEnabled:    getBool("METRICS_ENABLED", false),       // disabled by default
 		MetricsAddr:       getOr("METRICS_ADDR", "127.0.0.1:9090"), // bind to localhost by default

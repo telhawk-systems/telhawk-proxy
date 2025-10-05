@@ -57,9 +57,9 @@ func main() {
 	// start sinks
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	
+
 	var sinks []sink.Sink
-	
+
 	// Initialize sinks based on configuration
 	for _, output := range cfg.Outputs {
 		switch output {
@@ -70,7 +70,7 @@ func main() {
 			}
 			sinks = append(sinks, logSink)
 			log.Println("log sink started")
-			
+
 		case "kafka":
 			kafkaSink := sink.NewKafkaSinkFromEnv()
 			if err := kafkaSink.Start(ctx); err != nil {
@@ -78,7 +78,7 @@ func main() {
 			}
 			sinks = append(sinks, kafkaSink)
 			log.Println("kafka sink started")
-			
+
 		case "postgres":
 			pgSink := sink.NewPGSinkFromEnv()
 			if err := pgSink.Start(ctx); err != nil {
@@ -86,12 +86,12 @@ func main() {
 			}
 			sinks = append(sinks, pgSink)
 			log.Println("postgres sink started")
-			
+
 		default:
 			log.Printf("unknown output type: %s, skipping", output)
 		}
 	}
-	
+
 	if len(sinks) == 0 {
 		log.Fatal("no valid sinks configured")
 	}
@@ -170,19 +170,19 @@ func main() {
 	shutdownCtx, cancel2 := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel2()
 	_ = srv.Shutdown(shutdownCtx)
-	
+
 	// Shutdown metrics server
 	if err := metricsServer.Shutdown(shutdownCtx); err != nil {
 		log.Printf("error shutting down metrics server: %v", err)
 	}
-	
+
 	// Close all sinks
 	for _, s := range sinks {
 		if err := s.Close(); err != nil {
 			log.Printf("error closing sink: %v", err)
 		}
 	}
-	
+
 	log.Println("shutdown complete")
 }
 

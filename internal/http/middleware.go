@@ -49,17 +49,17 @@ func MetricsMiddleware(appMetrics *metrics.Metrics) func(http.Handler) http.Hand
 				next.ServeHTTP(w, r)
 				return
 			}
-			
+
 			start := time.Now()
 			wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
-			
+
 			next.ServeHTTP(wrapped, r)
-			
+
 			duration := time.Since(start)
 			endpoint := r.URL.Path
 			method := r.Method
 			status := strconv.Itoa(wrapped.statusCode)
-			
+
 			// Record metrics
 			appMetrics.IncrementHTTPRequests(endpoint, method, status)
 			appMetrics.ObserveHTTPDuration(endpoint, method, duration)

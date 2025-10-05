@@ -14,9 +14,9 @@ import (
 
 // HMACAuth handles HMAC authentication for collection endpoints
 type HMACAuth struct {
-	secret       []byte
-	publicKey    []byte
-	requireHMAC  bool
+	secret      []byte
+	publicKey   []byte
+	requireHMAC bool
 }
 
 // NewHMACAuth creates a new HMAC authentication handler
@@ -25,7 +25,7 @@ func NewHMACAuth(secret, publicKey string, requireHMAC bool) *HMACAuth {
 		secret:      []byte(secret),
 		requireHMAC: requireHMAC,
 	}
-	
+
 	// If public key is provided, decode it from base64
 	if publicKey != "" {
 		if decoded, err := base64.StdEncoding.DecodeString(publicKey); err == nil {
@@ -34,12 +34,12 @@ func NewHMACAuth(secret, publicKey string, requireHMAC bool) *HMACAuth {
 			log.Printf("WARNING: Invalid HMAC_PUBLIC_KEY format, using derived key")
 		}
 	}
-	
+
 	// If no public key provided or invalid, derive from secret
 	if len(auth.publicKey) == 0 && len(auth.secret) > 0 {
 		auth.publicKey = auth.derivePublicKey(auth.secret)
 	}
-	
+
 	return auth
 }
 
@@ -64,10 +64,10 @@ func (h *HMACAuth) generateHMAC(payload []byte, clientIP string) string {
 	if len(h.secret) == 0 {
 		return ""
 	}
-	
+
 	// Derive client-specific key from secret + IP
 	derivedKey := h.deriveClientKey(clientIP)
-	
+
 	// Generate HMAC
 	mac := hmac.New(sha256.New, derivedKey)
 	mac.Write(payload)
@@ -78,7 +78,7 @@ func (h *HMACAuth) generateHMAC(payload []byte, clientIP string) string {
 func (h *HMACAuth) deriveClientKey(clientIP string) []byte {
 	// Normalize IP (remove port, handle IPv6)
 	ip := normalizeIP(clientIP)
-	
+
 	// Derive key: HMAC(secret, "client-key:" + ip)
 	mac := hmac.New(sha256.New, h.secret)
 	mac.Write([]byte("client-key:" + ip))
@@ -93,12 +93,12 @@ func normalizeIP(addr string) string {
 			return addr[1:idx]
 		}
 	}
-	
+
 	// Handle IPv4 with port: 192.168.1.1:8080 -> 192.168.1.1
 	if host, _, err := net.SplitHostPort(addr); err == nil {
 		return host
 	}
-	
+
 	// Return as-is if no port
 	return addr
 }
@@ -108,31 +108,31 @@ func (h *HMACAuth) VerifyHMAC(r *http.Request, payload []byte) bool {
 	if !h.requireHMAC {
 		return true // HMAC not required
 	}
-	
+
 	if len(h.secret) == 0 {
 		log.Printf("HMAC verification failed: no secret configured")
 		return false
 	}
-	
+
 	// Get HMAC from header
 	providedHMAC := r.Header.Get("X-GoTrack-HMAC")
 	if providedHMAC == "" {
 		log.Printf("HMAC verification failed: missing X-GoTrack-HMAC header")
 		return false
 	}
-	
+
 	// Get client IP
 	clientIP := getClientIP(r)
-	
+
 	// Generate expected HMAC
 	expectedHMAC := h.generateHMAC(payload, clientIP)
-	
+
 	// Compare HMACs (constant time comparison)
 	if !hmac.Equal([]byte(providedHMAC), []byte(expectedHMAC)) {
 		log.Printf("HMAC verification failed for IP %s", clientIP)
 		return false
 	}
-	
+
 	log.Printf("HMAC verification successful for IP %s", clientIP)
 	return true
 }
@@ -146,12 +146,12 @@ func getClientIP(r *http.Request) string {
 			return strings.TrimSpace(ips[0])
 		}
 	}
-	
+
 	// Check X-Real-IP header
 	if xri := r.Header.Get("X-Real-IP"); xri != "" {
 		return strings.TrimSpace(xri)
 	}
-	
+
 	// Fall back to RemoteAddr
 	return r.RemoteAddr
 }
@@ -161,9 +161,9 @@ func (h *HMACAuth) GenerateClientScript() string {
 	if len(h.publicKey) == 0 {
 		return ""
 	}
-	
+
 	publicKeyB64 := h.GetPublicKeyBase64()
-	
+
 	return fmt.Sprintf(`
 // GoTrack HMAC Authentication
 (function() {

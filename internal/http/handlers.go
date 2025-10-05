@@ -40,18 +40,18 @@ func (e Env) HMACScript(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	
+
 	if e.HMACAuth == nil {
 		http.Error(w, "HMAC authentication not configured", http.StatusNotFound)
 		return
 	}
-	
+
 	script := e.HMACAuth.GenerateClientScript()
 	if script == "" {
 		http.Error(w, "HMAC client script not available", http.StatusNotFound)
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/javascript")
 	w.Header().Set("Cache-Control", "public, max-age=3600") // Cache for 1 hour
 	w.WriteHeader(http.StatusOK)
@@ -63,18 +63,18 @@ func (e Env) HMACPublicKey(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	
+
 	if e.HMACAuth == nil {
 		http.Error(w, "HMAC authentication not configured", http.StatusNotFound)
 		return
 	}
-	
+
 	publicKey := e.HMACAuth.GetPublicKeyBase64()
 	if publicKey == "" {
 		http.Error(w, "HMAC public key not available", http.StatusNotFound)
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "public, max-age=3600") // Cache for 1 hour
 	w.WriteHeader(http.StatusOK)
@@ -134,20 +134,20 @@ func (e Env) Collect(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer r.Body.Close()
-	
+
 	// Read the body for HMAC verification
 	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, e.Cfg.MaxBodyBytes))
 	if err != nil {
 		http.Error(w, "request body too large", http.StatusRequestEntityTooLarge)
 		return
 	}
-	
+
 	// Verify HMAC if authentication is enabled
 	if e.HMACAuth != nil && !e.HMACAuth.VerifyHMAC(r, body) {
 		http.Error(w, "invalid or missing HMAC signature", http.StatusUnauthorized)
 		return
 	}
-	
+
 	// Parse the JSON
 	var raw json.RawMessage
 	if err := json.Unmarshal(body, &raw); err != nil {

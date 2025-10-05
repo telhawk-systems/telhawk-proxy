@@ -11,7 +11,7 @@ import (
 // generateTestEvents creates sample events for testing sinks
 func generateTestEvents() []event.Event {
 	now := time.Now()
-	
+
 	events := []event.Event{
 		{
 			EventID: uuid.New().String(),
@@ -34,10 +34,10 @@ func generateTestEvents() []event.Event {
 				Protocol: "https",
 			},
 			Device: event.DeviceInfo{
-				UA:       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-				Browser:  "Chrome",
-				OS:       "Windows",
-				Language: "en-US",
+				UA:        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+				Browser:   "Chrome",
+				OS:        "Windows",
+				Language:  "en-US",
 				ViewportW: 1920,
 				ViewportH: 1080,
 			},
@@ -71,10 +71,10 @@ func generateTestEvents() []event.Event {
 				Protocol: "https",
 			},
 			Device: event.DeviceInfo{
-				UA:      "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X)",
-				Browser: "Safari",
-				OS:      "iOS",
-				UAMobile: boolPtr(true),
+				UA:        "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X)",
+				Browser:   "Safari",
+				OS:        "iOS",
+				UAMobile:  boolPtr(true),
 				ViewportW: 375,
 				ViewportH: 812,
 			},
@@ -93,9 +93,9 @@ func generateTestEvents() []event.Event {
 				Title:  "Thank You",
 			},
 			Device: event.DeviceInfo{
-				UA:      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
-				Browser: "Firefox",
-				OS:      "Linux",
+				UA:        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
+				Browser:   "Firefox",
+				OS:        "Linux",
 				ViewportW: 1366,
 				ViewportH: 768,
 			},
@@ -127,9 +127,9 @@ func generateTestEvents() []event.Event {
 				Title:  "Products",
 			},
 			Device: event.DeviceInfo{
-				UA:      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
-				Browser: "Safari",
-				OS:      "macOS",
+				UA:        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+				Browser:   "Safari",
+				OS:        "macOS",
 				ViewportW: 1440,
 				ViewportH: 900,
 			},
@@ -148,9 +148,9 @@ func generateTestEvents() []event.Event {
 				Title:  "Dashboard",
 			},
 			Device: event.DeviceInfo{
-				UA:      "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0)",
-				Browser: "Firefox",
-				OS:      "Windows",
+				UA:        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0)",
+				Browser:   "Firefox",
+				OS:        "Windows",
 				ViewportW: 1920,
 				ViewportH: 1080,
 			},
@@ -160,26 +160,26 @@ func generateTestEvents() []event.Event {
 			},
 		},
 	}
-	
+
 	return events
 }
 
 // runTestMode generates and sends test events
 func runTestMode(emitFn func(event.Event)) {
 	log.Println("🧪 TEST MODE: Generating test events...")
-	
+
 	events := generateTestEvents()
-	
+
 	for i, e := range events {
 		log.Printf("📊 Sending test event %d/%d: %s (%s)", i+1, len(events), e.Type, e.EventID)
 		emitFn(e)
-		
+
 		// Small delay between events to see them clearly in logs
 		if i < len(events)-1 {
 			time.Sleep(200 * time.Millisecond)
 		}
 	}
-	
+
 	log.Println("✅ TEST MODE: All test events sent!")
 	log.Println("💡 Check your sinks:")
 	log.Println("   - Log files: tail -f out/events.ndjson")
