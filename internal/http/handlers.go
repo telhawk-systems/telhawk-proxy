@@ -3,6 +3,7 @@ package httpx
 import (
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 
@@ -119,19 +120,21 @@ func (e Env) HMACPublicKey(w http.ResponseWriter, r *http.Request) {
 }
 
 func (e Env) Pixel(w http.ResponseWriter, r *http.Request) {
+	log.Printf("DEBUG: Pixel handler called")
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	if e.Cfg.DNTRespect && r.Header.Get("DNT") == "1" {
-		writePixel(w, r.Method == http.MethodHead)
 		return
 	}
 	evt := event.Event{Type: "pageview"}
 	// We only set URL/query-derived attrs server-side; client device info comes via /collect.
 	event.EnrichServerFields(r, &evt, e.Cfg)
+	log.Printf("DEBUG: Event created, event_id=%s, type=%s", evt.EventID, evt.Type)
 	if e.Emit != nil {
+		log.Printf("DEBUG: Calling Emit function")
 		e.Emit(evt)
+		log.Printf("DEBUG: Emit returned")
+	} else {
+		log.Printf("DEBUG: ERROR - Emit is nil!")
 	}
 	writePixel(w, r.Method == http.MethodHead)
 }
@@ -176,11 +179,6 @@ func (e Env) validateCollectRequest(w http.ResponseWriter, r *http.Request) bool
 	}
 	if ct := r.Header.Get("Content-Type"); ct != "" && !strings.Contains(ct, "application/json") {
 		http.Error(w, "content-type must be application/json", http.StatusUnsupportedMediaType)
-		return false
-	}
-	if e.Cfg.DNTRespect && r.Header.Get("DNT") == "1" {
-		w.WriteHeader(http.StatusAccepted)
-		_ = json.NewEncoder(w).Encode(map[string]any{"accepted": 0, "status": "dnt"})
 		return false
 	}
 	return true
@@ -239,8 +237,15 @@ func (e Env) processSingleEvent(w http.ResponseWriter, r *http.Request, raw json
 		return 0, false
 	}
 	event.EnrichServerFields(r, &ev, e.Cfg)
+
+	// DEBUG: Log that we're about to emit
+	log.Printf("DEBUG: Processing event type=%s, event_id=%s", ev.Type, ev.EventID)
+
 	if e.Emit != nil {
 		e.Emit(ev)
+		log.Printf("DEBUG: Event emitted successfully")
+	} else {
+		log.Printf("DEBUG: ERROR - Emit function is nil!")
 	}
 	return 1, true
 }

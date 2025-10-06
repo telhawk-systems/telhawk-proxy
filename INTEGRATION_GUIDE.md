@@ -138,7 +138,6 @@ go build -o gotrack ./cmd/gotrack
 OUTPUTS="log,kafka,postgres" \
 SERVER_ADDR=":19890" \
 TRUST_PROXY=true \
-DNT_RESPECT=true \
 KAFKA_BROKERS="kafka1:9092,kafka2:9092" \
 KAFKA_TOPIC="analytics.events" \
 PG_DSN="postgres://user:pass@db:5432/analytics" \
@@ -165,7 +164,7 @@ The Go server includes CORS headers for browser compatibility:
 ```go
 // Applied automatically
 Access-Control-Allow-Origin: *
-Access-Control-Allow-Headers: Content-Type, DNT
+Access-Control-Allow-Headers: Content-Type
 Access-Control-Allow-Methods: GET, POST, OPTIONS
 ```
 

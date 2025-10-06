@@ -13,7 +13,6 @@ type Event struct {
 	Device  DeviceInfo  `json:"device,omitempty"`
 	Session SessionInfo `json:"session,omitempty"`
 	Server  ServerMeta  `json:"server,omitempty"`
-	Consent ConsentInfo `json:"consent,omitempty"`
 }
 
 // --- URL / attribution ---
@@ -148,14 +147,4 @@ type ServerMeta struct {
 	IP        string                           `json:"ip_hash,omitempty"`   // hash of client IP (if enabled)
 	Geo       map[string]string                `json:"geo,omitempty"`       // coarse {country,region,city}
 	Detection detection.ServerDetectionSignals `json:"detection,omitempty"` // Raw detection signals
-}
-
-// --- Consent ---
-
-type ConsentInfo struct {
-	GDPRApplies *bool  `json:"gdpr_applies,omitempty"`
-	TCString    string `json:"tc_string,omitempty"`    // IAB TCF v2
-	USPrivacy   string `json:"us_privacy,omitempty"`   // CCPA/US privacy
-	GPPString   string `json:"gpp_string,omitempty"`   // GPP if present
-	ConsentMode string `json:"consent_mode,omitempty"` // e.g., "ad_storage=denied,analytics_storage=granted"
 }

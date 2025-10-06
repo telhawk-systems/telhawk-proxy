@@ -149,7 +149,6 @@ All configuration is via environment variables (12‑factor). Common flags:
 * `WORKER_CONCURRENCY` (default `4`)
 * `TRUST_PROXY` (default `false`): honor `X-Forwarded-For`
 * `GEOIP_DB` (optional path): enables coarse geo lookup
-* `DNT_RESPECT` (default `true`): drop or anonymize on `DNT: 1`
 * `TEST_MODE` (default `false`): generate test events on startup for testing sinks
 
 ### HTTPS/TLS Configuration
@@ -642,7 +641,6 @@ Tuning knobs: `BATCH_SIZE`, `FLUSH_INTERVAL_MS`, `WORKER_CONCURRENCY`, Kafka com
 
 ## Security & privacy
 
-* Respect **DNT** (drop or anonymize events)
 * **PII minimization**: don’t collect emails/names; hash IPs with per‑day salt if you need uniqueness
 * **Cookie**: httpOnly, SameSite=Lax; optional domain scoping
 * **CORS**: origin allowlist for `/collect`; `px.gif` is cache‑busted, no‑store

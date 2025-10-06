@@ -43,6 +43,10 @@ func (s *LogSink) Enqueue(e event.Event) error {
 	if s.f != nil {
 		s.mu.Lock()
 		_, err := s.f.Write(line)
+		// Force flush to ensure data is written immediately
+		if err == nil {
+			err = s.f.Sync()
+		}
 		s.mu.Unlock()
 		return err
 	}

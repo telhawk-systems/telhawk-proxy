@@ -9,7 +9,6 @@ import (
 type Config struct {
 	ServerAddr   string
 	TrustProxy   bool
-	DNTRespect   bool
 	MaxBodyBytes int64    // bytes for /collect payload
 	IPHashSecret string   // daily salt secret seed; if empty, we won’t hash
 	Outputs      []string // enabled sinks: log, kafka, postgres
@@ -86,7 +85,6 @@ func Load() Config {
 	return Config{
 		ServerAddr:   getOr("SERVER_ADDR", ":19890"),
 		TrustProxy:   getBool("TRUST_PROXY", false),
-		DNTRespect:   getBool("DNT_RESPECT", true),
 		MaxBodyBytes: getInt64("MAX_BODY_BYTES", 1<<20), // 1 MiB default
 		IPHashSecret: getOr("IP_HASH_SECRET", ""),       // set to enable hashing
 		Outputs:      getStringSlice("OUTPUTS", "log"),  // default to log only

@@ -42,7 +42,7 @@ HTTP server and request handlers.
 
 * `server.go` ➡️ starts the HTTP server, routing, lifecycle.
 * `handlers.go` ➡️ `/px.gif`, `/collect`, `/healthz`, `/readyz`, `/metrics`.
-* `middleware.go` ➡️ request logging, recovery, CORS, DNT enforcement.
+* `middleware.go` ➡️ request logging, recovery, CORS.
 
 ### `internal/sink/`
 

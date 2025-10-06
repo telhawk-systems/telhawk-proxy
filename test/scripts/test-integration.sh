@@ -104,8 +104,7 @@ start_server() {
     echo -e "  Server: http://localhost:19890"
     echo -e "  Outputs: log"
     echo -e "  Log file: ./integration-test.ndjson"
-    echo -e "  CORS: enabled"
-    echo -e "  DNT: respected"
+    echo -e "  CORS: enabled""
     
     echo -e "\n${YELLOW}Press Ctrl+C to stop the server${NC}\n"
     
@@ -113,7 +112,6 @@ start_server() {
     OUTPUTS=log \
     LOG_PATH=./integration-test.ndjson \
     SERVER_ADDR=":19890" \
-    DNT_RESPECT=true \
     ./gotrack
 }
 
@@ -138,7 +136,6 @@ case "${1:-}" in
         OUTPUTS=log \
         LOG_PATH=./integration-test.ndjson \
         SERVER_ADDR=":19890" \
-        DNT_RESPECT=true \
         ./gotrack &
         
         SERVER_PID=$!

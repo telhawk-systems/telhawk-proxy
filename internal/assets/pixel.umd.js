@@ -110,13 +110,6 @@
         }
     };
 
-    // Still collect DNT/GPC signals for security analysis, but don't honor them
-    // This is fraud/bot detection, not advertising tracking
-    const readConsent = () => ({
-        dnt: typeof navigator !== "undefined" ? navigator.doNotTrack === "1" || window.doNotTrack === "1" : false,
-        gpc: typeof navigator !== "undefined" && "globalPrivacyControl" in navigator ? navigator.globalPrivacyControl === true : false
-    });
-
     const runRegistry = async (detectors) => {
         const results = [];
         for (const d of detectors) {
@@ -1011,8 +1004,7 @@
                 doc: readDoc(),
                 perf: readPerf(),
                 input: readInputEntropy(),
-                session: { sid: getSessionId() },
-                consent: readConsent() // Still collect for analysis, but don't block
+                session: { sid: getSessionId() }
             };
             queueMicrotask(async () => {
                 const det = await runDetectors();

@@ -5,7 +5,6 @@ import { readDoc } from "./collect/doc";
 import { readPerf } from "./collect/perf";
 import { readInputEntropy } from "./collect/input";
 import { getSessionId } from "./ids/session";
-import { readConsent } from "./ids/consent";
 import { runDetectors } from "./detect";
 import { toPayload } from "./api/payload";
 import { pickEndpoint } from "./api/routes";
@@ -20,8 +19,7 @@ export function init(cfg: Partial<PixelConfig> = {}) {
       doc: readDoc(), 
       perf: readPerf(),
       input: readInputEntropy(),
-      session: { sid: getSessionId() },
-      consent: readConsent() // Still collect for analysis, but don't block
+      session: { sid: getSessionId() }
     };
     
     queueMicrotask(async () => {

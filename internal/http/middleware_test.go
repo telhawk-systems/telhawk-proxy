@@ -238,9 +238,6 @@ func TestCors(t *testing.T) {
 		if !strings.Contains(allowHeaders, "Content-Type") {
 			t.Errorf("should contain Content-Type, got %q", allowHeaders)
 		}
-		if !strings.Contains(allowHeaders, "DNT") {
-			t.Errorf("should contain DNT, got %q", allowHeaders)
-		}
 	})
 }
 

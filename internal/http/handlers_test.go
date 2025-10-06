@@ -214,7 +214,7 @@ func assertPixelResponse(t *testing.T, w *httptest.ResponseRecorder, wantStatusC
 func TestPixel(t *testing.T) {
 	t.Run("returns GIF for GET request", func(t *testing.T) {
 		var emittedEvent *event.Event
-		env := Env{Cfg: config.Config{DNTRespect: false}, Emit: func(e event.Event) { emittedEvent = &e }}
+		env := Env{Cfg: config.Config{}, Emit: func(e event.Event) { emittedEvent = &e }}
 		req := httptest.NewRequest(http.MethodGet, "/px.gif?utm_source=test", nil)
 		w := httptest.NewRecorder()
 		env.Pixel(w, req)
@@ -228,40 +228,15 @@ func TestPixel(t *testing.T) {
 	})
 
 	t.Run("returns GIF for HEAD request without body", func(t *testing.T) {
-		env := Env{Cfg: config.Config{DNTRespect: false}, Emit: func(e event.Event) {}}
+		env := Env{Cfg: config.Config{}, Emit: func(e event.Event) {}}
 		req := httptest.NewRequest(http.MethodHead, "/px.gif", nil)
 		w := httptest.NewRecorder()
 		env.Pixel(w, req)
 		assertPixelResponse(t, w, http.StatusOK, false)
 	})
 
-	t.Run("respects DNT header when configured", func(t *testing.T) {
-		emitCalled := false
-		env := Env{Cfg: config.Config{DNTRespect: true}, Emit: func(e event.Event) { emitCalled = true }}
-		req := httptest.NewRequest(http.MethodGet, "/px.gif", nil)
-		req.Header.Set("DNT", "1")
-		w := httptest.NewRecorder()
-		env.Pixel(w, req)
-		assertPixelResponse(t, w, http.StatusOK, true)
-		if emitCalled {
-			t.Error("event should not be emitted when DNT header is set")
-		}
-	})
-
-	t.Run("does not respect DNT when not configured", func(t *testing.T) {
-		emitCalled := false
-		env := Env{Cfg: config.Config{DNTRespect: false}, Emit: func(e event.Event) { emitCalled = true }}
-		req := httptest.NewRequest(http.MethodGet, "/px.gif", nil)
-		req.Header.Set("DNT", "1")
-		w := httptest.NewRecorder()
-		env.Pixel(w, req)
-		if !emitCalled {
-			t.Error("event should be emitted even with DNT header when DNTRespect=false")
-		}
-	})
-
 	t.Run("rejects invalid methods", func(t *testing.T) {
-		env := Env{Cfg: config.Config{DNTRespect: false}, Emit: func(e event.Event) {}}
+		env := Env{Cfg: config.Config{}, Emit: func(e event.Event) {}}
 		req := httptest.NewRequest(http.MethodPost, "/px.gif", nil)
 		w := httptest.NewRecorder()
 		env.Pixel(w, req)
@@ -269,7 +244,7 @@ func TestPixel(t *testing.T) {
 	})
 
 	t.Run("handles nil Emit gracefully", func(t *testing.T) {
-		env := Env{Cfg: config.Config{DNTRespect: false}, Emit: nil}
+		env := Env{Cfg: config.Config{}, Emit: nil}
 		req := httptest.NewRequest(http.MethodGet, "/px.gif", nil)
 		w := httptest.NewRecorder()
 		env.Pixel(w, req)
@@ -308,7 +283,7 @@ func TestCollect(t *testing.T) {
 	t.Run("accepts single event object", func(t *testing.T) {
 		var emittedEvent *event.Event
 		env := Env{
-			Cfg:  config.Config{DNTRespect: false, MaxBodyBytes: 1024 * 1024},
+			Cfg:  config.Config{MaxBodyBytes: 1024 * 1024},
 			Emit: func(e event.Event) { emittedEvent = &e },
 		}
 		eventJSON := `{"type":"click","event_id":"test-123"}`
@@ -329,7 +304,7 @@ func TestCollect(t *testing.T) {
 	t.Run("accepts array of events", func(t *testing.T) {
 		var emittedEvents []event.Event
 		env := Env{
-			Cfg:  config.Config{DNTRespect: false, MaxBodyBytes: 1024 * 1024},
+			Cfg:  config.Config{MaxBodyBytes: 1024 * 1024},
 			Emit: func(e event.Event) { emittedEvents = append(emittedEvents, e) },
 		}
 		eventsJSON := `[{"type":"pageview","event_id":"evt1"},{"type":"click","event_id":"evt2"}]`
@@ -368,7 +343,7 @@ func TestCollect(t *testing.T) {
 	})
 
 	t.Run("accepts missing content type", func(t *testing.T) {
-		env := Env{Cfg: config.Config{DNTRespect: false, MaxBodyBytes: 1024 * 1024}, Emit: func(e event.Event) {}}
+		env := Env{Cfg: config.Config{MaxBodyBytes: 1024 * 1024}, Emit: func(e event.Event) {}}
 		eventJSON := `{"type":"test"}`
 		req := httptest.NewRequest(http.MethodPost, "/collect", strings.NewReader(eventJSON))
 		w := httptest.NewRecorder()
@@ -376,34 +351,8 @@ func TestCollect(t *testing.T) {
 		assertResponseStatus(t, w, http.StatusAccepted, "")
 	})
 
-	t.Run("respects DNT header", func(t *testing.T) {
-		emitCalled := false
-		env := Env{
-			Cfg:  config.Config{DNTRespect: true, MaxBodyBytes: 1024 * 1024},
-			Emit: func(e event.Event) { emitCalled = true },
-		}
-		eventJSON := `{"type":"pageview"}`
-		req := httptest.NewRequest(http.MethodPost, "/collect", strings.NewReader(eventJSON))
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("DNT", "1")
-		w := httptest.NewRecorder()
-		env.Collect(w, req)
-		assertResponseStatus(t, w, http.StatusAccepted, "")
-		if emitCalled {
-			t.Error("event should not be emitted when DNT=1")
-		}
-		var response map[string]interface{}
-		json.NewDecoder(w.Body).Decode(&response)
-		if response["accepted"] != float64(0) {
-			t.Errorf("accepted = %v, want 0", response["accepted"])
-		}
-		if response["status"] != "dnt" {
-			t.Errorf("status = %v, want dnt", response["status"])
-		}
-	})
-
 	t.Run("rejects invalid JSON", func(t *testing.T) {
-		env := Env{Cfg: config.Config{DNTRespect: false, MaxBodyBytes: 1024 * 1024}, Emit: func(e event.Event) {}}
+		env := Env{Cfg: config.Config{MaxBodyBytes: 1024 * 1024}, Emit: func(e event.Event) {}}
 		req := httptest.NewRequest(http.MethodPost, "/collect", strings.NewReader("{invalid json"))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
@@ -412,7 +361,7 @@ func TestCollect(t *testing.T) {
 	})
 
 	t.Run("rejects invalid JSON array", func(t *testing.T) {
-		env := Env{Cfg: config.Config{DNTRespect: false, MaxBodyBytes: 1024 * 1024}, Emit: func(e event.Event) {}}
+		env := Env{Cfg: config.Config{MaxBodyBytes: 1024 * 1024}, Emit: func(e event.Event) {}}
 		req := httptest.NewRequest(http.MethodPost, "/collect", strings.NewReader(`[{"invalid": json}]`))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
@@ -421,7 +370,7 @@ func TestCollect(t *testing.T) {
 	})
 
 	t.Run("rejects invalid JSON object in array", func(t *testing.T) {
-		env := Env{Cfg: config.Config{DNTRespect: false, MaxBodyBytes: 1024 * 1024}, Emit: func(e event.Event) {}}
+		env := Env{Cfg: config.Config{MaxBodyBytes: 1024 * 1024}, Emit: func(e event.Event) {}}
 		req := httptest.NewRequest(http.MethodPost, "/collect", strings.NewReader(`["not an object"]`))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
@@ -430,7 +379,7 @@ func TestCollect(t *testing.T) {
 	})
 
 	t.Run("rejects body too large", func(t *testing.T) {
-		env := Env{Cfg: config.Config{DNTRespect: false, MaxBodyBytes: 100}, Emit: func(e event.Event) {}}
+		env := Env{Cfg: config.Config{MaxBodyBytes: 100}, Emit: func(e event.Event) {}}
 		largeBody := strings.Repeat("x", 200)
 		req := httptest.NewRequest(http.MethodPost, "/collect", strings.NewReader(largeBody))
 		req.Header.Set("Content-Type", "application/json")
@@ -440,7 +389,7 @@ func TestCollect(t *testing.T) {
 	})
 
 	t.Run("handles empty array", func(t *testing.T) {
-		env := Env{Cfg: config.Config{DNTRespect: false, MaxBodyBytes: 1024 * 1024}, Emit: func(e event.Event) {}}
+		env := Env{Cfg: config.Config{MaxBodyBytes: 1024 * 1024}, Emit: func(e event.Event) {}}
 		req := httptest.NewRequest(http.MethodPost, "/collect", strings.NewReader(`[]`))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
@@ -452,7 +401,6 @@ func TestCollect(t *testing.T) {
 	t.Run("handles nil Emit gracefully", func(t *testing.T) {
 		env := Env{
 			Cfg: config.Config{
-				DNTRespect:   false,
 				MaxBodyBytes: 1024 * 1024,
 			},
 			Emit: nil,
@@ -475,7 +423,6 @@ func TestCollect(t *testing.T) {
 		auth := NewHMACAuth("test-secret", "", false) // requireHMAC = false
 		env := Env{
 			Cfg: config.Config{
-				DNTRespect:   false,
 				MaxBodyBytes: 1024 * 1024,
 			},
 			HMACAuth: auth,
@@ -506,7 +453,6 @@ func TestCollect(t *testing.T) {
 		auth := NewHMACAuth("test-secret", "", false) // requireHMAC = false
 		env := Env{
 			Cfg: config.Config{
-				DNTRespect:   false,
 				MaxBodyBytes: 1024 * 1024,
 			},
 			HMACAuth: auth,
@@ -633,7 +579,6 @@ func TestCollectIntegration(t *testing.T) {
 		var capturedEvent *event.Event
 		env := Env{
 			Cfg: config.Config{
-				DNTRespect:   false,
 				MaxBodyBytes: 1024 * 1024,
 				TrustProxy:   false,
 			},
@@ -758,157 +703,157 @@ func TestServePixelJS(t *testing.T) {
 
 // Test ServePixelJS with all paths
 func TestServePixelJS_ComprehensivePaths(t *testing.T) {
-// Create temporary static directory with test files
-err := os.MkdirAll("static", 0755)
-if err != nil {
-t.Fatalf("failed to create static dir: %v", err)
-}
-defer os.RemoveAll("static")
+	// Create temporary static directory with test files
+	err := os.MkdirAll("static", 0755)
+	if err != nil {
+		t.Fatalf("failed to create static dir: %v", err)
+	}
+	defer os.RemoveAll("static")
 
-umdContent := []byte("// UMD module\nwindow.gotrack = {};")
-esmContent := []byte("// ESM module\nexport default {};")
+	umdContent := []byte("// UMD module\nwindow.gotrack = {};")
+	esmContent := []byte("// ESM module\nexport default {};")
 
-err = os.WriteFile("static/pixel.umd.js", umdContent, 0644)
-if err != nil {
-t.Fatalf("failed to write UMD file: %v", err)
-}
-err = os.WriteFile("static/pixel.esm.js", esmContent, 0644)
-if err != nil {
-t.Fatalf("failed to write ESM file: %v", err)
-}
+	err = os.WriteFile("static/pixel.umd.js", umdContent, 0644)
+	if err != nil {
+		t.Fatalf("failed to write UMD file: %v", err)
+	}
+	err = os.WriteFile("static/pixel.esm.js", esmContent, 0644)
+	if err != nil {
+		t.Fatalf("failed to write ESM file: %v", err)
+	}
 
-env := Env{}
+	env := Env{}
 
-tests := []struct {
-name           string
-method         string
-path           string
-wantStatus     int
-wantContentLen int
-checkContent   bool
-}{
-{
-name:           "GET /pixel.js",
-method:         "GET",
-path:           "/pixel.js",
-wantStatus:     200,
-wantContentLen: len(umdContent),
-checkContent:   true,
-},
-{
-name:           "GET /pixel.umd.js",
-method:         "GET",
-path:           "/pixel.umd.js",
-wantStatus:     200,
-wantContentLen: len(umdContent),
-checkContent:   true,
-},
-{
-name:           "GET /pixel.esm.js",
-method:         "GET",
-path:           "/pixel.esm.js",
-wantStatus:     200,
-wantContentLen: len(esmContent),
-checkContent:   true,
-},
-{
-name:       "HEAD /pixel.js",
-method:     "HEAD",
-path:       "/pixel.js",
-wantStatus: 200,
-},
-{
-name:       "HEAD /pixel.esm.js",
-method:     "HEAD",
-path:       "/pixel.esm.js",
-wantStatus: 200,
-},
-{
-name:       "POST not allowed",
-method:     "POST",
-path:       "/pixel.js",
-wantStatus: 405,
-},
-{
-name:       "PUT not allowed",
-method:     "PUT",
-path:       "/pixel.js",
-wantStatus: 405,
-},
-{
-name:       "DELETE not allowed",
-method:     "DELETE",
-path:       "/pixel.js",
-wantStatus: 405,
-},
-{
-name:       "Unknown path",
-method:     "GET",
-path:       "/unknown.js",
-wantStatus: 404,
-},
-{
-name:       "Root path",
-method:     "GET",
-path:       "/",
-wantStatus: 404,
-},
-}
+	tests := []struct {
+		name           string
+		method         string
+		path           string
+		wantStatus     int
+		wantContentLen int
+		checkContent   bool
+	}{
+		{
+			name:           "GET /pixel.js",
+			method:         "GET",
+			path:           "/pixel.js",
+			wantStatus:     200,
+			wantContentLen: len(umdContent),
+			checkContent:   true,
+		},
+		{
+			name:           "GET /pixel.umd.js",
+			method:         "GET",
+			path:           "/pixel.umd.js",
+			wantStatus:     200,
+			wantContentLen: len(umdContent),
+			checkContent:   true,
+		},
+		{
+			name:           "GET /pixel.esm.js",
+			method:         "GET",
+			path:           "/pixel.esm.js",
+			wantStatus:     200,
+			wantContentLen: len(esmContent),
+			checkContent:   true,
+		},
+		{
+			name:       "HEAD /pixel.js",
+			method:     "HEAD",
+			path:       "/pixel.js",
+			wantStatus: 200,
+		},
+		{
+			name:       "HEAD /pixel.esm.js",
+			method:     "HEAD",
+			path:       "/pixel.esm.js",
+			wantStatus: 200,
+		},
+		{
+			name:       "POST not allowed",
+			method:     "POST",
+			path:       "/pixel.js",
+			wantStatus: 405,
+		},
+		{
+			name:       "PUT not allowed",
+			method:     "PUT",
+			path:       "/pixel.js",
+			wantStatus: 405,
+		},
+		{
+			name:       "DELETE not allowed",
+			method:     "DELETE",
+			path:       "/pixel.js",
+			wantStatus: 405,
+		},
+		{
+			name:       "Unknown path",
+			method:     "GET",
+			path:       "/unknown.js",
+			wantStatus: 404,
+		},
+		{
+			name:       "Root path",
+			method:     "GET",
+			path:       "/",
+			wantStatus: 404,
+		},
+	}
 
-for _, tt := range tests {
-t.Run(tt.name, func(t *testing.T) {
-req := httptest.NewRequest(tt.method, tt.path, nil)
-w := httptest.NewRecorder()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(tt.method, tt.path, nil)
+			w := httptest.NewRecorder()
 
-env.ServePixelJS(w, req)
+			env.ServePixelJS(w, req)
 
-if w.Code != tt.wantStatus {
-t.Errorf("status = %d, want %d", w.Code, tt.wantStatus)
-}
+			if w.Code != tt.wantStatus {
+				t.Errorf("status = %d, want %d", w.Code, tt.wantStatus)
+			}
 
-if tt.wantStatus == 200 {
-ct := w.Header().Get("Content-Type")
-if ct != "application/javascript" {
-t.Errorf("Content-Type = %q, want application/javascript", ct)
-}
+			if tt.wantStatus == 200 {
+				ct := w.Header().Get("Content-Type")
+				if ct != "application/javascript" {
+					t.Errorf("Content-Type = %q, want application/javascript", ct)
+				}
 
-cc := w.Header().Get("Cache-Control")
-if cc != "public, max-age=3600" {
-t.Errorf("Cache-Control = %q, want public, max-age=3600", cc)
-}
+				cc := w.Header().Get("Cache-Control")
+				if cc != "public, max-age=3600" {
+					t.Errorf("Cache-Control = %q, want public, max-age=3600", cc)
+				}
 
-cors := w.Header().Get("Access-Control-Allow-Origin")
-if cors != "*" {
-t.Errorf("CORS = %q, want *", cors)
-}
+				cors := w.Header().Get("Access-Control-Allow-Origin")
+				if cors != "*" {
+					t.Errorf("CORS = %q, want *", cors)
+				}
 
-if tt.checkContent && tt.method == "GET" {
-if len(w.Body.Bytes()) != tt.wantContentLen {
-t.Errorf("body length = %d, want %d", len(w.Body.Bytes()), tt.wantContentLen)
-}
-}
+				if tt.checkContent && tt.method == "GET" {
+					if len(w.Body.Bytes()) != tt.wantContentLen {
+						t.Errorf("body length = %d, want %d", len(w.Body.Bytes()), tt.wantContentLen)
+					}
+				}
 
-if tt.method == "HEAD" && len(w.Body.Bytes()) != 0 {
-t.Error("HEAD should not return body")
-}
-}
-})
-}
+				if tt.method == "HEAD" && len(w.Body.Bytes()) != 0 {
+					t.Error("HEAD should not return body")
+				}
+			}
+		})
+	}
 }
 
 // Test ServePixelJS with missing files
 func TestServePixelJS_MissingFiles(t *testing.T) {
-// Ensure static directory doesn't exist
-os.RemoveAll("static")
+	// Ensure static directory doesn't exist
+	os.RemoveAll("static")
 
-env := Env{}
+	env := Env{}
 
-req := httptest.NewRequest("GET", "/pixel.js", nil)
-w := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/pixel.js", nil)
+	w := httptest.NewRecorder()
 
-env.ServePixelJS(w, req)
+	env.ServePixelJS(w, req)
 
-if w.Code != 404 {
-t.Errorf("status = %d, want 404 for missing file", w.Code)
-}
+	if w.Code != 404 {
+		t.Errorf("status = %d, want 404 for missing file", w.Code)
+	}
 }

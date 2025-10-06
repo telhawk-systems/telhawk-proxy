@@ -284,9 +284,6 @@ func assertConfigFields(t *testing.T, cfg Config, expected map[string]interface{
 	if val, ok := expected["TrustProxy"].(bool); ok {
 		assertConfigBoolField(t, cfg.TrustProxy, val, "TrustProxy")
 	}
-	if val, ok := expected["DNTRespect"].(bool); ok {
-		assertConfigBoolField(t, cfg.DNTRespect, val, "DNTRespect")
-	}
 	if val, ok := expected["MaxBodyBytes"].(int64); ok && cfg.MaxBodyBytes != val {
 		t.Errorf("MaxBodyBytes = %v, want %v", cfg.MaxBodyBytes, val)
 	}
@@ -317,7 +314,7 @@ func assertConfigFields(t *testing.T, cfg Config, expected map[string]interface{
 
 func TestLoad(t *testing.T) {
 	envVars := []string{
-		"SERVER_ADDR", "TRUST_PROXY", "DNT_RESPECT", "MAX_BODY_BYTES",
+		"SERVER_ADDR", "TRUST_PROXY", "MAX_BODY_BYTES",
 		"IP_HASH_SECRET", "OUTPUTS", "TEST_MODE", "ENABLE_HTTPS",
 		"SSL_CERT_FILE", "SSL_KEY_FILE", "MIDDLEWARE_MODE",
 		"FORWARD_DESTINATION", "AUTO_INJECT_PIXEL", "HMAC_SECRET",
@@ -343,7 +340,6 @@ func TestLoad(t *testing.T) {
 		assertConfigFields(t, cfg, map[string]interface{}{
 			"ServerAddr":   ":19890",
 			"TrustProxy":   false,
-			"DNTRespect":   true,
 			"MaxBodyBytes": int64(1 << 20),
 			"Outputs":      []string{"log"},
 		})
@@ -352,7 +348,6 @@ func TestLoad(t *testing.T) {
 	t.Run("loads custom values from env", func(t *testing.T) {
 		os.Setenv("SERVER_ADDR", ":8080")
 		os.Setenv("TRUST_PROXY", "true")
-		os.Setenv("DNT_RESPECT", "false")
 		os.Setenv("MAX_BODY_BYTES", "2097152")
 		os.Setenv("IP_HASH_SECRET", "my-secret")
 		os.Setenv("OUTPUTS", "kafka,postgres")
@@ -363,7 +358,6 @@ func TestLoad(t *testing.T) {
 		assertConfigFields(t, cfg, map[string]interface{}{
 			"ServerAddr":     ":8080",
 			"TrustProxy":     true,
-			"DNTRespect":     false,
 			"MaxBodyBytes":   int64(2097152),
 			"IPHashSecret":   "my-secret",
 			"Outputs":        []string{"kafka", "postgres"},

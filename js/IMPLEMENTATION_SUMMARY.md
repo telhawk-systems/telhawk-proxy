@@ -21,7 +21,6 @@
 ```typescript
 interface PixelConfig {
   endpoint?: string;     // Custom collection endpoint
-  respectDnt?: boolean;  // Honor DNT/GPC signals  
   batchSize?: number;    // Events per batch
   timeout?: number;      // Batch timeout
   secret?: string;       // HMAC signing secret
@@ -41,7 +40,6 @@ Now collecting all promised signals:
 - ✅ Performance timing (TTFB, DOM load time)
 - ✅ Input entropy (click/key counts)
 - ✅ Session ID
-- ✅ Consent status
 
 ### 7. **Full Detector Suite Active**
 All 6 detectors now running:
@@ -73,7 +71,6 @@ The library now sends rich, structured data exactly as documented:
     "perf": { "ttfb": 150, "dom": 800 },
     "input": { "clicks": 3, "keys": 45 },
     "session": { "sid": "abc123..." },
-    "consent": { "dnt": false, "gpc": false }
   },
   "detectors": [
     { "id": "webdriver", "score": 0, "details": { "webdriver": false } },

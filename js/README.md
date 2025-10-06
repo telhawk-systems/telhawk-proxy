@@ -55,9 +55,8 @@ src/
 index.ts # entrypoint; boot + init()
 config.ts             # runtime config schema + defaults
 
-ids/                  # identifiers and consent
+ids/                  # identifiers
   session.ts          # sid/uid management
-  consent.ts          # DNT / GPC / CMP hooks
 
 transport/            # network sending logic
   beacon.ts           # sendBeacon (preferred)
@@ -183,4 +182,3 @@ Example payload sent to `/collect`:
 ### ⚠️ Note
 This repo is **educational & security-focused**.
 Collected signals are used for **fraud/bot defense** and threat detection.
-DNT/GPC signals are collected for analysis but not honored - this is security tooling, not advertising.

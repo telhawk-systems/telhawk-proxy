@@ -236,33 +236,6 @@ func TestSessionInfo(t *testing.T) {
 	})
 }
 
-func TestConsentInfo(t *testing.T) {
-	t.Run("serializes consent information", func(t *testing.T) {
-		applies := true
-		consent := ConsentInfo{
-			GDPRApplies: &applies,
-			TCString:    "TC_STRING_V2",
-			USPrivacy:   "1YNN",
-			ConsentMode: "ad_storage=denied",
-		}
-		data, err := json.Marshal(consent)
-		if err != nil {
-			t.Fatalf("failed to marshal: %v", err)
-		}
-
-		var decoded ConsentInfo
-		if err := json.Unmarshal(data, &decoded); err != nil {
-			t.Fatalf("failed to unmarshal: %v", err)
-		}
-		if decoded.GDPRApplies == nil || *decoded.GDPRApplies != true {
-			t.Error("GDPRApplies should be true")
-		}
-		if decoded.TCString != "TC_STRING_V2" {
-			t.Errorf("TCString = %v, want TC_STRING_V2", decoded.TCString)
-		}
-	})
-}
-
 func TestCompleteEvent(t *testing.T) {
 	t.Run("serializes complete event with all nested structures", func(t *testing.T) {
 		mobile := true
@@ -286,9 +259,6 @@ func TestCompleteEvent(t *testing.T) {
 			Session: SessionInfo{
 				VisitorID: "vis_1",
 				SessionID: "sess_1",
-			},
-			Consent: ConsentInfo{
-				GDPRApplies: &gdpr,
 			},
 		}
 
