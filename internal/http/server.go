@@ -320,7 +320,7 @@ func NewMux(e Env) http.Handler {
 	if e.Cfg.ForwardDestination != "" {
 		// Validate the destination URL
 		if _, err := url.Parse(e.Cfg.ForwardDestination); err != nil {
-			log.Fatal("WARNING: Invalid FORWARD_DESTINATION URL: %v.", err)
+			log.Fatalf("WARNING: Invalid FORWARD_DESTINATION URL: %v.", err)
 			return RequestLogger(cors(mux))
 		}
 

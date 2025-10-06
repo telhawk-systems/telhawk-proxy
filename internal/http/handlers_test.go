@@ -82,7 +82,7 @@ func TestHMACScript(t *testing.T) {
 	})
 
 	t.Run("returns script when HMAC configured", func(t *testing.T) {
-		auth := NewHMACAuth("test-secret", "", false)
+		auth := NewHMACAuth("test-secret", "")
 		env := Env{HMACAuth: auth}
 		req := httptest.NewRequest(http.MethodGet, "/hmac.js", nil)
 		w := httptest.NewRecorder()
@@ -110,7 +110,7 @@ func TestHMACScript(t *testing.T) {
 	})
 
 	t.Run("rejects non-GET methods", func(t *testing.T) {
-		auth := NewHMACAuth("test-secret", "", false)
+		auth := NewHMACAuth("test-secret", "")
 		env := Env{HMACAuth: auth}
 		req := httptest.NewRequest(http.MethodPost, "/hmac.js", nil)
 		w := httptest.NewRecorder()
@@ -138,7 +138,7 @@ func TestHMACPublicKey(t *testing.T) {
 	})
 
 	t.Run("returns public key JSON when HMAC configured", func(t *testing.T) {
-		auth := NewHMACAuth("test-secret", "", false)
+		auth := NewHMACAuth("test-secret", "")
 		env := Env{HMACAuth: auth}
 		req := httptest.NewRequest(http.MethodGet, "/hmac/public-key", nil)
 		w := httptest.NewRecorder()
@@ -176,7 +176,7 @@ func TestHMACPublicKey(t *testing.T) {
 	})
 
 	t.Run("rejects non-GET methods", func(t *testing.T) {
-		auth := NewHMACAuth("test-secret", "", false)
+		auth := NewHMACAuth("test-secret", "")
 		env := Env{HMACAuth: auth}
 		req := httptest.NewRequest(http.MethodPost, "/hmac/public-key", nil)
 		w := httptest.NewRecorder()
@@ -420,7 +420,7 @@ func TestCollect(t *testing.T) {
 	})
 
 	t.Run("HMAC authentication - rejects invalid HMAC when not required", func(t *testing.T) {
-		auth := NewHMACAuth("test-secret", "", false) // requireHMAC = false
+		auth := NewHMACAuth("test-secret", "") // requireHMAC = false
 		env := Env{
 			Cfg: config.Config{
 				MaxBodyBytes: 1024 * 1024,
@@ -450,7 +450,7 @@ func TestCollect(t *testing.T) {
 	})
 
 	t.Run("HMAC authentication - rejects missing HMAC when not required", func(t *testing.T) {
-		auth := NewHMACAuth("test-secret", "", false) // requireHMAC = false
+		auth := NewHMACAuth("test-secret", "") // requireHMAC = false
 		env := Env{
 			Cfg: config.Config{
 				MaxBodyBytes: 1024 * 1024,

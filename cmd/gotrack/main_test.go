@@ -104,6 +104,7 @@ func TestInitializeHMACAuth(t *testing.T) {
 			t.Error("expected nil auth when no HMAC secret configured")
 		}
 	})
+}
 
 // TestCreateEmitFunc tests the emit function creation
 func TestCreateEmitFunc(t *testing.T) {

@@ -58,7 +58,7 @@ Implements pluggable data sinks.
 Event model and enrichment logic.
 
 * `event.go` ➡️ event struct, validation, JSON marshalling.
-* `enrich.go` ➡️ adds metadata (event_id, IP, UA parsing, GeoIP).
+* `enrich.go` ➡️ adds metadata (event_id, IP, UA parsing).
 
 ---
 

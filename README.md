@@ -162,7 +162,6 @@ All configuration is via environment variables (12‑factor). Common flags:
 * `BATCH_SIZE` (default `100`), `FLUSH_INTERVAL_MS` (default `250`)
 * `WORKER_CONCURRENCY` (default `4`)
 * `TRUST_PROXY` (default `false`): honor `X-Forwarded-For`
-* `GEOIP_DB` (optional path): enables coarse geo lookup
 * `TEST_MODE` (default `false`): generate test events on startup for testing sinks
 
 ### HTTPS/TLS Configuration

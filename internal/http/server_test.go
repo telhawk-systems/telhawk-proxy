@@ -214,7 +214,7 @@ func TestIsTrackingPath(t *testing.T) {
 // TestNewProxyHandler tests proxy handler creation
 func TestNewProxyHandler(t *testing.T) {
 	t.Run("creates handler with destination", func(t *testing.T) {
-		handler := NewProxyHandler("http://example.com", false, nil)
+		handler := NewProxyHandler("http://example.com", nil)
 
 		if handler == nil {
 			t.Fatal("handler should not be nil")
@@ -239,7 +239,7 @@ func TestNewProxyHandler(t *testing.T) {
 
 	t.Run("creates handler with auto inject and HMAC", func(t *testing.T) {
 		auth := NewHMACAuth("secret", "")
-		handler := NewProxyHandler("http://example.com", true, auth)
+		handler := NewProxyHandler("http://example.com", auth)
 
 		if handler.hmacAuth == nil {
 			t.Error("hmacAuth should not be nil")
@@ -258,7 +258,7 @@ func TestProxyHandlerServeHTTP(t *testing.T) {
 		}))
 		defer backend.Close()
 
-		handler := NewProxyHandler(backend.URL, false, nil)
+		handler := NewProxyHandler(backend.URL, nil)
 
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		w := httptest.NewRecorder()
@@ -287,7 +287,7 @@ func TestProxyHandlerServeHTTP(t *testing.T) {
 		}))
 		defer backend.Close()
 
-		handler := NewProxyHandler(backend.URL, false, nil)
+		handler := NewProxyHandler(backend.URL, nil)
 
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		req.Header.Set("X-Custom-Header", "custom-value")
@@ -313,7 +313,7 @@ func TestProxyHandlerServeHTTP(t *testing.T) {
 		}))
 		defer backend.Close()
 
-		handler := NewProxyHandler(backend.URL, false, nil)
+		handler := NewProxyHandler(backend.URL, nil)
 
 		req := httptest.NewRequest(http.MethodGet, "/test?param1=value1&param2=value2", nil)
 		w := httptest.NewRecorder()
@@ -376,7 +376,7 @@ func TestProxyHandlerServeHTTP(t *testing.T) {
 	})
 
 	t.Run("handles invalid destination URL", func(t *testing.T) {
-		handler := NewProxyHandler("://invalid-url", false, nil)
+		handler := NewProxyHandler("://invalid-url", nil)
 
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		w := httptest.NewRecorder()
@@ -390,7 +390,7 @@ func TestProxyHandlerServeHTTP(t *testing.T) {
 
 	t.Run("handles unreachable backend", func(t *testing.T) {
 		// Use an invalid port
-		handler := NewProxyHandler("http://localhost:0", false, nil)
+		handler := NewProxyHandler("http://localhost:0", nil)
 
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		w := httptest.NewRecorder()
@@ -410,7 +410,7 @@ func TestProxyHandlerServeHTTP(t *testing.T) {
 		}))
 		defer backend.Close()
 
-		handler := NewProxyHandler(backend.URL, false, nil)
+		handler := NewProxyHandler(backend.URL, nil)
 
 		body := bytes.NewReader([]byte("test body data"))
 		req := httptest.NewRequest(http.MethodPost, "/api", body)
@@ -427,7 +427,7 @@ func TestProxyHandlerServeHTTP(t *testing.T) {
 // TestNewMiddlewareRouter tests middleware router creation
 func TestNewMiddlewareRouter(t *testing.T) {
 	mux := http.NewServeMux()
-	router := NewMiddlewareRouter(mux, "http://example.com", false, nil)
+	router := NewMiddlewareRouter(mux, "http://example.com", nil, nil)
 
 	if router == nil {
 		t.Fatal("router should not be nil")
@@ -458,7 +458,7 @@ func TestMiddlewareRouterServeHTTP(t *testing.T) {
 		}))
 		defer backend.Close()
 
-		router := NewMiddlewareRouter(mux, backend.URL, false, nil)
+		router := NewMiddlewareRouter(mux, backend.URL, nil, nil)
 
 		req := httptest.NewRequest(http.MethodGet, "/px.gif", nil)
 		w := httptest.NewRecorder()
@@ -479,7 +479,7 @@ func TestMiddlewareRouterServeHTTP(t *testing.T) {
 		defer backend.Close()
 
 		mux := http.NewServeMux()
-		router := NewMiddlewareRouter(mux, backend.URL, false, nil)
+		router := NewMiddlewareRouter(mux, backend.URL, nil, nil)
 
 		req := httptest.NewRequest(http.MethodGet, "/app/page", nil)
 		w := httptest.NewRecorder()
@@ -513,7 +513,7 @@ func TestMiddlewareRouterServeHTTP(t *testing.T) {
 				}))
 				defer backend.Close()
 
-				router := NewMiddlewareRouter(mux, backend.URL, false, nil)
+				router := NewMiddlewareRouter(mux, backend.URL, nil, nil)
 
 				req := httptest.NewRequest(http.MethodGet, path, nil)
 				w := httptest.NewRecorder()

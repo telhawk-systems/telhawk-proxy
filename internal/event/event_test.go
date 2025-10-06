@@ -239,7 +239,6 @@ func TestSessionInfo(t *testing.T) {
 func TestCompleteEvent(t *testing.T) {
 	t.Run("serializes complete event with all nested structures", func(t *testing.T) {
 		mobile := true
-		gdpr := true
 		event := Event{
 			EventID: "evt_123",
 			TS:      "2024-01-01T12:00:00Z",
