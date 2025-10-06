@@ -84,13 +84,14 @@ func TestVerifyHMAC(t *testing.T) {
 		}
 	})
 
-	t.Run("accepts when HMAC not required", func(t *testing.T) {
-		authOptional := NewHMACAuth(secret, "") // requireHMAC = false
+	t.Run("rejects when HMAC not provided", func(t *testing.T) {
+		auth := NewHMACAuth(secret, "")
 		req := httptest.NewRequest("POST", "/collect", bytes.NewReader(payload))
 		req.RemoteAddr = "192.168.1.1:8080"
 
-		if !authOptional.VerifyHMAC(req, payload) {
-			t.Error("should accept when HMAC not required")
+		// HMAC is required when auth is configured
+		if auth.VerifyHMAC(req, payload) {
+			t.Error("should reject when HMAC header is missing")
 		}
 	})
 
@@ -271,17 +272,17 @@ func TestNormalizeIP(t *testing.T) {
 // Note: deriveClientKey is an internal method tested indirectly
 
 func TestHMACIntegration(t *testing.T) {
-	t.Run("handles optional HMAC gracefully", func(t *testing.T) {
+	t.Run("rejects request without HMAC", func(t *testing.T) {
 		secret := "integration-test-secret"
 		auth := NewHMACAuth(secret, "")
 		payload := []byte(`{"event":"test","data":"value"}`)
 
-		// Request without HMAC should still work
+		// Request without HMAC should be rejected when auth is configured
 		req := httptest.NewRequest("POST", "/collect", bytes.NewReader(payload))
 		req.RemoteAddr = "203.0.113.1:12345"
 
-		if !auth.VerifyHMAC(req, payload) {
-			t.Error("should accept request when HMAC not required")
+		if auth.VerifyHMAC(req, payload) {
+			t.Error("should reject request when HMAC is missing")
 		}
 	})
 }

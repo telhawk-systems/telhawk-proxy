@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 
@@ -99,8 +98,8 @@ func TestHMACScript(t *testing.T) {
 		}
 
 		cacheControl := w.Header().Get("Cache-Control")
-		if !strings.Contains(cacheControl, "max-age=3600") {
-			t.Errorf("Cache-Control should contain max-age=3600, got %q", cacheControl)
+		if !strings.Contains(cacheControl, "no-cache") {
+			t.Errorf("Cache-Control should contain no-cache (IP-specific script), got %q", cacheControl)
 		}
 
 		body := w.Body.String()
@@ -419,8 +418,8 @@ func TestCollect(t *testing.T) {
 		}
 	})
 
-	t.Run("HMAC authentication - rejects invalid HMAC when not required", func(t *testing.T) {
-		auth := NewHMACAuth("test-secret", "") // requireHMAC = false
+	t.Run("HMAC authentication - rejects invalid HMAC", func(t *testing.T) {
+		auth := NewHMACAuth("test-secret", "")
 		env := Env{
 			Cfg: config.Config{
 				MaxBodyBytes: 1024 * 1024,
@@ -442,15 +441,14 @@ func TestCollect(t *testing.T) {
 
 		env.Collect(w, req)
 
-		// When HMAC not required but invalid signature provided, should still accept
-		// (HMAC verification returns true when not required)
-		if w.Code != http.StatusAccepted {
-			t.Errorf("status code = %d, want %d (should accept when HMAC not required)", w.Code, http.StatusAccepted)
+		// HMAC is always required when configured - should reject invalid HMAC
+		if w.Code != http.StatusUnauthorized {
+			t.Errorf("status code = %d, want %d (should reject invalid HMAC)", w.Code, http.StatusUnauthorized)
 		}
 	})
 
-	t.Run("HMAC authentication - rejects missing HMAC when not required", func(t *testing.T) {
-		auth := NewHMACAuth("test-secret", "") // requireHMAC = false
+	t.Run("HMAC authentication - rejects missing HMAC", func(t *testing.T) {
+		auth := NewHMACAuth("test-secret", "")
 		env := Env{
 			Cfg: config.Config{
 				MaxBodyBytes: 1024 * 1024,
@@ -469,9 +467,9 @@ func TestCollect(t *testing.T) {
 
 		env.Collect(w, req)
 
-		// Should accept when HMAC not required
-		if w.Code != http.StatusAccepted {
-			t.Errorf("status code = %d, want %d (should accept when HMAC not required)", w.Code, http.StatusAccepted)
+		// HMAC is always required when configured - should reject missing HMAC
+		if w.Code != http.StatusUnauthorized {
+			t.Errorf("status code = %d, want %d (should reject missing HMAC)", w.Code, http.StatusUnauthorized)
 		}
 	})
 }
@@ -642,14 +640,18 @@ func TestServePixelJS(t *testing.T) {
 	// Create a temporary test file
 	env := Env{}
 
-	t.Run("returns 404 for non-existent files", func(t *testing.T) {
+	t.Run("serves embedded pixel.js", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/pixel.js", nil)
 		w := httptest.NewRecorder()
 
 		env.ServePixelJS(w, req)
 
-		if w.Code != http.StatusNotFound {
-			t.Errorf("status code = %d, want %d", w.Code, http.StatusNotFound)
+		if w.Code != http.StatusOK {
+			t.Errorf("status code = %d, want %d", w.Code, http.StatusOK)
+		}
+		
+		if len(w.Body.Bytes()) == 0 {
+			t.Error("expected non-empty response body")
 		}
 	})
 
@@ -703,58 +705,35 @@ func TestServePixelJS(t *testing.T) {
 
 // Test ServePixelJS with all paths
 func TestServePixelJS_ComprehensivePaths(t *testing.T) {
-	// Create temporary static directory with test files
-	err := os.MkdirAll("static", 0755)
-	if err != nil {
-		t.Fatalf("failed to create static dir: %v", err)
-	}
-	defer os.RemoveAll("static")
-
-	umdContent := []byte("// UMD module\nwindow.gotrack = {};")
-	esmContent := []byte("// ESM module\nexport default {};")
-
-	err = os.WriteFile("static/pixel.umd.js", umdContent, 0644)
-	if err != nil {
-		t.Fatalf("failed to write UMD file: %v", err)
-	}
-	err = os.WriteFile("static/pixel.esm.js", esmContent, 0644)
-	if err != nil {
-		t.Fatalf("failed to write ESM file: %v", err)
-	}
-
 	env := Env{}
 
 	tests := []struct {
-		name           string
-		method         string
-		path           string
-		wantStatus     int
-		wantContentLen int
-		checkContent   bool
+		name         string
+		method       string
+		path         string
+		wantStatus   int
+		checkContent bool
 	}{
 		{
-			name:           "GET /pixel.js",
-			method:         "GET",
-			path:           "/pixel.js",
-			wantStatus:     200,
-			wantContentLen: len(umdContent),
-			checkContent:   true,
+			name:         "GET /pixel.js",
+			method:       "GET",
+			path:         "/pixel.js",
+			wantStatus:   200,
+			checkContent: true,
 		},
 		{
-			name:           "GET /pixel.umd.js",
-			method:         "GET",
-			path:           "/pixel.umd.js",
-			wantStatus:     200,
-			wantContentLen: len(umdContent),
-			checkContent:   true,
+			name:         "GET /pixel.umd.js",
+			method:       "GET",
+			path:         "/pixel.umd.js",
+			wantStatus:   200,
+			checkContent: true,
 		},
 		{
-			name:           "GET /pixel.esm.js",
-			method:         "GET",
-			path:           "/pixel.esm.js",
-			wantStatus:     200,
-			wantContentLen: len(esmContent),
-			checkContent:   true,
+			name:         "GET /pixel.esm.js",
+			method:       "GET",
+			path:         "/pixel.esm.js",
+			wantStatus:   200,
+			checkContent: true,
 		},
 		{
 			name:       "HEAD /pixel.js",
@@ -828,8 +807,8 @@ func TestServePixelJS_ComprehensivePaths(t *testing.T) {
 				}
 
 				if tt.checkContent && tt.method == "GET" {
-					if len(w.Body.Bytes()) != tt.wantContentLen {
-						t.Errorf("body length = %d, want %d", len(w.Body.Bytes()), tt.wantContentLen)
+					if len(w.Body.Bytes()) == 0 {
+						t.Error("expected non-empty response body for embedded asset")
 					}
 				}
 
@@ -841,11 +820,8 @@ func TestServePixelJS_ComprehensivePaths(t *testing.T) {
 	}
 }
 
-// Test ServePixelJS with missing files
+// Test ServePixelJS with embedded assets (no file dependencies)
 func TestServePixelJS_MissingFiles(t *testing.T) {
-	// Ensure static directory doesn't exist
-	os.RemoveAll("static")
-
 	env := Env{}
 
 	req := httptest.NewRequest("GET", "/pixel.js", nil)
@@ -853,7 +829,12 @@ func TestServePixelJS_MissingFiles(t *testing.T) {
 
 	env.ServePixelJS(w, req)
 
-	if w.Code != 404 {
-		t.Errorf("status = %d, want 404 for missing file", w.Code)
+	// Should return 200 because assets are embedded, not file-based
+	if w.Code != 200 {
+		t.Errorf("status = %d, want 200 (embedded assets don't depend on files)", w.Code)
+	}
+	
+	if len(w.Body.Bytes()) == 0 {
+		t.Error("expected non-empty response body from embedded asset")
 	}
 }

@@ -8,10 +8,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/shortontech/gotrack/internal/event"
-	"github.com/shortontech/gotrack/internal/metrics"
-	"github.com/shortontech/gotrack/pkg/config"
 )
 
 // TestIsHTMLContent tests HTML content type detection
@@ -524,97 +520,6 @@ func TestMiddlewareRouterServeHTTP(t *testing.T) {
 					t.Errorf("tracking handler should have been called for %s", path)
 				}
 			})
-		}
-	})
-}
-
-// TestNewMux tests mux creation
-func TestNewMux(t *testing.T) {
-	t.Run("creates mux without middleware mode", func(t *testing.T) {
-		env := Env{
-			Cfg: config.Config{
-				ForwardDestination: "",
-			},
-			Emit:    func(e event.Event) {},
-			Metrics: metrics.InitMetrics(),
-		}
-
-		mux := NewMux(env)
-
-		if mux == nil {
-			t.Fatal("mux should not be nil")
-		}
-	})
-
-	t.Run("creates middleware router when enabled", func(t *testing.T) {
-		backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusOK)
-		}))
-		defer backend.Close()
-
-		env := Env{
-			Cfg: config.Config{
-				ForwardDestination: backend.URL,
-			},
-			Emit:    func(e event.Event) {},
-			Metrics: metrics.InitMetrics(),
-		}
-
-		mux := NewMux(env)
-
-		if mux == nil {
-			t.Fatal("mux should not be nil")
-		}
-
-		// Test that it works as middleware
-		req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
-		w := httptest.NewRecorder()
-		mux.ServeHTTP(w, req)
-
-		// Should handle tracking paths
-		if w.Code != http.StatusOK {
-			t.Errorf("status code = %d, want %d", w.Code, http.StatusOK)
-		}
-	})
-
-	t.Run("disables middleware mode when destination is empty", func(t *testing.T) {
-		env := Env{
-			Cfg: config.Config{
-				ForwardDestination: "", // Empty destination
-			},
-			Emit:    func(e event.Event) {},
-			Metrics: metrics.InitMetrics(),
-		}
-
-		mux := NewMux(env)
-
-		if mux == nil {
-			t.Fatal("mux should not be nil")
-		}
-
-		// Should still work as regular mux
-		req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
-		w := httptest.NewRecorder()
-		mux.ServeHTTP(w, req)
-
-		if w.Code != http.StatusOK {
-			t.Errorf("status code = %d, want %d", w.Code, http.StatusOK)
-		}
-	})
-
-	t.Run("disables middleware mode when destination is invalid", func(t *testing.T) {
-		env := Env{
-			Cfg: config.Config{
-				ForwardDestination: "://invalid-url",
-			},
-			Emit:    func(e event.Event) {},
-			Metrics: metrics.InitMetrics(),
-		}
-
-		mux := NewMux(env)
-
-		if mux == nil {
-			t.Fatal("mux should not be nil")
 		}
 	})
 }

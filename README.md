@@ -304,7 +304,7 @@ fetch('/hmac/public-key')
 ```
 
 **HMAC + Auto-Injection:**
-When middleware mode is enabled with HMAC authentication, auto-injected HTML includes both the tracking pixel AND the HMAC script:
+Auto-injected HTML includes both the tracking pixel AND the HMAC script:
 
 ```html
 <script src="/hmac.js"></script>

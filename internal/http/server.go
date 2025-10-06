@@ -18,7 +18,7 @@ import (
 	"github.com/shortontech/gotrack/internal/assets"
 )
 
-// ProxyHandler implements a reverse proxy for middleware mode
+// ProxyHandler implements a reverse proxy
 type ProxyHandler struct {
 	destination string
 	client      *http.Client
