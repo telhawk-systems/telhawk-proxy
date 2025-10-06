@@ -129,12 +129,24 @@ func (h *HMACAuth) VerifyHMAC(r *http.Request, payload []byte) bool {
 
 	// Compare HMACs (constant time comparison)
 	if !hmac.Equal([]byte(providedHMAC), []byte(expectedHMAC)) {
-		log.Printf("HMAC verification failed for IP %s", clientIP)
+		log.Printf("❌ HMAC VERIFICATION FAILED")
+		log.Printf("   Client IP: %s", clientIP)
+		log.Printf("   Provided HMAC:  %s", providedHMAC)
+		log.Printf("   Expected HMAC:  %s", expectedHMAC)
+		log.Printf("   Payload (first 100 bytes): %s", string(payload[:min(len(payload), 100)]))
+		log.Printf("   Derived key (hex): %x", h.deriveClientKey(clientIP))
 		return false
 	}
 
-	log.Printf("HMAC verification successful for IP %s", clientIP)
+	log.Printf("✅ HMAC verification successful for IP %s", clientIP)
 	return true
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // getClientIP extracts the real client IP considering proxies
@@ -157,6 +169,73 @@ func getClientIP(r *http.Request) string {
 }
 
 // GenerateClientScript generates JavaScript code for client-side HMAC generation
+// DeriveClientKeyBase64 returns the base64-encoded client-specific key for an IP
+func (h *HMACAuth) DeriveClientKeyBase64(clientIP string) string {
+	key := h.deriveClientKey(clientIP)
+	return base64.StdEncoding.EncodeToString(key)
+}
+
+// GenerateClientScriptForRequest generates the script with IP-specific key from the request
+func (h *HMACAuth) GenerateClientScriptForRequest(r *http.Request) string {
+	clientIP := getClientIP(r)
+	keyB64 := h.DeriveClientKeyBase64(clientIP)
+	log.Printf("🔑 Generating HMAC script for IP: %s, Key (base64): %s", clientIP, keyB64)
+	log.Printf("   Derived key (hex): %x", h.deriveClientKey(clientIP))
+	return h.GenerateClientScriptWithKey(keyB64)
+}
+
+// GenerateClientScriptWithKey generates JavaScript with a specific key
+func (h *HMACAuth) GenerateClientScriptWithKey(keyB64 string) string {
+	return fmt.Sprintf(`
+// GoTrack HMAC Authentication
+(function() {
+  const GOTRACK_PUBLIC_KEY = '%s';
+  
+  // Base64 decode helper
+  function base64ToBytes(base64) {
+    const binString = atob(base64);
+    return Uint8Array.from(binString, (m) => m.codePointAt(0));
+  }
+  
+  // Simple HMAC-SHA256 implementation for client-side
+  async function generateHMAC(payload, keyBase64) {
+    const encoder = new TextEncoder();
+    const keyData = base64ToBytes(keyBase64);  // Decode base64 key
+    const payloadData = encoder.encode(payload);
+    
+    const cryptoKey = await crypto.subtle.importKey(
+      'raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+    );
+    
+    const signature = await crypto.subtle.sign('HMAC', cryptoKey, payloadData);
+    return Array.from(new Uint8Array(signature))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+  }
+  
+  // Override fetch for GoTrack collection
+  const originalFetch = window.fetch;
+  window.fetch = async function(url, options = {}) {
+    // Only intercept POST requests that already have X-GoTrack-HMAC header
+    // This means the tracking library marked it as a tracking request
+    if (options.method === 'POST' && options.body && 
+        options.headers && options.headers['X-GoTrack-HMAC']) {
+      try {
+        // Replace the marker with actual HMAC signature
+        const hmac = await generateHMAC(options.body, GOTRACK_PUBLIC_KEY);
+        options.headers['X-GoTrack-HMAC'] = hmac;
+      } catch (e) {
+        console.warn('GoTrack HMAC generation failed:', e);
+      }
+    }
+    return originalFetch.call(this, url, options);
+  };
+  
+  console.log('GoTrack HMAC authentication initialized');
+})();
+`, keyB64)
+}
+
 func (h *HMACAuth) GenerateClientScript() string {
 	if len(h.publicKey) == 0 {
 		return ""

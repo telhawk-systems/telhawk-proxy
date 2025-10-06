@@ -80,14 +80,15 @@ func (e Env) HMACScript(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	script := e.HMACAuth.GenerateClientScript()
+	// Generate client-specific key for this IP using the request
+	script := e.HMACAuth.GenerateClientScriptForRequest(r)
 	if script == "" {
 		http.Error(w, "HMAC client script not available", http.StatusNotFound)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/javascript")
-	w.Header().Set("Cache-Control", "public, max-age=3600") // Cache for 1 hour
+	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate") // Don't cache - IP-specific
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte(script))
 }
