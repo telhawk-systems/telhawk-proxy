@@ -1,5 +1,7 @@
+// Note: endpoint will default to window.GO_TRACK_URL or current page path
+// This allows tracking data to be posted to any URL for ad-blocker evasion
 const defaultConfig = {
-    endpoint: "/collect",
+    endpoint: undefined, // Will be determined by pickEndpoint()
     batchSize: 10,
     timeout: 5000
 };
@@ -910,7 +912,21 @@ const toPayload = (data) => {
     return payload;
 };
 
-const pickEndpoint = (cfg) => cfg.endpoint || "/collect";
+// Get the tracking endpoint from window.GO_TRACK_URL or default to current page
+// This allows posting to any URL to avoid ad-blocker detection
+const getDefaultEndpoint = () => {
+    // Check if window.GO_TRACK_URL is set
+    if (typeof window !== 'undefined' && window.GO_TRACK_URL) {
+        return window.GO_TRACK_URL;
+    }
+    // Default to current page location (harder to block)
+    if (typeof window !== 'undefined' && window.location) {
+        return window.location.pathname;
+    }
+    // Fallback to /collect
+    return "/collect";
+};
+const pickEndpoint = (cfg) => cfg.endpoint || getDefaultEndpoint();
 
 const fetchSend = async (body, endpoint) => {
     await fetch(endpoint, { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" }, body });
@@ -927,13 +943,13 @@ const imgSend = (params, endpoint = "/px.gif") => {
 };
 
 const sign = async (body, secret) => {
-    if (!secret || typeof crypto === "undefined" || !crypto.subtle) {
+    if (!secret || typeof globalThis.crypto === "undefined" || !globalThis.crypto.subtle) {
         return null; // No signing if no secret or no crypto support
     }
     try {
         const encoder = new TextEncoder();
-        const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-        const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(body));
+        const key = await globalThis.crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+        const signature = await globalThis.crypto.subtle.sign("HMAC", key, encoder.encode(body));
         const hashArray = Array.from(new Uint8Array(signature));
         return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     }

@@ -173,8 +173,9 @@ func (p *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // MiddlewareRouter wraps a handler and forwards unmatched requests to a proxy
 type MiddlewareRouter struct {
-	trackingMux *http.ServeMux
-	proxy       *ProxyHandler
+	trackingMux    *http.ServeMux
+	proxy          *ProxyHandler
+	collectHandler http.HandlerFunc
 }
 
 // isHTMLContent checks if the content type indicates HTML content (case-insensitive)
@@ -247,10 +248,11 @@ func injectPixel(body []byte, r *http.Request, hmacAuth *HMACAuth) []byte {
 
 // NewMiddlewareRouter creates a new middleware router that handles tracking routes
 // and forwards everything else to the destination
-func NewMiddlewareRouter(trackingMux *http.ServeMux, destination string, autoInjectPixel bool, hmacAuth *HMACAuth) *MiddlewareRouter {
+func NewMiddlewareRouter(trackingMux *http.ServeMux, destination string, autoInjectPixel bool, hmacAuth *HMACAuth, collectHandler http.HandlerFunc) *MiddlewareRouter {
 	return &MiddlewareRouter{
-		trackingMux: trackingMux,
-		proxy:       NewProxyHandler(destination, autoInjectPixel, hmacAuth),
+		trackingMux:    trackingMux,
+		proxy:          NewProxyHandler(destination, autoInjectPixel, hmacAuth),
+		collectHandler: collectHandler,
 	}
 }
 
@@ -259,6 +261,14 @@ func (m *MiddlewareRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Check if this is a tracking-related path
 	if isTrackingPath(r.URL.Path) {
 		m.trackingMux.ServeHTTP(w, r)
+		return
+	}
+
+	// Check if this is a collection request (POST with HMAC header to any path)
+	// This allows tracking data to be sent to any URL, making it harder to block
+	if r.Method == http.MethodPost && r.Header.Get("X-GoTrack-HMAC") != "" {
+		// Route to collect handler directly
+		m.collectHandler(w, r)
 		return
 	}
 
@@ -316,7 +326,7 @@ func NewMux(e Env) http.Handler {
 		if e.Cfg.AutoInjectPixel {
 			log.Printf("Auto pixel injection enabled for HTML content")
 		}
-		router := NewMiddlewareRouter(mux, e.Cfg.ForwardDestination, e.Cfg.AutoInjectPixel, e.HMACAuth)
+		router := NewMiddlewareRouter(mux, e.Cfg.ForwardDestination, e.Cfg.AutoInjectPixel, e.HMACAuth, e.Collect)
 		return RequestLogger(MetricsMiddleware(e.Metrics)(cors(router)))
 	}
 
