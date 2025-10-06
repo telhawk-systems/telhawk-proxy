@@ -46,6 +46,26 @@ func (p *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Create and execute proxy request
+	resp, err := p.executeProxyRequest(w, r, targetURL)
+	if err != nil {
+		return // Error already handled in executeProxyRequest
+	}
+	defer resp.Body.Close()
+
+	// Copy response headers
+	copyHeaders(w.Header(), resp.Header)
+
+	// Process and write response
+	if isHTMLContent(resp.Header.Get("Content-Type")) {
+		p.handleHTMLResponse(w, r, resp)
+	} else {
+		p.handleNonHTMLResponse(w, resp)
+	}
+}
+
+// executeProxyRequest creates and executes the proxy request
+func (p *ProxyHandler) executeProxyRequest(w http.ResponseWriter, r *http.Request, targetURL *url.URL) (*http.Response, error) {
 	// Create the target URL with the original path and query
 	targetURL.Path = r.URL.Path
 	targetURL.RawQuery = r.URL.RawQuery
@@ -59,15 +79,11 @@ func (p *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("proxy: failed to create request: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
+		return nil, err
 	}
 
 	// Copy headers from the original request
-	for key, values := range r.Header {
-		for _, value := range values {
-			proxyReq.Header.Add(key, value)
-		}
-	}
+	copyHeaders(proxyReq.Header, r.Header)
 
 	// Set the Host header to the destination host
 	proxyReq.Host = targetURL.Host
@@ -77,94 +93,111 @@ func (p *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("proxy: request to %s failed: %v", targetURL.String(), err)
 		http.Error(w, "bad gateway", http.StatusBadGateway)
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+// handleHTMLResponse processes HTML responses with pixel injection
+func (p *ProxyHandler) handleHTMLResponse(w http.ResponseWriter, r *http.Request, resp *http.Response) {
+	isGzipped := strings.Contains(strings.ToLower(resp.Header.Get("Content-Encoding")), "gzip")
+
+	// Read the response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("proxy: failed to read response body for pixel injection: %v", err)
+		w.WriteHeader(resp.StatusCode)
 		return
 	}
-	defer resp.Body.Close()
 
-	// Copy response headers
-	for key, values := range resp.Header {
-		for _, value := range values {
-			w.Header().Add(key, value)
-		}
+	// Decompress if needed
+	htmlBody, err := p.decompressIfNeeded(body, isGzipped)
+	if err != nil {
+		// Fall back to serving as-is
+		w.WriteHeader(resp.StatusCode)
+		_, _ = w.Write(body)
+		return
 	}
 
-	// Check if we should inject pixel for HTML content
-	if isHTMLContent(resp.Header.Get("Content-Type")) {
-		// Check if response is gzip encoded
-		isGzipped := strings.Contains(strings.ToLower(resp.Header.Get("Content-Encoding")), "gzip")
+	// Inject pixel into HTML
+	modifiedBody := injectPixel(htmlBody, r, p.hmacAuth)
 
-		// Read the response body
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			log.Printf("proxy: failed to read response body for pixel injection: %v", err)
-			w.WriteHeader(resp.StatusCode)
-			return
-		}
-
-		// Decompress if gzipped
-		var htmlBody []byte
-		if isGzipped {
-			gzReader, err := gzip.NewReader(bytes.NewReader(body))
-			if err != nil {
-				log.Printf("proxy: failed to create gzip reader: %v", err)
-				// Fall back to serving as-is
-				w.WriteHeader(resp.StatusCode)
-				_, _ = w.Write(body)
-				return
-			}
-			defer gzReader.Close()
-
-			htmlBody, err = io.ReadAll(gzReader)
-			if err != nil {
-				log.Printf("proxy: failed to decompress gzipped body: %v", err)
-				// Fall back to serving as-is
-				w.WriteHeader(resp.StatusCode)
-				_, _ = w.Write(body)
-				return
-			}
-		} else {
-			htmlBody = body
-		}
-
-		// Inject pixel into decompressed HTML
-		modifiedBody := injectPixel(htmlBody, r, p.hmacAuth)
-
-		// Re-compress if original was gzipped
-		var finalBody []byte
-		if isGzipped {
-			var buf bytes.Buffer
-			gzWriter := gzip.NewWriter(&buf)
-			_, err = gzWriter.Write(modifiedBody)
-			if err != nil {
-				log.Printf("proxy: failed to write gzipped body: %v", err)
-				w.WriteHeader(resp.StatusCode)
-				return
-			}
-			err = gzWriter.Close()
-			if err != nil {
-				log.Printf("proxy: failed to close gzip writer: %v", err)
-				w.WriteHeader(resp.StatusCode)
-				return
-			}
-			finalBody = buf.Bytes()
-		} else {
-			finalBody = modifiedBody
-		}
-
-		// Update Content-Length header
-		w.Header().Set("Content-Length", strconv.Itoa(len(finalBody)))
-
+	// Re-compress if needed
+	finalBody, err := p.compressIfNeeded(modifiedBody, isGzipped)
+	if err != nil {
 		w.WriteHeader(resp.StatusCode)
-		_, err = w.Write(finalBody)
-		if err != nil {
-			log.Printf("proxy: failed to write modified response body: %v", err)
-		}
-	} else {
-		// For non-HTML content, copy response as-is
-		w.WriteHeader(resp.StatusCode)
-		_, err = io.Copy(w, resp.Body)
-		if err != nil {
-			log.Printf("proxy: failed to copy response body: %v", err)
+		return
+	}
+
+	// Update Content-Length header
+	w.Header().Set("Content-Length", strconv.Itoa(len(finalBody)))
+
+	w.WriteHeader(resp.StatusCode)
+	_, err = w.Write(finalBody)
+	if err != nil {
+		log.Printf("proxy: failed to write modified response body: %v", err)
+	}
+}
+
+// handleNonHTMLResponse copies non-HTML responses as-is
+func (p *ProxyHandler) handleNonHTMLResponse(w http.ResponseWriter, resp *http.Response) {
+	w.WriteHeader(resp.StatusCode)
+	_, err := io.Copy(w, resp.Body)
+	if err != nil {
+		log.Printf("proxy: failed to copy response body: %v", err)
+	}
+}
+
+// decompressIfNeeded decompresses gzipped content if needed
+func (p *ProxyHandler) decompressIfNeeded(body []byte, isGzipped bool) ([]byte, error) {
+	if !isGzipped {
+		return body, nil
+	}
+
+	gzReader, err := gzip.NewReader(bytes.NewReader(body))
+	if err != nil {
+		log.Printf("proxy: failed to create gzip reader: %v", err)
+		return nil, err
+	}
+	defer gzReader.Close()
+
+	htmlBody, err := io.ReadAll(gzReader)
+	if err != nil {
+		log.Printf("proxy: failed to decompress gzipped body: %v", err)
+		return nil, err
+	}
+
+	return htmlBody, nil
+}
+
+// compressIfNeeded compresses content if needed
+func (p *ProxyHandler) compressIfNeeded(body []byte, shouldCompress bool) ([]byte, error) {
+	if !shouldCompress {
+		return body, nil
+	}
+
+	var buf bytes.Buffer
+	gzWriter := gzip.NewWriter(&buf)
+	_, err := gzWriter.Write(body)
+	if err != nil {
+		log.Printf("proxy: failed to write gzipped body: %v", err)
+		return nil, err
+	}
+	err = gzWriter.Close()
+	if err != nil {
+		log.Printf("proxy: failed to close gzip writer: %v", err)
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
+// copyHeaders copies HTTP headers from source to destination
+func copyHeaders(dst, src http.Header) {
+	for key, values := range src {
+		for _, value := range values {
+			dst.Add(key, value)
 		}
 	}
 }
