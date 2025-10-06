@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -753,4 +754,161 @@ func TestServePixelJS(t *testing.T) {
 			t.Errorf("Content-Type = %q, want application/javascript", contentType)
 		}
 	})
+}
+
+// Test ServePixelJS with all paths
+func TestServePixelJS_ComprehensivePaths(t *testing.T) {
+// Create temporary static directory with test files
+err := os.MkdirAll("static", 0755)
+if err != nil {
+t.Fatalf("failed to create static dir: %v", err)
+}
+defer os.RemoveAll("static")
+
+umdContent := []byte("// UMD module\nwindow.gotrack = {};")
+esmContent := []byte("// ESM module\nexport default {};")
+
+err = os.WriteFile("static/pixel.umd.js", umdContent, 0644)
+if err != nil {
+t.Fatalf("failed to write UMD file: %v", err)
+}
+err = os.WriteFile("static/pixel.esm.js", esmContent, 0644)
+if err != nil {
+t.Fatalf("failed to write ESM file: %v", err)
+}
+
+env := Env{}
+
+tests := []struct {
+name           string
+method         string
+path           string
+wantStatus     int
+wantContentLen int
+checkContent   bool
+}{
+{
+name:           "GET /pixel.js",
+method:         "GET",
+path:           "/pixel.js",
+wantStatus:     200,
+wantContentLen: len(umdContent),
+checkContent:   true,
+},
+{
+name:           "GET /pixel.umd.js",
+method:         "GET",
+path:           "/pixel.umd.js",
+wantStatus:     200,
+wantContentLen: len(umdContent),
+checkContent:   true,
+},
+{
+name:           "GET /pixel.esm.js",
+method:         "GET",
+path:           "/pixel.esm.js",
+wantStatus:     200,
+wantContentLen: len(esmContent),
+checkContent:   true,
+},
+{
+name:       "HEAD /pixel.js",
+method:     "HEAD",
+path:       "/pixel.js",
+wantStatus: 200,
+},
+{
+name:       "HEAD /pixel.esm.js",
+method:     "HEAD",
+path:       "/pixel.esm.js",
+wantStatus: 200,
+},
+{
+name:       "POST not allowed",
+method:     "POST",
+path:       "/pixel.js",
+wantStatus: 405,
+},
+{
+name:       "PUT not allowed",
+method:     "PUT",
+path:       "/pixel.js",
+wantStatus: 405,
+},
+{
+name:       "DELETE not allowed",
+method:     "DELETE",
+path:       "/pixel.js",
+wantStatus: 405,
+},
+{
+name:       "Unknown path",
+method:     "GET",
+path:       "/unknown.js",
+wantStatus: 404,
+},
+{
+name:       "Root path",
+method:     "GET",
+path:       "/",
+wantStatus: 404,
+},
+}
+
+for _, tt := range tests {
+t.Run(tt.name, func(t *testing.T) {
+req := httptest.NewRequest(tt.method, tt.path, nil)
+w := httptest.NewRecorder()
+
+env.ServePixelJS(w, req)
+
+if w.Code != tt.wantStatus {
+t.Errorf("status = %d, want %d", w.Code, tt.wantStatus)
+}
+
+if tt.wantStatus == 200 {
+ct := w.Header().Get("Content-Type")
+if ct != "application/javascript" {
+t.Errorf("Content-Type = %q, want application/javascript", ct)
+}
+
+cc := w.Header().Get("Cache-Control")
+if cc != "public, max-age=3600" {
+t.Errorf("Cache-Control = %q, want public, max-age=3600", cc)
+}
+
+cors := w.Header().Get("Access-Control-Allow-Origin")
+if cors != "*" {
+t.Errorf("CORS = %q, want *", cors)
+}
+
+if tt.checkContent && tt.method == "GET" {
+if len(w.Body.Bytes()) != tt.wantContentLen {
+t.Errorf("body length = %d, want %d", len(w.Body.Bytes()), tt.wantContentLen)
+}
+}
+
+if tt.method == "HEAD" && len(w.Body.Bytes()) != 0 {
+t.Error("HEAD should not return body")
+}
+}
+})
+}
+}
+
+// Test ServePixelJS with missing files
+func TestServePixelJS_MissingFiles(t *testing.T) {
+// Ensure static directory doesn't exist
+os.RemoveAll("static")
+
+env := Env{}
+
+req := httptest.NewRequest("GET", "/pixel.js", nil)
+w := httptest.NewRecorder()
+
+env.ServePixelJS(w, req)
+
+if w.Code != 404 {
+t.Errorf("status = %d, want 404 for missing file", w.Code)
+}
 }

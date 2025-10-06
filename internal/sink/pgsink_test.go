@@ -835,3 +835,63 @@ func indexOf2(s, substr string) int {
 	}
 	return -1
 }
+
+// Test flushWithCopy edge cases
+func TestPGSink_FlushWithCopy_PrepareError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("failed to create mock: %v", err)
+	}
+	defer db.Close()
+
+	events := []event.Event{{EventID: "evt-001", Type: "click"}}
+	sink := &PGSink{
+		config: PGConfig{Table: "events_json", UseCopy: true},
+		db:     db,
+		batch:  events,
+	}
+	sink.ctx = context.Background()
+
+	mock.ExpectBegin()
+	mock.ExpectPrepare("COPY events_json").WillReturnError(fmt.Errorf("prepare failed"))
+
+	err = sink.flushWithCopy()
+	if err == nil {
+		t.Error("expected error from flushWithCopy prepare")
+	}
+	if !contains2(err.Error(), "failed to prepare copy") {
+		t.Errorf("error should mention prepare: %v", err)
+	}
+}
+
+// Test PGSink Enqueue with timer
+func TestPGSink_Enqueue_Timer(t *testing.T) {
+	db, _ , err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("failed to create mock: %v", err)
+	}
+	defer db.Close()
+
+	sink := &PGSink{
+		config: PGConfig{
+			Table:     "events_json",
+			BatchSize: 10,
+			FlushMS:   100,
+			UseCopy:   false,
+		},
+		db:    db,
+		batch: []event.Event{},
+	}
+	sink.ctx, sink.cancel = context.WithCancel(context.Background())
+	defer sink.cancel()
+
+	evt := event.Event{EventID: "evt-001", Type: "click"}
+	err = sink.Enqueue(evt)
+	if err != nil {
+		t.Errorf("Enqueue failed: %v", err)
+	}
+
+	if len(sink.batch) != 1 {
+		t.Errorf("batch should have 1 event, got %d", len(sink.batch))
+	}
+}

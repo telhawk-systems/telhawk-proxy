@@ -285,3 +285,167 @@ func TestHMACIntegration(t *testing.T) {
 		}
 	})
 }
+
+// Test GetPublicKeyBase64 with various states
+func TestHMACAuth_GetPublicKeyBase64_Comprehensive(t *testing.T) {
+t.Run("with valid public key", func(t *testing.T) {
+auth := NewHMACAuth("test-secret", "test-public-key", false)
+
+pubKey := auth.GetPublicKeyBase64()
+if pubKey == "" {
+t.Error("public key should not be empty")
+}
+
+// Verify it's valid base64
+decoded, err := base64.StdEncoding.DecodeString(pubKey)
+if err != nil {
+t.Errorf("public key should be valid base64: %v", err)
+}
+if len(decoded) == 0 {
+t.Error("decoded public key should not be empty")
+}
+})
+
+t.Run("with empty public key", func(t *testing.T) {
+auth := &HMACAuth{
+publicKey: []byte{},
+}
+
+pubKey := auth.GetPublicKeyBase64()
+if pubKey != "" {
+t.Errorf("public key should be empty, got %q", pubKey)
+}
+})
+
+t.Run("with nil public key", func(t *testing.T) {
+auth := &HMACAuth{
+publicKey: nil,
+}
+
+pubKey := auth.GetPublicKeyBase64()
+if pubKey != "" {
+t.Errorf("public key should be empty, got %q", pubKey)
+}
+})
+
+t.Run("derived key format", func(t *testing.T) {
+auth := NewHMACAuth("my-secret-key", "", false)
+
+pubKey := auth.GetPublicKeyBase64()
+if pubKey == "" {
+t.Error("derived public key should not be empty")
+}
+
+// Verify it decodes correctly
+decoded, err := base64.StdEncoding.DecodeString(pubKey)
+if err != nil {
+t.Errorf("derived key should be valid base64: %v", err)
+}
+
+// Should be 16 bytes (first 16 bytes of HMAC)
+if len(decoded) != 16 {
+t.Errorf("derived key length = %d, want 16", len(decoded))
+}
+})
+}
+
+// Test generateHMAC with edge cases
+func TestHMACAuth_GenerateHMAC_EdgeCases(t *testing.T) {
+t.Run("with empty secret", func(t *testing.T) {
+auth := &HMACAuth{
+secret: []byte{},
+}
+
+hmac := auth.generateHMAC([]byte("test payload"), "127.0.0.1")
+if hmac != "" {
+t.Error("HMAC should be empty when secret is empty")
+}
+})
+
+t.Run("with nil secret", func(t *testing.T) {
+auth := &HMACAuth{
+secret: nil,
+}
+
+hmac := auth.generateHMAC([]byte("test payload"), "127.0.0.1")
+if hmac != "" {
+t.Error("HMAC should be empty when secret is nil")
+}
+})
+
+t.Run("with different IPs produce different HMACs", func(t *testing.T) {
+auth := NewHMACAuth("test-secret", "test-public", false)
+payload := []byte(`{"event":"click"}`)
+
+hmac1 := auth.generateHMAC(payload, "192.168.1.1")
+hmac2 := auth.generateHMAC(payload, "192.168.1.2")
+
+if hmac1 == hmac2 {
+t.Error("different IPs should produce different HMACs")
+}
+
+if hmac1 == "" || hmac2 == "" {
+t.Error("HMACs should not be empty")
+}
+})
+
+t.Run("with IPv6 addresses", func(t *testing.T) {
+auth := NewHMACAuth("test-secret", "test-public", false)
+payload := []byte(`{"event":"click"}`)
+
+hmac := auth.generateHMAC(payload, "2001:0db8:85a3:0000:0000:8a2e:0370:7334")
+if hmac == "" {
+t.Error("HMAC should be generated for IPv6")
+}
+})
+
+t.Run("with IP and port", func(t *testing.T) {
+auth := NewHMACAuth("test-secret", "test-public", false)
+payload := []byte(`{"event":"click"}`)
+
+hmac := auth.generateHMAC(payload, "192.168.1.1:8080")
+if hmac == "" {
+t.Error("HMAC should be generated for IP with port")
+}
+})
+
+t.Run("empty payload", func(t *testing.T) {
+auth := NewHMACAuth("test-secret", "test-public", false)
+
+hmac := auth.generateHMAC([]byte{}, "192.168.1.1")
+if hmac == "" {
+t.Error("HMAC should be generated for empty payload")
+}
+})
+
+t.Run("large payload", func(t *testing.T) {
+auth := NewHMACAuth("test-secret", "test-public", false)
+largePayload := make([]byte, 1024*1024) // 1MB
+for i := range largePayload {
+largePayload[i] = byte(i % 256)
+}
+
+hmac := auth.generateHMAC(largePayload, "192.168.1.1")
+if hmac == "" {
+t.Error("HMAC should be generated for large payload")
+}
+
+// HMAC should be hex-encoded SHA256 (64 characters)
+if len(hmac) != 64 {
+t.Errorf("HMAC length = %d, want 64", len(hmac))
+}
+})
+
+t.Run("consistency check", func(t *testing.T) {
+auth := NewHMACAuth("test-secret", "test-public", false)
+payload := []byte(`{"event":"click"}`)
+ip := "192.168.1.1"
+
+hmac1 := auth.generateHMAC(payload, ip)
+hmac2 := auth.generateHMAC(payload, ip)
+
+if hmac1 != hmac2 {
+t.Error("same payload and IP should produce same HMAC")
+}
+})
+}
