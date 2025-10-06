@@ -24,8 +24,6 @@ The platform is **privacy-aware, compliance-minded**, and ships with a hardened 
   - PostgreSQL sink → COPY-based high-throughput ingestion with JSONB schema + GIN indexes
 
 - **Privacy & compliance aware**  
-  - Honors **Do-Not-Track** headers  
-  - Configurable sanitization of query params (`SANITIZE_PARAMS`)  
   - Explicitly designed to **avoid HIPAA, AML/KYC, FinCEN, GDPR violations**  
   - Collects identifiers strictly for **security and fraud detection (legitimate interest)**
 

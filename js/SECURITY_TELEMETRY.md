@@ -48,7 +48,6 @@
 - **Hardware details** - CPU cores, touch points, memory hints
 - **Feature detection** - Available APIs (bluetooth, credentials, etc.)
 - **Automation flags** - webdriver, automation properties
-- **Privacy settings** - DNT, GPC (collected but not honored)
 
 ### **📱 Environment Context**
 - **Screen details** - Resolution, DPR, available space

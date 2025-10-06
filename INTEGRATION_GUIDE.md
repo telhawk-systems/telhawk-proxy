@@ -31,7 +31,6 @@ The Go server is configured via environment variables:
 # Server settings
 SERVER_ADDR=":19890"                    # Port to listen on
 TRUST_PROXY=false                       # Honor X-Forwarded-For headers
-DNT_RESPECT=true                        # Honor Do-Not-Track headers
 
 # Output sinks (comma-separated)
 OUTPUTS="log"                           # Available: log, kafka, postgres

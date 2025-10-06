@@ -17,13 +17,7 @@
 - ✅ Input entropy tracking (click/keystroke counting)
 - ✅ Both now collected in main environment payload
 
-### 4. **Privacy-Aware Consent Management**
-- ✅ Do Not Track (DNT) detection
-- ✅ Global Privacy Control (GPC) detection  
-- ✅ Configurable respect for privacy signals
-- ✅ Automatic opt-out when privacy signals detected
-
-### 5. **Enhanced Configuration System**
+### 4. **Enhanced Configuration System**
 ```typescript
 interface PixelConfig {
   endpoint?: string;     // Custom collection endpoint
@@ -34,12 +28,12 @@ interface PixelConfig {
 }
 ```
 
-### 6. **HMAC Signing Support**
+### 5. **HMAC Signing Support**
 - ✅ Optional payload signing with Web Crypto API
 - ✅ Graceful fallback when crypto not available
 - ✅ Signature added as `_sig` field in payload
 
-### 7. **Comprehensive Environment Collection**
+### 6. **Comprehensive Environment Collection**
 Now collecting all promised signals:
 - ✅ Navigator info (UA, language, platform, hardware concurrency)
 - ✅ Screen dimensions and device pixel ratio
@@ -49,7 +43,7 @@ Now collecting all promised signals:
 - ✅ Session ID
 - ✅ Consent status
 
-### 8. **Full Detector Suite Active**
+### 7. **Full Detector Suite Active**
 All 6 detectors now running:
 - ✅ `plugins` - Empty plugins/mimeTypes arrays
 - ✅ `userAgent` - UA/platform consistency checks
@@ -58,7 +52,7 @@ All 6 detectors now running:
 - ✅ `webdriver` - navigator.webdriver flag
 - ✅ `functionToString` - Patched function detection
 
-### 9. **Production-Ready Build System**
+### 8. **Production-Ready Build System**
 - ✅ Clean TypeScript builds without test interference
 - ✅ Both ESM and UMD outputs generated
 - ✅ Source maps and type declarations included
@@ -95,7 +89,6 @@ The library now sends rich, structured data exactly as documented:
 ## 🎯 **Implementation Quality**
 
 - **Non-breaking**: All changes preserve existing behavior
-- **Privacy-compliant**: Respects DNT/GPC signals by default
 - **Fail-safe**: Try-catch blocks prevent page crashes
 - **Lightweight**: No external dependencies added
 - **Type-safe**: Full TypeScript coverage maintained
