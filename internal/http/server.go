@@ -14,6 +14,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/shortontech/gotrack/internal/assets"
 )
 
 // ProxyHandler implements a reverse proxy for middleware mode
@@ -191,6 +193,7 @@ func isHTMLContent(contentType string) bool {
 }
 
 // injectPixel adds a tracking pixel to HTML content before the closing </body> tag
+// It inlines the entire JavaScript library to avoid ad-blocker detection
 func injectPixel(body []byte, r *http.Request, hmacAuth *HMACAuth) []byte {
 	// Convert to string for easier manipulation
 	html := string(body)
@@ -202,19 +205,24 @@ func injectPixel(body []byte, r *http.Request, hmacAuth *HMACAuth) []byte {
 	}
 	pixelURL := "/px.gif?e=pageview&auto=1&url=" + url.QueryEscape(fullURL)
 
-	// Build injected content with tracking library and pixel
+	// Build injected content with INLINED tracking library and pixel
+	// By inlining the entire script, we avoid ad-blocker detection on script src URLs
 	var injectedContent string
 	if hmacAuth != nil {
-		// Include HMAC script, tracking library, and pixel with HMAC authentication
+		// Include HMAC script (keep as src since it needs server state), inline tracking library, and pixel
 		// nosemgrep: go.lang.security.injection.raw-html-format.raw-html-format
 		injectedContent = fmt.Sprintf(`<script src="/hmac.js"></script>
-<script src="/pixel.js"></script>
-<img src="%s" width="1" height="1" style="display:none" alt="">`, template.HTMLEscapeString(pixelURL)) // nosemgrep: go.lang.security.injection.raw-html-format.raw-html-format
+<script>%s</script>
+<img src="%s" width="1" height="1" style="display:none" alt="">`, 
+			string(assets.PixelUMDJS), 
+			template.HTMLEscapeString(pixelURL)) // nosemgrep: go.lang.security.injection.raw-html-format.raw-html-format
 	} else {
-		// Include tracking library and pixel without HMAC
+		// Inline tracking library and pixel without HMAC
 		// nosemgrep: go.lang.security.injection.raw-html-format.raw-html-format
-		injectedContent = fmt.Sprintf(`<script src="/pixel.js"></script>
-<img src="%s" width="1" height="1" style="display:none" alt="">`, template.HTMLEscapeString(pixelURL)) // nosemgrep: go.lang.security.injection.raw-html-format.raw-html-format
+		injectedContent = fmt.Sprintf(`<script>%s</script>
+<img src="%s" width="1" height="1" style="display:none" alt="">`, 
+			string(assets.PixelUMDJS), 
+			template.HTMLEscapeString(pixelURL)) // nosemgrep: go.lang.security.injection.raw-html-format.raw-html-format
 	}
 
 	// Try to inject before </body> tag (case-insensitive)
