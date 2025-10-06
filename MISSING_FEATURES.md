@@ -1,80 +1,168 @@
-# Missing Features
+# Future Enhancements
 
-## YAML configuration.
-We need more precise configuration as an option. We should still accept env vars, but for a number of configuration options, this is required.
+This document outlines planned features and improvements for the GoTrack analytics platform.
 
-## Which proxies to trust?
-We need to be able to set multiple IP ranges from which we trust to send us traffic, and only whitelist those. If we're behind a firewall that blocks incoming direct traffic, we may want to be able to trust all traffic.
+## Configuration Management
 
-## Different proxies have different headers that they use to send originating IP.
-CloudFlare, CloudFront, etc. have different headers they use for this, and we only support the one.
+### YAML Configuration Support
+Add support for YAML-based configuration files to complement environment variables. This will enable more complex configuration scenarios while maintaining backward compatibility with the existing environment variable approach.
 
-## Multiple relay targets
-We should support sending traffic to multiple relay targets.
+**Priority:** Medium  
+**Status:** Planned
 
-## CloudFlare / CloudFront geolocation headers
-We should be logging geolocation headers.
+## Network & Proxy Configuration
 
-## The payload and storage structure 
-There still seems to be a a score. We don't want scores. We just want to expose the raw results of tests.
+### Trusted Proxy Configuration
+Implement configurable IP range whitelisting to specify which proxies are trusted to forward traffic. This should support:
+- Multiple IP ranges/CIDR blocks
+- Option to trust all proxies when behind a secure firewall
+- Configurable behavior for untrusted proxies
 
-This software is supposed to be modeled after MMORPG logic, where the client is as dumb as possible.
+**Priority:** High  
+**Status:** Planned
 
-The JS should execute as a 
-```JSON
+### Multi-Proxy Header Support
+Extend support for various proxy headers used by different CDN providers:
+- CloudFlare: `CF-Connecting-IP`
+- CloudFront: `CloudFront-Viewer-Address`
+- Standard: `X-Forwarded-For`, `X-Real-IP`
+- Configurable priority order for header resolution
+
+**Priority:** High  
+**Status:** Planned
+
+### Multiple Relay Targets
+Support forwarding traffic to multiple downstream targets simultaneously, enabling:
+- A/B testing scenarios
+- Multi-environment deployments
+- Backup/failover configurations
+
+**Priority:** Medium  
+**Status:** Planned
+
+## Data Collection Enhancements
+
+### Geolocation Headers
+Capture and log geolocation headers provided by CDN providers (CloudFlare, CloudFront) to enrich request metadata without requiring separate geolocation services.
+
+**Priority:** Medium  
+**Status:** Planned
+
+### Simplified Payload Structure
+Refactor the event payload structure to follow a client-agnostic model where the JavaScript client reports raw telemetry data without interpretation:
+
+```json
 {
-    "results":{
-        "sound_channels": 4,
-        "gpu": "nvidia blah",
-        "window_width": "1024",
-        "window_height": "1024"
-    }
+  "results": {
+    "sound_channels": 4,
+    "gpu": "NVIDIA GeForce RTX 3080",
+    "window_width": 1920,
+    "window_height": 1080,
+    "webgl_vendor": "NVIDIA Corporation",
+    "webgl_renderer": "NVIDIA GeForce RTX 3080/PCIe/SSE2"
+  }
 }
 ```
-We can do more nesting than this, however, this is more logical and easier to process. We don't want it to be obvious from somebody looking at the result that we're doing client side bot checking, it should look like very aggressive telemetry, possibly for market research.
 
-## Without middleware, we don't need to allow customization of the collection endpoint
-It should always be location.href
+This approach:
+- Treats the client as a minimal data collection agent
+- Presents as general telemetry rather than bot detection
+- Enables flexible server-side analysis
+- Supports arbitrary nesting and custom metrics
 
-## Badly designed things
-header_fingerprint doesn't really make sense, since the headers will be different each time.
-payload_entropy <- This seems useless
-request_size <- This is something I already know
-user_agent_analysis <- I would rather save the useragent, so that others can process it, rather than processing it and then not saving it in it's entirety
+**Priority:** High  
+**Status:** Planned
 
+### Remove Deprecated Fields
+Remove or deprecate fields that provide limited value:
+- `header_fingerprint` - Headers vary per request, making fingerprinting unreliable
+- `payload_entropy` - Provides minimal actionable insights
+- `request_size` - Redundant information already available in logs
+- `user_agent_analysis` - Replace with raw User-Agent storage for downstream processing
 
-## /px.gif
-This should be used to detect ad block, primarily. Ad block is a good signal that I'm not dealing with a bot.
+**Priority:** Medium  
+**Status:** Planned
 
-## Basic IP testing?
-Should I do basic testing against each IP once to see if it has an open ports 22, 80, 443, 8080, or 8081?
+## Client-Side Detection
 
-## Reverse IP information
-Reverse IP is one set of data that would be highly useful, if we stored up to the second level domain. (google.com)
+### Ad Blocker Detection via /px.gif
+Utilize the pixel endpoint (`/px.gif`) primarily for ad blocker detection. Successful pixel loads can serve as a positive signal for legitimate traffic, as most bots don't employ ad blocking.
 
-208.79.209.138, for example, has a reverse IP that resolves to whatsmyip.org.
-## WHOIS information
-One of the ways I can enrich IP address information is by querying WHOIS servers.
+**Priority:** Medium  
+**Status:** Planned
 
-Knowing that malicious traffic is coming from a specific 
+### Simplified Collection Endpoint
+When not operating in middleware mode, hardcode the collection endpoint to `location.href` rather than allowing configuration. This simplifies the client implementation and reduces attack surface.
 
-208.79.209.138, for example, is assigned to the company named 'Macfixer (C08158750)'
+**Priority:** Low  
+**Status:** Planned
 
-Automated usage of this is likely to breach Terms of Use, trigger rate limits/blocks, or require a commercial agreement, but that information is **incredibly valuable** for security purposes.
+## IP Intelligence
 
-Might need to integrate with multiple bulk whois providers like WhoisXMLAPI, DomainTools, IPinfo, etc.
+### Port Scanning
+Perform lightweight port checks on connecting IPs to detect common service ports:
+- Port 22 (SSH)
+- Port 80 (HTTP)
+- Port 443 (HTTPS)
+- Port 8080 (HTTP Alternate)
+- Port 8081 (HTTP Alternate)
 
-For this information, we would want to have a direct SQL/NoSQL database for storing this information, and we would likely want multiple configurable integrations with each provider.
+Open ports on client IPs may indicate hosting infrastructure or proxies rather than end-user devices.
 
-WhoisXMLAPI charges $30 for 2,000 requests on their monthly plan.
+**Priority:** Low  
+**Status:** Research Phase
 
-## IP reputation
-Checking for the IP reputation is a good way to test and see if somebody is a bot.
+### Reverse DNS Resolution
+Capture and store reverse DNS information up to the second-level domain (e.g., `google.com`). This provides context about the origin of requests without requiring external APIs.
 
-## I need to test specific malicious headless browsers to look for identifying quirks.
-HeadlessX, Lightpanda, Playwright-Stealth, undetected-chromedriver, puppeteer-extra-plugin-stealth
+**Example:** `208.79.209.138` resolves to `whatsmyip.org`
 
-## Limited port checking
-Check ports 22, 80, 443, and 8080 when a client connects.
+**Priority:** Medium  
+**Status:** Planned
 
-This seems like an obvious thing to do to enrich the data, and I know there's at least thousands of servics that already do this.
+### WHOIS Integration
+Integrate with commercial WHOIS data providers to enrich IP information with ownership and registration data. This is valuable for security analysis but requires careful implementation due to:
+- Rate limiting and terms of service restrictions
+- Commercial licensing requirements
+- Cost considerations (e.g., WhoisXMLAPI: $30/2,000 requests)
+
+Recommended providers:
+- WhoisXMLAPI
+- DomainTools
+- IPinfo
+- IPWHOIS
+
+Implementation should support:
+- Multiple provider backends
+- Configurable fallbacks
+- Caching to minimize API calls
+- Direct database storage for enrichment data
+
+**Priority:** Low  
+**Status:** Research Phase  
+**Notes:** Requires commercial agreements and careful rate limit management
+
+### IP Reputation Services
+Integrate with IP reputation services to identify known malicious sources, proxies, VPNs, and hosting providers. This provides immediate context for traffic analysis and anomaly detection.
+
+**Priority:** Medium  
+**Status:** Planned
+
+## Headless Browser Detection
+
+### Fingerprinting Research
+Conduct testing against common headless browser evasion tools to identify detection patterns:
+- HeadlessX
+- Lightpanda
+- Playwright with stealth plugins
+- undetected-chromedriver
+- puppeteer-extra-plugin-stealth
+
+Goal is to document behavioral quirks and detection vectors that can be implemented in the client-side telemetry.
+
+**Priority:** Medium  
+**Status:** Research Phase
+
+---
+
+**Note:** Priorities and timelines are subject to change based on user feedback and operational requirements.

@@ -58,20 +58,6 @@ TEST_MODE=false                              # Generate test events on startup
 
 No JavaScript configuration needed! GoTrack automatically injects:
 
-```javascript
-// Basic initialization
-GoTrack.init();
-
-// With custom endpoint
-GoTrack.config.endpoint = "https://your-domain.com/collect";
-GoTrack.init();
-
-// With additional options
-GoTrack.config = {
-  endpoint: "https://analytics.yoursite.com/collect",
-  version: 1
-};
-```
 
 ## 📊 Event Structure
 
@@ -128,7 +114,7 @@ For local development and testing:
 
 ```bash
 # Terminal 1: Start Go server
-cd /path/to/hello-go
+cd /path/to/gotrack
 OUTPUTS=log LOG_PATH=./events.ndjson SERVER_ADDR=":19890" ./gotrack
 
 # Terminal 2: Serve test page (optional)
@@ -300,18 +286,6 @@ HTTP 400: invalid json object
 Failed to fetch: net::ERR_CONNECTION_REFUSED
 ```
 **Solution**: Ensure Go server is running on the correct port (19890 by default).
-
-### Debug Mode
-
-Enable debug logging:
-```bash
-# Go server debug
-LOG_LEVEL=debug ./gotrack
-
-# Browser console
-// Check for errors in browser dev tools
-console.log('GoTrack debug:', window.GoTrack);
-```
 
 ## 🚀 Next Steps
 
