@@ -9,5 +9,13 @@ module.exports = {
   moduleFileExtensions: ["ts", "tsx", "js"],
   collectCoverageFrom: ["src/**/*.{ts,tsx}"],
   coverageDirectory: "coverage",
-  coverageReporters: ["text", "lcov"]
+  coverageReporters: ["text", "lcov", "html", "json-summary"],
+  coverageThreshold: {
+    global: {
+      branches: 50,
+      functions: 85,
+      lines: 75,
+      statements: 75
+    }
+  }
 };
