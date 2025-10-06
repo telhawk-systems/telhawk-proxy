@@ -810,7 +810,8 @@ func TestPGSink_Close_FlushesEvents(t *testing.T) {
 		db:    db,
 		batch: []event.Event{{EventID: "final"}},
 	}
-	sink.ctx, sink.cancel = context.WithCancel(context.Background())
+	// Use background context - don't cancel so flush can succeed
+	sink.ctx = context.Background()
 
 	mock.ExpectExec("INSERT INTO events_json").
 		WillReturnResult(sqlmock.NewResult(0, 1))
