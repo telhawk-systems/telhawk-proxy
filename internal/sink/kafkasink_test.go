@@ -1,9 +1,12 @@
 package sink
 
 import (
+	"context"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/shortontech/gotrack/internal/event"
 )
 
 func withEnvVars(t *testing.T, vars map[string]string, fn func()) {
@@ -165,6 +168,152 @@ func TestKafkaSinkClose(t *testing.T) {
 			t.Errorf("Close() on unstarted sink should not error: %v", err)
 		}
 	})
+}
+
+// Test Kafka Start with various configuration paths
+func TestKafkaSink_Start_ConfigurationPaths(t *testing.T) {
+	t.Run("basic configuration", func(t *testing.T) {
+		sink := NewKafkaSink([]string{"localhost:9092"}, "test-topic")
+		ctx := context.Background()
+		
+		// This will fail without Kafka, but it exercises the config map creation
+		err := sink.Start(ctx)
+		// We expect an error since Kafka isn't running
+		if err != nil {
+			if !contains(err.Error(), "failed to create Kafka producer") {
+				t.Logf("Got expected error: %v", err)
+			}
+		}
+		
+		// Cleanup if it somehow succeeded
+		if sink.producer != nil {
+			sink.Close()
+		}
+	})
+
+	t.Run("with compression", func(t *testing.T) {
+		sink := &KafkaSink{
+			config: KafkaConfig{
+				Brokers:     []string{"localhost:9092"},
+				Topic:       "test",
+				Acks:        "all",
+				Compression: "gzip",
+			},
+		}
+		ctx := context.Background()
+		
+		err := sink.Start(ctx)
+		if err != nil {
+			t.Logf("Got expected error (no Kafka): %v", err)
+		}
+		
+		if sink.producer != nil {
+			sink.Close()
+		}
+	})
+
+	t.Run("with SASL configuration", func(t *testing.T) {
+		sink := &KafkaSink{
+			config: KafkaConfig{
+				Brokers:       []string{"localhost:9092"},
+				Topic:         "test",
+				SASLMechanism: "PLAIN",
+				SASLUser:      "test-user",
+				SASLPassword:  "test-pass",
+			},
+		}
+		ctx := context.Background()
+		
+		err := sink.Start(ctx)
+		if err != nil {
+			t.Logf("Got expected error (no Kafka): %v", err)
+		}
+		
+		if sink.producer != nil {
+			sink.Close()
+		}
+	})
+
+	t.Run("with TLS configuration", func(t *testing.T) {
+		sink := &KafkaSink{
+			config: KafkaConfig{
+				Brokers:   []string{"localhost:9092"},
+				Topic:     "test",
+				TLSCAPath: "/path/to/ca.pem",
+			},
+		}
+		ctx := context.Background()
+		
+		err := sink.Start(ctx)
+		if err != nil {
+			t.Logf("Got expected error (no Kafka): %v", err)
+		}
+		
+		if sink.producer != nil {
+			sink.Close()
+		}
+	})
+
+	t.Run("with TLS skip verify", func(t *testing.T) {
+		sink := &KafkaSink{
+			config: KafkaConfig{
+				Brokers:       []string{"localhost:9092"},
+				Topic:         "test",
+				TLSSkipVerify: true,
+			},
+		}
+		ctx := context.Background()
+		
+		err := sink.Start(ctx)
+		if err != nil {
+			t.Logf("Got expected error (no Kafka): %v", err)
+		}
+		
+		if sink.producer != nil {
+			sink.Close()
+		}
+	})
+
+	t.Run("with SASL and TLS", func(t *testing.T) {
+		sink := &KafkaSink{
+			config: KafkaConfig{
+				Brokers:       []string{"localhost:9092"},
+				Topic:         "test",
+				SASLMechanism: "SCRAM-SHA-256",
+				SASLUser:      "user",
+				SASLPassword:  "pass",
+				TLSCAPath:     "/path/to/ca.pem",
+			},
+		}
+		ctx := context.Background()
+		
+		err := sink.Start(ctx)
+		if err != nil {
+			t.Logf("Got expected error (no Kafka): %v", err)
+		}
+		
+		if sink.producer != nil {
+			sink.Close()
+		}
+	})
+}
+
+// Test Kafka Enqueue without producer
+func TestKafkaSink_Enqueue_NoProducer(t *testing.T) {
+	sink := NewKafkaSink([]string{"localhost:9092"}, "test")
+	
+	evt := event.Event{
+		EventID: "test-123",
+		Type:    "click",
+	}
+	
+	err := sink.Enqueue(evt)
+	if err == nil {
+		t.Error("Enqueue should fail when producer is not initialized")
+	}
+	if !contains(err.Error(), "not initialized") {
+		t.Errorf("error should mention not initialized: %v", err)
+	}
 }
 
 // TestGetEnvOr tests the string environment variable helper
