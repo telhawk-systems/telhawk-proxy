@@ -1,17 +1,22 @@
 package httpx
 
 import (
+	_ "embed"
 	"encoding/json"
 	"io"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 
 	event "github.com/shortontech/gotrack/internal/event"
 	"github.com/shortontech/gotrack/internal/metrics"
 	cfg "github.com/shortontech/gotrack/pkg/config"
 )
+
+//go:embed ../../js/dist/pixel.umd.js
+var pixelUMDJS []byte
+
+//go:embed ../../js/dist/pixel.esm.js
+var pixelESMJS []byte
 
 var pixelGIF = []byte{
 	0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00, 0x01, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -38,24 +43,13 @@ func (e Env) ServePixelJS(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Determine which file to serve based on the path
-	var filename string
+	var content []byte
 	switch r.URL.Path {
 	case "/pixel.js", "/pixel.umd.js":
-		filename = "pixel.umd.js"
+		content = pixelUMDJS
 	case "/pixel.esm.js":
-		filename = "pixel.esm.js"
+		content = pixelESMJS
 	default:
-		http.NotFound(w, r)
-		return
-	}
-
-	// Try to read from the static directory
-	staticPath := filepath.Join("static", filename)
-	// filename is set only by the switch above to one of two constants.
-	// #nosec G304
-	content, err := os.ReadFile(staticPath)
-	if err != nil {
-		// If file doesn't exist, return 404
 		http.NotFound(w, r)
 		return
 	}

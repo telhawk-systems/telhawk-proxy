@@ -89,3 +89,4 @@ yarn-error.log*
 js/dist/
 coverage/
 js/coverage/
+static/pixel*

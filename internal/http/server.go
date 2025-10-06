@@ -2,6 +2,7 @@ package httpx
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"fmt"
 	"html/template"
@@ -89,6 +90,9 @@ func (p *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Check if we should inject pixel for HTML content
 	if p.autoInjectPixel && isHTMLContent(resp.Header.Get("Content-Type")) {
+		// Check if response is gzip encoded
+		isGzipped := strings.Contains(strings.ToLower(resp.Header.Get("Content-Encoding")), "gzip")
+		
 		// Read the response body
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
@@ -97,16 +101,61 @@ func (p *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Inject pixel and write modified response
-		modifiedBody := injectPixel(body, r, p.hmacAuth)
-
-		// Update Content-Length header if it was set
-		if resp.Header.Get("Content-Length") != "" {
-			w.Header().Set("Content-Length", strconv.Itoa(len(modifiedBody)))
+		// Decompress if gzipped
+		var htmlBody []byte
+		if isGzipped {
+			gzReader, err := gzip.NewReader(bytes.NewReader(body))
+			if err != nil {
+				log.Printf("proxy: failed to create gzip reader: %v", err)
+				// Fall back to serving as-is
+				w.WriteHeader(resp.StatusCode)
+				_, _ = w.Write(body)
+				return
+			}
+			defer gzReader.Close()
+			
+			htmlBody, err = io.ReadAll(gzReader)
+			if err != nil {
+				log.Printf("proxy: failed to decompress gzipped body: %v", err)
+				// Fall back to serving as-is
+				w.WriteHeader(resp.StatusCode)
+				_, _ = w.Write(body)
+				return
+			}
+		} else {
+			htmlBody = body
 		}
 
+		// Inject pixel into decompressed HTML
+		modifiedBody := injectPixel(htmlBody, r, p.hmacAuth)
+
+		// Re-compress if original was gzipped
+		var finalBody []byte
+		if isGzipped {
+			var buf bytes.Buffer
+			gzWriter := gzip.NewWriter(&buf)
+			_, err = gzWriter.Write(modifiedBody)
+			if err != nil {
+				log.Printf("proxy: failed to write gzipped body: %v", err)
+				w.WriteHeader(resp.StatusCode)
+				return
+			}
+			err = gzWriter.Close()
+			if err != nil {
+				log.Printf("proxy: failed to close gzip writer: %v", err)
+				w.WriteHeader(resp.StatusCode)
+				return
+			}
+			finalBody = buf.Bytes()
+		} else {
+			finalBody = modifiedBody
+		}
+
+		// Update Content-Length header
+		w.Header().Set("Content-Length", strconv.Itoa(len(finalBody)))
+
 		w.WriteHeader(resp.StatusCode)
-		_, err = w.Write(modifiedBody)
+		_, err = w.Write(finalBody)
 		if err != nil {
 			log.Printf("proxy: failed to write modified response body: %v", err)
 		}
@@ -153,18 +202,19 @@ func injectPixel(body []byte, r *http.Request, hmacAuth *HMACAuth) []byte {
 	}
 	pixelURL := "/px.gif?e=pageview&auto=1&url=" + url.QueryEscape(fullURL)
 
-	// Add HMAC script if authentication is configured
+	// Build injected content with tracking library and pixel
 	var injectedContent string
 	if hmacAuth != nil {
-		// Include HMAC script for automatic authentication
-		// Escape pixel URL for safe HTML insertion
+		// Include HMAC script, tracking library, and pixel with HMAC authentication
 		// nosemgrep: go.lang.security.injection.raw-html-format.raw-html-format
 		injectedContent = fmt.Sprintf(`<script src="/hmac.js"></script>
+<script src="/pixel.js"></script>
 <img src="%s" width="1" height="1" style="display:none" alt="">`, template.HTMLEscapeString(pixelURL)) // nosemgrep: go.lang.security.injection.raw-html-format.raw-html-format
 	} else {
-		// Just the pixel without HMAC
-		// Escape pixel URL for safe HTML insertion
-		injectedContent = fmt.Sprintf(`<img src="%s" width="1" height="1" style="display:none" alt="">`, template.HTMLEscapeString(pixelURL)) // nosemgrep: go.lang.security.injection.raw-html-format.raw-html-format
+		// Include tracking library and pixel without HMAC
+		// nosemgrep: go.lang.security.injection.raw-html-format.raw-html-format
+		injectedContent = fmt.Sprintf(`<script src="/pixel.js"></script>
+<img src="%s" width="1" height="1" style="display:none" alt="">`, template.HTMLEscapeString(pixelURL)) // nosemgrep: go.lang.security.injection.raw-html-format.raw-html-format
 	}
 
 	// Try to inject before </body> tag (case-insensitive)
