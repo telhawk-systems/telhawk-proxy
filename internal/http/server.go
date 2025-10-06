@@ -20,18 +20,16 @@ import (
 
 // ProxyHandler implements a reverse proxy for middleware mode
 type ProxyHandler struct {
-	destination     string
-	client          *http.Client
-	autoInjectPixel bool
-	hmacAuth        *HMACAuth
+	destination string
+	client      *http.Client
+	hmacAuth    *HMACAuth
 }
 
 // NewProxyHandler creates a new proxy handler for the given destination
-func NewProxyHandler(destination string, autoInjectPixel bool, hmacAuth *HMACAuth) *ProxyHandler {
+func NewProxyHandler(destination string, hmacAuth *HMACAuth) *ProxyHandler {
 	return &ProxyHandler{
-		destination:     destination,
-		autoInjectPixel: autoInjectPixel,
-		hmacAuth:        hmacAuth,
+		destination: destination,
+		hmacAuth:    hmacAuth,
 		client: &http.Client{
 			Timeout: 30 * time.Second, // 30 second timeout for proxied requests
 		},
@@ -91,10 +89,10 @@ func (p *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if we should inject pixel for HTML content
-	if p.autoInjectPixel && isHTMLContent(resp.Header.Get("Content-Type")) {
+	if isHTMLContent(resp.Header.Get("Content-Type")) {
 		// Check if response is gzip encoded
 		isGzipped := strings.Contains(strings.ToLower(resp.Header.Get("Content-Encoding")), "gzip")
-		
+
 		// Read the response body
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
@@ -115,7 +113,7 @@ func (p *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			defer gzReader.Close()
-			
+
 			htmlBody, err = io.ReadAll(gzReader)
 			if err != nil {
 				log.Printf("proxy: failed to decompress gzipped body: %v", err)
@@ -214,15 +212,15 @@ func injectPixel(body []byte, r *http.Request, hmacAuth *HMACAuth) []byte {
 		// nosemgrep: go.lang.security.injection.raw-html-format.raw-html-format
 		injectedContent = fmt.Sprintf(`<script src="/hmac.js"></script>
 <script>%s</script>
-<img src="%s" width="1" height="1" style="display:none" alt="">`, 
-			string(assets.PixelUMDJS), 
+<img src="%s" width="1" height="1" style="display:none" alt="">`,
+			string(assets.PixelUMDJS),
 			template.HTMLEscapeString(pixelURL)) // nosemgrep: go.lang.security.injection.raw-html-format.raw-html-format
 	} else {
 		// Inline tracking library and pixel without HMAC
 		// nosemgrep: go.lang.security.injection.raw-html-format.raw-html-format
 		injectedContent = fmt.Sprintf(`<script>%s</script>
-<img src="%s" width="1" height="1" style="display:none" alt="">`, 
-			string(assets.PixelUMDJS), 
+<img src="%s" width="1" height="1" style="display:none" alt="">`,
+			string(assets.PixelUMDJS),
 			template.HTMLEscapeString(pixelURL)) // nosemgrep: go.lang.security.injection.raw-html-format.raw-html-format
 	}
 
@@ -248,10 +246,10 @@ func injectPixel(body []byte, r *http.Request, hmacAuth *HMACAuth) []byte {
 
 // NewMiddlewareRouter creates a new middleware router that handles tracking routes
 // and forwards everything else to the destination
-func NewMiddlewareRouter(trackingMux *http.ServeMux, destination string, autoInjectPixel bool, hmacAuth *HMACAuth, collectHandler http.HandlerFunc) *MiddlewareRouter {
+func NewMiddlewareRouter(trackingMux *http.ServeMux, destination string, hmacAuth *HMACAuth, collectHandler http.HandlerFunc) *MiddlewareRouter {
 	return &MiddlewareRouter{
 		trackingMux:    trackingMux,
-		proxy:          NewProxyHandler(destination, autoInjectPixel, hmacAuth),
+		proxy:          NewProxyHandler(destination, hmacAuth),
 		collectHandler: collectHandler,
 	}
 }
@@ -279,7 +277,6 @@ func (m *MiddlewareRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // statusRecorder captures the status code (removed, not needed)
-
 
 // isTrackingPath determines if a path should be handled by the tracking server
 func isTrackingPath(path string) bool {
@@ -319,24 +316,16 @@ func NewMux(e Env) http.Handler {
 	mux.HandleFunc("/pixel.umd.js", e.ServePixelJS)
 	mux.HandleFunc("/pixel.esm.js", e.ServePixelJS)
 
-	// If middleware mode is enabled and we have a destination, wrap with proxy
-	if e.Cfg.MiddlewareMode && e.Cfg.ForwardDestination != "" {
+	//  wrap with proxy
+	if e.Cfg.ForwardDestination != "" {
 		// Validate the destination URL
 		if _, err := url.Parse(e.Cfg.ForwardDestination); err != nil {
-			log.Printf("WARNING: Invalid FORWARD_DESTINATION URL: %v. Middleware mode disabled.", err)
+			log.Fatal("WARNING: Invalid FORWARD_DESTINATION URL: %v.", err)
 			return RequestLogger(cors(mux))
 		}
 
-		log.Printf("Middleware mode enabled, forwarding to: %s", e.Cfg.ForwardDestination)
-		if e.Cfg.AutoInjectPixel {
-			log.Printf("Auto pixel injection enabled for HTML content")
-		}
-		router := NewMiddlewareRouter(mux, e.Cfg.ForwardDestination, e.Cfg.AutoInjectPixel, e.HMACAuth, e.Collect)
+		router := NewMiddlewareRouter(mux, e.Cfg.ForwardDestination, e.HMACAuth, e.Collect)
 		return RequestLogger(MetricsMiddleware(e.Metrics)(cors(router)))
-	}
-
-	if e.Cfg.MiddlewareMode && e.Cfg.ForwardDestination == "" {
-		log.Printf("WARNING: MIDDLEWARE_MODE=true but FORWARD_DESTINATION is empty. Middleware mode disabled.")
 	}
 
 	// Apply CORS, metrics, and request logging middleware

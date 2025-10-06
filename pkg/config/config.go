@@ -20,9 +20,7 @@ type Config struct {
 	KeyFile     string // path to SSL private key file (server.key)
 
 	// Middleware/Proxy Configuration
-	MiddlewareMode     bool   // enable middleware mode - forward 404s to destination
 	ForwardDestination string // destination hostname to forward non-tracking requests to
-	AutoInjectPixel    bool   // automatically inject tracking pixel into HTML responses
 
 	// HMAC Authentication Configuration
 	HMACSecret    string // secret key for HMAC generation/verification
@@ -96,14 +94,11 @@ func Load() Config {
 		KeyFile:     getOr("SSL_KEY_FILE", "server.key"),  // default key file path
 
 		// Middleware/Proxy Configuration
-		MiddlewareMode:     getBool("MIDDLEWARE_MODE", false),  // disabled by default
-		ForwardDestination: getOr("FORWARD_DESTINATION", ""),   // no default destination
-		AutoInjectPixel:    getBool("AUTO_INJECT_PIXEL", true), // enabled by default for HTML
+		ForwardDestination: getOr("FORWARD_DESTINATION", ""), // no default destination
 
 		// HMAC Authentication Configuration
-		HMACSecret:    getOr("HMAC_SECRET", ""),       // no default - must be set explicitly
-		RequireHMAC:   getBool("REQUIRE_HMAC", false), // disabled by default
-		HMACPublicKey: getOr("HMAC_PUBLIC_KEY", ""),   // derived from secret if not set
+		HMACSecret:    getOr("HMAC_SECRET", ""),     // no default - must be set explicitly
+		HMACPublicKey: getOr("HMAC_PUBLIC_KEY", ""), // derived from secret if not set
 
 		// Metrics Configuration
 		MetricsEnabled:    getBool("METRICS_ENABLED", false),       // disabled by default

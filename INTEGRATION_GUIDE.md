@@ -1,52 +1,62 @@
-# GoTrack JS ↔ Go Integration Guide
+# GoTrack Integration Guide
 
-This guide explains how to configure the JavaScript security pixel and Go application to work together seamlessly.
+This guide explains how GoTrack operates as a transparent proxy with automatic tracking injection.
 
 ## 🏗️ Architecture Overview
 
 ```
-┌─────────────────┐    HTTP POST /collect     ┌──────────────────┐
-│  JS Pixel      │─────────────────────────►│  Go Server       │
-│  (Browser)      │                          │  (:19890)        │
-│                 │    HTTP GET /px.gif      │                  │
-│                 │─────────────────────────►│                  │
-└─────────────────┘         (fallback)       └──────────────────┘
-                                                       │
-                                                       ▼
-                                              ┌──────────────────┐
-                                              │  Event Sinks     │
-                                              │  - Log Files     │
-                                              │  - Kafka         │
-                                              │  - PostgreSQL    │
-                                              └──────────────────┘
+┌─────────────────┐    All HTTP Traffic    ┌──────────────────┐    Proxied Traffic    ┌──────────────────┐
+│  Browser        │───────────────────────►│  GoTrack Proxy   │─────────────────────►│  Your Website    │
+│                 │◄───────────────────────│  (:19899)        │◄─────────────────────│  (:3000)         │
+└─────────────────┘  Auto-injected HTML    └──────────────────┘   Original Response   └──────────────────┘
+                     + Tracking Code                 │
+                                                     ▼
+                                            ┌──────────────────┐
+                                            │  Event Sinks     │
+                                            │  - Log Files     │
+                                            │  - Kafka         │
+                                            │  - PostgreSQL    │
+                                            └──────────────────┘
 ```
+
+**How It Works:**
+1. Browser requests page from GoTrack proxy
+2. GoTrack forwards request to your website
+3. Your website returns HTML response
+4. GoTrack injects tracking JavaScript and pixel into HTML
+5. Browser receives modified HTML with tracking code
+6. Tracking code sends data to GoTrack (stealth mode: POSTs to same URL)
+7. GoTrack identifies tracking requests via HMAC header
+8. Events are sent to configured sinks
 
 ## 🔧 Configuration
 
 ### Go Server Configuration
 
-The Go server is configured via environment variables:
+The Go server requires these environment variables:
 
 ```bash
-# Server settings
-SERVER_ADDR=":19890"                    # Port to listen on
-TRUST_PROXY=false                       # Honor X-Forwarded-For headers
+# Required Settings
+FORWARD_DESTINATION="http://localhost:3000"  # Your website to proxy
+HMAC_SECRET="your-secret-key"                # Required for HMAC auth
+SERVER_ADDR=":19899"                         # Port to listen on
 
 # Output sinks (comma-separated)
-OUTPUTS="log"                           # Available: log, kafka, postgres
-LOG_PATH="./events.ndjson"              # Log file location
+OUTPUTS="log"                                # Available: log, kafka, postgres
+LOG_PATH="./events.ndjson"                   # Log file location
 
-# Security
-MAX_BODY_BYTES=1048576                  # 1MB max payload size
-IP_HASH_SECRET=""                       # Optional IP hashing secret
+# Optional Security Settings
+TRUST_PROXY=false                            # Honor X-Forwarded-For headers
+MAX_BODY_BYTES=1048576                       # 1MB max payload size
+IP_HASH_SECRET=""                            # Optional IP hashing secret
 
 # Testing
-TEST_MODE=false                         # Generate test events on startup
+TEST_MODE=false                              # Generate test events on startup
 ```
 
-### JavaScript Pixel Configuration
+### Automatic Injection
 
-The JS pixel is configured when initializing:
+No JavaScript configuration needed! GoTrack automatically injects:
 
 ```javascript
 // Basic initialization

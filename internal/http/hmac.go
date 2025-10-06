@@ -14,16 +14,14 @@ import (
 
 // HMACAuth handles HMAC authentication for collection endpoints
 type HMACAuth struct {
-	secret      []byte
-	publicKey   []byte
-	requireHMAC bool
+	secret    []byte
+	publicKey []byte
 }
 
 // NewHMACAuth creates a new HMAC authentication handler
-func NewHMACAuth(secret, publicKey string, requireHMAC bool) *HMACAuth {
+func NewHMACAuth(secret, publicKey string) *HMACAuth {
 	auth := &HMACAuth{
-		secret:      []byte(secret),
-		requireHMAC: requireHMAC,
+		secret: []byte(secret),
 	}
 
 	// If public key is provided, decode it from base64
@@ -105,9 +103,6 @@ func normalizeIP(addr string) string {
 
 // VerifyHMAC validates the HMAC signature for a request
 func (h *HMACAuth) VerifyHMAC(r *http.Request, payload []byte) bool {
-	if !h.requireHMAC {
-		return true // HMAC not required
-	}
 
 	if len(h.secret) == 0 {
 		log.Printf("HMAC verification failed: no secret configured")

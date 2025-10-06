@@ -51,7 +51,6 @@ echo
 
 # Test middleware mode
 echo "4. Testing middleware mode..."
-MIDDLEWARE_MODE=true \
 FORWARD_DESTINATION=http://localhost:8082 \
 OUTPUTS=log \
 SERVER_ADDR=:19893 \
@@ -114,10 +113,8 @@ echo "Normal mode (default):"
 echo "  ./gotrack"
 echo
 echo "Middleware mode:"
-echo "  export MIDDLEWARE_MODE=true"
 echo "  export FORWARD_DESTINATION=http://your-backend:3000"
 echo "  ./gotrack"
 echo
 echo "Environment variables:"
-echo "  MIDDLEWARE_MODE       - Enable proxy/middleware functionality"
 echo "  FORWARD_DESTINATION   - Target server for non-tracking requests"

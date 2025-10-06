@@ -46,9 +46,7 @@ echo
 
 # Start GoTrack
 echo "3. Starting GoTrack with auto-injection..."
-MIDDLEWARE_MODE=true \
 FORWARD_DESTINATION=http://localhost:8091 \
-AUTO_INJECT_PIXEL=true \
 OUTPUTS=log \
 SERVER_ADDR=:19911 \
 timeout 10 ./gotrack &

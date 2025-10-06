@@ -79,10 +79,7 @@ services:
       # - ENABLE_HTTPS=true
       # - SSL_CERT_FILE=/app/certs/server.crt
       # - SSL_KEY_FILE=/app/certs/server.key
-      # Middleware/Proxy mode (uncomment to enable reverse proxy functionality)  
-      # - MIDDLEWARE_MODE=true
       # - FORWARD_DESTINATION=http://your-backend-server:3000
-      # - AUTO_INJECT_PIXEL=true  # automatically inject tracking pixels into HTML
       # HMAC Authentication (uncomment to enable secure collection endpoint)
       # - HMAC_SECRET=your-secret-key-here  # generate with: openssl rand -base64 32
       # - REQUIRE_HMAC=true  # require HMAC signatures for /collect endpoint

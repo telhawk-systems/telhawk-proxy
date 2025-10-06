@@ -105,33 +105,6 @@ func TestInitializeHMACAuth(t *testing.T) {
 		}
 	})
 
-	t.Run("with HMAC secret not required", func(t *testing.T) {
-		cfg := config.Config{
-			HMACSecret:    "test-secret-key",
-			HMACPublicKey: "test-public-key",
-			RequireHMAC:   false,
-		}
-		
-		auth := initializeHMACAuth(cfg)
-		if auth == nil {
-			t.Error("expected auth to be initialized")
-		}
-	})
-
-	t.Run("with HMAC secret required", func(t *testing.T) {
-		cfg := config.Config{
-			HMACSecret:    "test-secret-key",
-			HMACPublicKey: "test-public-key",
-			RequireHMAC:   true,
-		}
-		
-		auth := initializeHMACAuth(cfg)
-		if auth == nil {
-			t.Error("expected auth to be initialized")
-		}
-	})
-}
-
 // TestCreateEmitFunc tests the emit function creation
 func TestCreateEmitFunc(t *testing.T) {
 	t.Run("successful emit to all sinks", func(t *testing.T) {

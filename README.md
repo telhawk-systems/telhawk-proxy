@@ -15,8 +15,14 @@ The platform is **privacy-aware, compliance-minded**, and ships with a hardened 
 
 ## ✨ Features
 
-- **Security-focused event pipeline**  
-  Collects requests via `/px.gif` (pixel) or `/collect` (JSON API), normalizes into structured events, and routes to pluggable sinks.
+- **Transparent Proxy with Auto-Injection**  
+  Operates as a reverse proxy that automatically injects tracking JavaScript and pixels into all HTML responses. Supports gzip compression and maintains full transparency for non-HTML content.
+
+- **Stealth Tracking Mode**  
+  Posts tracking data to the same URLs as regular page requests using HMAC headers for identification. Resistant to ad-blockers and script-blocking extensions.
+
+- **HMAC-Authenticated Collection**  
+  IP-specific HMAC-SHA256 authentication ensures data integrity and prevents forged tracking data. Automatic key derivation per client.
 
 - **Pluggable outputs**  
   - Log sink → NDJSON lines for SIEM/SOC ingestion  
@@ -42,14 +48,18 @@ The platform is **privacy-aware, compliance-minded**, and ships with a hardened 
 
 ## 🚀 Quick Start
 
-### Run locally (log sink only)
+GoTrack operates as a **transparent reverse proxy** that automatically injects tracking code into HTML responses.
+
+### Basic proxy setup
 
 ```bash
 go build -o ./gotrack ./cmd/gotrack
 
+HMAC_SECRET=your-secret-key \
+FORWARD_DESTINATION=http://your-site.com \
+SERVER_ADDR=":19899" \
 OUTPUTS=log \
 LOG_PATH=./events.ndjson \
-SERVER_ADDR=":19890" \
 ./gotrack
 ```
 
@@ -59,6 +69,8 @@ SERVER_ADDR=":19890" \
 go build -o ./gotrack ./cmd/gotrack
 
 TEST_MODE=true \
+HMAC_SECRET=your-secret-key \
+FORWARD_DESTINATION=http://example.com \
 OUTPUTS=log \
 LOG_PATH=./events.ndjson \
 SERVER_ADDR=":19890" \
@@ -73,6 +85,8 @@ This will automatically generate 5 sample events after startup to test your sink
 # Enable Prometheus metrics on separate port (secure localhost binding)
 METRICS_ENABLED=true \
 METRICS_ADDR=127.0.0.1:9090 \
+HMAC_SECRET=your-secret-key \
+FORWARD_DESTINATION=http://your-site.com \
 OUTPUTS=log \
 ./gotrack
 
@@ -192,77 +206,69 @@ docker-compose up
 - Mount certificates as read-only volumes in Docker containers
 - Consider using Let's Encrypt or your organization's PKI for production certificates
 
-### Middleware/Proxy Mode
+### Transparent Proxy Mode (Always Enabled)
 
-GoTrack can operate as a reverse proxy, forwarding non-tracking requests to a destination server while handling tracking endpoints locally. This allows you to embed tracking functionality into existing web applications seamlessly.
+GoTrack operates exclusively as a **reverse proxy**, automatically injecting tracking code into all HTML responses. All non-tracking requests are transparently forwarded to the destination server.
 
-* `MIDDLEWARE_MODE` (default `false`): enable middleware/proxy mode
-* `FORWARD_DESTINATION` (required when middleware mode is enabled): destination URL to forward non-tracking requests to
+* `FORWARD_DESTINATION` (required): destination URL to proxy all requests to
+* `HMAC_SECRET` (required): secret key for HMAC authentication and tracking security
 
-**Middleware Mode Setup Example:**
+**Basic Setup:**
 
 ```bash
-# Run GoTrack as a middleware proxy
-MIDDLEWARE_MODE=true \
+# Run GoTrack as a transparent tracking proxy
+HMAC_SECRET=your-secret-key \
 FORWARD_DESTINATION=http://localhost:3000 \
 OUTPUTS=log \
 SERVER_ADDR=:8080 \
 ./gotrack
 ```
 
-**How Middleware Mode Works:**
+**How It Works:**
 
-- **Tracking endpoints** (`/px.gif`, `/collect`, `/healthz`, `/readyz`, `/metrics`) are handled by GoTrack
-- **All other requests** are proxied to the `FORWARD_DESTINATION` server
+- **Tracking endpoints** (`/px.gif`, `/collect`, `/healthz`, `/readyz`, `/metrics`, `/hmac.js`) are handled by GoTrack
+- **All other requests** are proxied to the `FORWARD_DESTINATION` server  
+- **HTML responses** automatically get tracking JavaScript and pixel injected
+- **POST requests with HMAC header** are routed to collection handler (stealth mode)
+- **Regular POST requests** (no HMAC) are proxied normally to destination
 - Headers, query parameters, and request bodies are preserved during proxy
-- Response headers and status codes from the destination are passed through
 
-**Use Cases:**
-- Add tracking to existing web applications without code changes
-- Insert tracking middleware in front of static file servers
-- Create a unified endpoint for both content delivery and analytics
-- Load balancer with embedded tracking capabilities
+**Automatic Tracking Injection:**
+
+GoTrack automatically injects into every HTML response:
+- ✅ **Full JavaScript tracking library** (43KB inlined) - ad-blocker resistant
+- ✅ **1x1 transparent pixel** as fallback
+- ✅ **HMAC authentication script** (when HMAC_SECRET is set)
+- ✅ **Only modifies HTML** - never touches JSON, CSS, JS, images, etc.
+- ✅ **Injects before `</body>`** tag or before `</html>` as fallback
+- ✅ **Handles gzip compression** - decompresses, injects, recompresses
+- ✅ **Updates Content-Length** header automatically
+
+**Injected Content:**
+```html
+<script src="/hmac.js"></script>
+<script>(full 43KB tracking library inlined here)</script>
+<img src="/px.gif?e=pageview&auto=1&url=%2F" width="1" height="1" style="display:none" alt="">
+```
+
+**Stealth Mode:**
+- Tracking data POSTs to the **same URL** as page requests (not `/collect`)
+- HMAC header identifies tracking requests server-side
+- Ad-blockers can't detect suspicious endpoints
+- Works even when external script loading is blocked
 
 **Example Architecture:**
 ```
 [Client] → [GoTrack :8080] → [Your App :3000]
-           ↓ (tracking only)
+           ↓ (injects tracking + collects data)
          [Analytics Pipeline]
 ```
 
-**Automatic Pixel Injection:**
+### HMAC Authentication (Required)
 
-When middleware mode is enabled, GoTrack can automatically inject tracking pixels into HTML responses:
+GoTrack requires HMAC-SHA256 authentication to identify tracking requests and prevent forged data:
 
-* `AUTO_INJECT_PIXEL` (default `true` when middleware mode enabled): automatically inject tracking pixels into HTML responses
-
-The pixel injection:
-- ✅ **Only applies to HTML content** (Content-Type: text/html, application/xhtml+xml)
-- ✅ **Case-insensitive** content-type detection (`TEXT/HTML`, `text/html`, etc.)
-- ✅ **Never modifies** JSON, CSS, JS, images, or other non-HTML content
-- ✅ **Injects before `</body>`** tag when present, or before `</html>` as fallback
-- ✅ **Preserves all original content** and just adds a 1x1 transparent tracking pixel
-- ✅ **Updates Content-Length** header automatically
-
-**Injected Pixel Example:**
-```html
-<img src="/px.gif?e=pageview&auto=1&url=http%3A%2F%2Fwww.example.com%2Flander" width="1" height="1" style="display:none" alt="">
-```
-
-**Disable Auto-Injection:**
-```bash
-MIDDLEWARE_MODE=true \
-AUTO_INJECT_PIXEL=false \
-FORWARD_DESTINATION=http://localhost:3000 \
-./gotrack
-```
-
-### HMAC Authentication
-
-GoTrack supports HMAC-SHA256 authentication for the `/collect` endpoint to prevent forged tracking data and ensure data integrity:
-
-* `HMAC_SECRET` (required for HMAC): Master secret key for HMAC generation/verification
-* `REQUIRE_HMAC` (default `false`): Require HMAC verification for all `/collect` requests
+* `HMAC_SECRET` (required): Master secret key for HMAC generation/verification
 * `HMAC_PUBLIC_KEY` (optional): Override the derived public key with a custom base64-encoded key
 
 **HMAC Security Model:**
@@ -279,7 +285,6 @@ HMAC_SECRET="$(openssl rand -base64 32)"
 
 # Enable HMAC authentication
 HMAC_SECRET="$HMAC_SECRET" \
-REQUIRE_HMAC=true \
 OUTPUTS=log \
 ./gotrack
 ```

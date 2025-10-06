@@ -130,7 +130,7 @@ func initializeSinks(ctx context.Context, outputs []string) []sink.Sink {
 func initializeHMACAuth(cfg config.Config) *httpx.HMACAuth {
 	var hmacAuth *httpx.HMACAuth
 	if cfg.HMACSecret != "" {
-		hmacAuth = httpx.NewHMACAuth(cfg.HMACSecret, cfg.HMACPublicKey, cfg.RequireHMAC)
+		hmacAuth = httpx.NewHMACAuth(cfg.HMACSecret, cfg.HMACPublicKey)
 		if cfg.RequireHMAC {
 			log.Printf("HMAC authentication enabled and required for /collect endpoint")
 		} else {

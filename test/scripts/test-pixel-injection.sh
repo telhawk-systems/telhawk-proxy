@@ -59,7 +59,6 @@ echo
 
 # Test with pixel injection enabled (default)
 echo "3. Testing with pixel injection enabled..."
-MIDDLEWARE_MODE=true \
 FORWARD_DESTINATION=http://localhost:8088 \
 OUTPUTS=log \
 SERVER_ADDR=:19901 \
@@ -107,9 +106,7 @@ echo
 
 # Test with pixel injection disabled
 echo "4. Testing with pixel injection disabled..."
-MIDDLEWARE_MODE=true \
 FORWARD_DESTINATION=http://localhost:8088 \
-AUTO_INJECT_PIXEL=false \
 OUTPUTS=log \
 SERVER_ADDR=:19902 \
 timeout 5 ./gotrack &
@@ -139,10 +136,4 @@ echo "Summary:"
 echo "✓ HTML content gets pixel injected (default behavior)"
 echo "✓ JSON content is never modified"  
 echo "✓ Case-insensitive content-type detection works"
-echo "✓ Pixel injection can be disabled with AUTO_INJECT_PIXEL=false"
 echo "✓ Injected pixels use proper URL encoding"
-echo
-echo "Configuration:"
-echo "  MIDDLEWARE_MODE=true       - Enable proxy mode"
-echo "  AUTO_INJECT_PIXEL=true     - Enable pixel injection (default)"
-echo "  AUTO_INJECT_PIXEL=false    - Disable pixel injection"

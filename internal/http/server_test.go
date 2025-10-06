@@ -137,7 +137,7 @@ func TestInjectPixel(t *testing.T) {
 	t.Run("includes HMAC script when auth configured", func(t *testing.T) {
 		html := []byte("<html><body>Test</body></html>")
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
-		auth := NewHMACAuth("test-secret", "", false)
+		auth := NewHMACAuth("test-secret", "")
 		result := string(injectPixel(html, req, auth))
 		if !strings.Contains(result, `<script src="/hmac.js"></script>`) {
 			t.Error("should include HMAC script")
@@ -224,10 +224,6 @@ func TestNewProxyHandler(t *testing.T) {
 			t.Errorf("destination = %q, want http://example.com", handler.destination)
 		}
 
-		if handler.autoInjectPixel {
-			t.Error("autoInjectPixel should be false")
-		}
-
 		if handler.hmacAuth != nil {
 			t.Error("hmacAuth should be nil")
 		}
@@ -242,12 +238,8 @@ func TestNewProxyHandler(t *testing.T) {
 	})
 
 	t.Run("creates handler with auto inject and HMAC", func(t *testing.T) {
-		auth := NewHMACAuth("secret", "", false)
+		auth := NewHMACAuth("secret", "")
 		handler := NewProxyHandler("http://example.com", true, auth)
-
-		if !handler.autoInjectPixel {
-			t.Error("autoInjectPixel should be true")
-		}
 
 		if handler.hmacAuth == nil {
 			t.Error("hmacAuth should not be nil")
@@ -341,7 +333,7 @@ func TestProxyHandlerServeHTTP(t *testing.T) {
 		}))
 		defer backend.Close()
 
-		handler := NewProxyHandler(backend.URL, true, nil) // autoInjectPixel = true
+		handler := NewProxyHandler(backend.URL, nil)
 
 		req := httptest.NewRequest(http.MethodGet, "/page", nil)
 		w := httptest.NewRecorder()
@@ -366,7 +358,7 @@ func TestProxyHandlerServeHTTP(t *testing.T) {
 		}))
 		defer backend.Close()
 
-		handler := NewProxyHandler(backend.URL, true, nil) // autoInjectPixel = true
+		handler := NewProxyHandler(backend.URL, nil)
 
 		req := httptest.NewRequest(http.MethodGet, "/api/data", nil)
 		w := httptest.NewRecorder()
@@ -541,7 +533,6 @@ func TestNewMux(t *testing.T) {
 	t.Run("creates mux without middleware mode", func(t *testing.T) {
 		env := Env{
 			Cfg: config.Config{
-				MiddlewareMode:     false,
 				ForwardDestination: "",
 			},
 			Emit:    func(e event.Event) {},
@@ -563,9 +554,7 @@ func TestNewMux(t *testing.T) {
 
 		env := Env{
 			Cfg: config.Config{
-				MiddlewareMode:     true,
 				ForwardDestination: backend.URL,
-				AutoInjectPixel:    false,
 			},
 			Emit:    func(e event.Event) {},
 			Metrics: metrics.InitMetrics(),
@@ -591,7 +580,6 @@ func TestNewMux(t *testing.T) {
 	t.Run("disables middleware mode when destination is empty", func(t *testing.T) {
 		env := Env{
 			Cfg: config.Config{
-				MiddlewareMode:     true,
 				ForwardDestination: "", // Empty destination
 			},
 			Emit:    func(e event.Event) {},
@@ -617,7 +605,6 @@ func TestNewMux(t *testing.T) {
 	t.Run("disables middleware mode when destination is invalid", func(t *testing.T) {
 		env := Env{
 			Cfg: config.Config{
-				MiddlewareMode:     true,
 				ForwardDestination: "://invalid-url",
 			},
 			Emit:    func(e event.Event) {},
