@@ -41,6 +41,14 @@ func main() {
 
 	cfg := config.Load()
 
+	// Validate required configuration
+	if cfg.ForwardDestination == "" {
+		log.Fatal("FORWARD_DESTINATION is required - GoTrack operates as a transparent proxy")
+	}
+	if cfg.HMACSecret == "" {
+		log.Fatal("HMAC_SECRET is required - GoTrack requires HMAC authentication for tracking")
+	}
+
 	// Initialize metrics
 	appMetrics := metrics.InitMetrics()
 	metricsConfig := metrics.Config{
