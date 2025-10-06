@@ -10,11 +10,43 @@ import (
 func TestGenerateTestEvents(t *testing.T) {
 	events := generateTestEvents()
 
-	if len(events) != 5 {
-		t.Errorf("expected 5 test events, got %d", len(events))
-	}
+	t.Run("generates correct number of events", func(t *testing.T) {
+		if len(events) != 5 {
+			t.Errorf("expected 5 test events, got %d", len(events))
+		}
+	})
 
-	// Verify each event has required fields
+	t.Run("all events have required fields", func(t *testing.T) {
+		verifyRequiredFields(t, events)
+	})
+
+	t.Run("events have correct types", func(t *testing.T) {
+		verifyEventTypes(t, events)
+	})
+
+	t.Run("first event has correct details", func(t *testing.T) {
+		verifyFirstEvent(t, events[0])
+	})
+
+	t.Run("second event is mobile", func(t *testing.T) {
+		verifySecondEvent(t, events[1])
+	})
+
+	t.Run("third event is conversion", func(t *testing.T) {
+		verifyThirdEvent(t, events[2])
+	})
+
+	t.Run("fourth event has Facebook data", func(t *testing.T) {
+		verifyFourthEvent(t, events[3])
+	})
+
+	t.Run("fifth event is custom", func(t *testing.T) {
+		verifyFifthEvent(t, events[4])
+	})
+}
+
+// verifyRequiredFields checks that all events have required fields populated
+func verifyRequiredFields(t *testing.T, events []event.Event) {
 	for i, e := range events {
 		if e.EventID == "" {
 			t.Errorf("event %d: EventID should not be empty", i)
@@ -26,73 +58,80 @@ func TestGenerateTestEvents(t *testing.T) {
 			t.Errorf("event %d: Type should not be empty", i)
 		}
 	}
+}
 
-	// Verify specific event types
+// verifyEventTypes checks that events have the expected types
+func verifyEventTypes(t *testing.T, events []event.Event) {
 	expectedTypes := []string{"pageview", "click", "conversion", "pageview", "custom_event"}
 	for i, expectedType := range expectedTypes {
 		if events[i].Type != expectedType {
 			t.Errorf("event %d: expected type %s, got %s", i, expectedType, events[i].Type)
 		}
 	}
+}
 
-	// Verify first event has detailed fields
-	firstEvent := events[0]
-	if firstEvent.URL.Referrer != "https://google.com" {
-		t.Errorf("first event referrer incorrect: %s", firstEvent.URL.Referrer)
+// verifyFirstEvent validates the first test event
+func verifyFirstEvent(t *testing.T, e event.Event) {
+	if e.URL.Referrer != "https://google.com" {
+		t.Errorf("referrer incorrect: %s", e.URL.Referrer)
 	}
-	if firstEvent.URL.ReferrerHostname != "google.com" {
-		t.Errorf("first event referrer hostname incorrect: %s", firstEvent.URL.ReferrerHostname)
+	if e.URL.ReferrerHostname != "google.com" {
+		t.Errorf("referrer hostname incorrect: %s", e.URL.ReferrerHostname)
 	}
-	if firstEvent.URL.UTM.Source != "google" {
-		t.Errorf("first event UTM source incorrect: %s", firstEvent.URL.UTM.Source)
+	if e.URL.UTM.Source != "google" {
+		t.Errorf("UTM source incorrect: %s", e.URL.UTM.Source)
 	}
-	if firstEvent.Route.Domain != "example.com" {
-		t.Errorf("first event domain incorrect: %s", firstEvent.Route.Domain)
+	if e.Route.Domain != "example.com" {
+		t.Errorf("domain incorrect: %s", e.Route.Domain)
 	}
-	if firstEvent.Device.Browser != "Chrome" {
-		t.Errorf("first event browser incorrect: %s", firstEvent.Device.Browser)
+	if e.Device.Browser != "Chrome" {
+		t.Errorf("browser incorrect: %s", e.Device.Browser)
 	}
+}
 
-	// Verify second event (mobile)
-	secondEvent := events[1]
-	if secondEvent.Type != "click" {
-		t.Errorf("second event type should be click, got %s", secondEvent.Type)
+// verifySecondEvent validates the second test event (mobile)
+func verifySecondEvent(t *testing.T, e event.Event) {
+	if e.Type != "click" {
+		t.Errorf("type should be click, got %s", e.Type)
 	}
-	if secondEvent.Device.Browser != "Safari" {
-		t.Errorf("second event browser should be Safari, got %s", secondEvent.Device.Browser)
+	if e.Device.Browser != "Safari" {
+		t.Errorf("browser should be Safari, got %s", e.Device.Browser)
 	}
-	if secondEvent.Device.UAMobile == nil || !*secondEvent.Device.UAMobile {
-		t.Error("second event should be mobile")
+	if e.Device.UAMobile == nil || !*e.Device.UAMobile {
+		t.Error("should be mobile")
 	}
+}
 
-	// Verify third event (conversion)
-	thirdEvent := events[2]
-	if thirdEvent.Type != "conversion" {
-		t.Errorf("third event type should be conversion, got %s", thirdEvent.Type)
+// verifyThirdEvent validates the third test event (conversion)
+func verifyThirdEvent(t *testing.T, e event.Event) {
+	if e.Type != "conversion" {
+		t.Errorf("type should be conversion, got %s", e.Type)
 	}
-	if thirdEvent.Route.Path != "/thank-you" {
-		t.Errorf("third event path should be /thank-you, got %s", thirdEvent.Route.Path)
+	if e.Route.Path != "/thank-you" {
+		t.Errorf("path should be /thank-you, got %s", e.Route.Path)
 	}
+}
 
-	// Verify fourth event (Facebook referrer with meta ads info)
-	fourthEvent := events[3]
-	if fourthEvent.URL.Referrer != "https://facebook.com" {
-		t.Errorf("fourth event referrer should be facebook.com, got %s", fourthEvent.URL.Referrer)
+// verifyFourthEvent validates the fourth test event (Facebook)
+func verifyFourthEvent(t *testing.T, e event.Event) {
+	if e.URL.Referrer != "https://facebook.com" {
+		t.Errorf("referrer should be facebook.com, got %s", e.URL.Referrer)
 	}
-	if fourthEvent.URL.UTM.Source != "facebook" {
-		t.Errorf("fourth event UTM source should be facebook, got %s", fourthEvent.URL.UTM.Source)
+	if e.URL.UTM.Source != "facebook" {
+		t.Errorf("UTM source should be facebook, got %s", e.URL.UTM.Source)
 	}
-	if fourthEvent.URL.Meta.FBCLID != "fb_click_123" {
-		t.Errorf("fourth event FBCLID should be set, got %s", fourthEvent.URL.Meta.FBCLID)
+	if e.URL.Meta.FBCLID != "fb_click_123" {
+		t.Errorf("FBCLID should be set, got %s", e.URL.Meta.FBCLID)
 	}
+}
 
-	// Verify fifth event (custom event)
-	fifthEvent := events[4]
-	if fifthEvent.Type != "custom_event" {
-		t.Errorf("fifth event type should be custom_event, got %s", fifthEvent.Type)
+// verifyFifthEvent validates the fifth test event (custom)
+func verifyFifthEvent(t *testing.T, e event.Event) {
+	if e.Type != "custom_event" {
+		t.Errorf("type should be custom_event, got %s", e.Type)
 	}
-	if fifthEvent.Route.Path != "/dashboard" {
-		t.Errorf("fifth event path should be /dashboard, got %s", fifthEvent.Route.Path)
+	if e.Route.Path != "/dashboard" {
+		t.Errorf("path should be /dashboard, got %s", e.Route.Path)
 	}
 }
 
