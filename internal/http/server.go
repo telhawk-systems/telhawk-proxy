@@ -264,17 +264,22 @@ func (m *MiddlewareRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if this is a collection request (POST with HMAC header to any path)
-	// This allows tracking data to be sent to any URL, making it harder to block
+	// Check if this is potentially a collection request (POST with HMAC header)
+	// We route to collect handler if HMAC header exists
+	// The collect handler will validate and either accept or reject
 	if r.Method == http.MethodPost && r.Header.Get("X-GoTrack-HMAC") != "" {
-		// Route to collect handler directly
+		// Route to collect handler - it will validate HMAC
+		// If HMAC is invalid, collect handler returns 401 (not proxied)
 		m.collectHandler(w, r)
 		return
 	}
 
-	// For non-tracking paths, proxy to the destination
+	// No HMAC header = normal request, proxy to destination
 	m.proxy.ServeHTTP(w, r)
 }
+
+// statusRecorder captures the status code (removed, not needed)
+
 
 // isTrackingPath determines if a path should be handled by the tracking server
 func isTrackingPath(path string) bool {

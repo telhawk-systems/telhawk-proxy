@@ -188,10 +188,13 @@ func (h *HMACAuth) GenerateClientScript() string {
   // Override fetch for GoTrack collection
   const originalFetch = window.fetch;
   window.fetch = async function(url, options = {}) {
-    if (url.includes('/collect') && options.method === 'POST' && options.body) {
+    // Only intercept POST requests that already have X-GoTrack-HMAC header
+    // This means the tracking library marked it as a tracking request
+    if (options.method === 'POST' && options.body && 
+        options.headers && options.headers['X-GoTrack-HMAC']) {
       try {
+        // Replace the marker with actual HMAC signature
         const hmac = await generateHMAC(options.body, GOTRACK_PUBLIC_KEY);
-        options.headers = options.headers || {};
         options.headers['X-GoTrack-HMAC'] = hmac;
       } catch (e) {
         console.warn('GoTrack HMAC generation failed:', e);

@@ -928,20 +928,6 @@ const getDefaultEndpoint = () => {
 };
 const pickEndpoint = (cfg) => cfg.endpoint || getDefaultEndpoint();
 
-const fetchSend = async (body, endpoint) => {
-    await fetch(endpoint, { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" }, body });
-};
-
-const imgSend = (params, endpoint = "/px.gif") => {
-    const q = new URLSearchParams();
-    Object.entries(params).forEach(([k, v]) => q.set(k, String(v)));
-    const i = new Image(1, 1);
-    i.referrerPolicy = "no-referrer";
-    // Ensure endpoint supports query params
-    const separator = endpoint.includes('?') ? '&' : '?';
-    i.src = `${endpoint}${separator}${q.toString()}`;
-};
-
 const sign = async (body, secret) => {
     if (!secret || typeof globalThis.crypto === "undefined" || !globalThis.crypto.subtle) {
         return null; // No signing if no secret or no crypto support
@@ -958,32 +944,49 @@ const sign = async (body, secret) => {
     }
 };
 
-const sendBeaconOrFetch = async (body, endpoint, secret) => {
-    // Add signature if secret is provided
-    let finalBody = body;
+const fetchSend = async (body, endpoint, secret) => {
+    const headers = {
+        "Content-Type": "application/json",
+        // Always add marker header to identify this as a GoTrack request
+        // If HMAC is enabled, the /hmac.js script will replace this with real signature
+        "X-GoTrack-HMAC": "tracking"
+    };
+    // If secret is provided directly, generate HMAC here (legacy support)
     if (secret) {
         const signature = await sign(body, secret);
         if (signature) {
-            const payload = JSON.parse(body);
-            payload._sig = signature;
-            finalBody = JSON.stringify(payload);
+            headers["X-GoTrack-HMAC"] = signature;
         }
     }
-    // Try sendBeacon first (preferred)
-    if (typeof navigator !== "undefined" && navigator.sendBeacon) {
-        const ok = navigator.sendBeacon(endpoint, finalBody);
-        if (ok)
-            return;
-    }
-    // Fallback to fetch
+    await fetch(endpoint, {
+        method: "POST",
+        keepalive: true,
+        headers,
+        body
+    });
+};
+
+const imgSend = (params, endpoint = "/px.gif") => {
+    const q = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => q.set(k, String(v)));
+    const i = new Image(1, 1);
+    i.referrerPolicy = "no-referrer";
+    // Ensure endpoint supports query params
+    const separator = endpoint.includes('?') ? '&' : '?';
+    i.src = `${endpoint}${separator}${q.toString()}`;
+};
+
+const sendBeaconOrFetch = async (body, endpoint, secret) => {
+    // Use fetch with proper HMAC signing
+    // The secret is passed through from the config
     try {
-        await fetchSend(finalBody, endpoint);
+        await fetchSend(body, endpoint, secret);
         return;
     }
     catch {
-        // Final fallback to img pixel
+        // Final fallback to img pixel (no HMAC support here)
         try {
-            const data = JSON.parse(finalBody);
+            const data = JSON.parse(body);
             imgSend(data, endpoint);
         }
         catch {
@@ -1012,6 +1015,16 @@ function init(cfg = {}) {
         });
     }
     catch { /* never break the page */ }
+}
+// Auto-initialize if window exists and auto-init is not disabled
+if (typeof window !== 'undefined' && !window.GO_TRACK_NO_AUTO_INIT) {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => init());
+    }
+    else {
+        // Document already loaded
+        init();
+    }
 }
 
 export { init };

@@ -31,3 +31,13 @@ export function init(cfg: Partial<PixelConfig> = {}) {
     });
   } catch { /* never break the page */ }
 }
+
+// Auto-initialize if window exists and auto-init is not disabled
+if (typeof window !== 'undefined' && !(window as any).GO_TRACK_NO_AUTO_INIT) {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => init());
+  } else {
+    // Document already loaded
+    init();
+  }
+}
