@@ -12,7 +12,7 @@ import (
 
 func TestEnrichServerFields_Timestamp(t *testing.T) {
 	t.Run("sets timestamp when empty", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodPost, "/collect", nil)
+		req := httptest.NewRequest(http.MethodPost, "/", nil)
 		e := &Event{}
 		before := time.Now().UTC()
 		EnrichServerFields(req, e, config.Config{})
@@ -29,7 +29,7 @@ func TestEnrichServerFields_Timestamp(t *testing.T) {
 	})
 
 	t.Run("preserves existing timestamp", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodPost, "/collect", nil)
+		req := httptest.NewRequest(http.MethodPost, "/", nil)
 		existingTS := "2024-01-01T12:00:00Z"
 		e := &Event{TS: existingTS}
 		EnrichServerFields(req, e, config.Config{})
@@ -41,7 +41,7 @@ func TestEnrichServerFields_Timestamp(t *testing.T) {
 
 func TestEnrichServerFields_EventType(t *testing.T) {
 	t.Run("sets default type to pageview when empty", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodPost, "/collect", nil)
+		req := httptest.NewRequest(http.MethodPost, "/", nil)
 		e := &Event{}
 		EnrichServerFields(req, e, config.Config{})
 		if e.Type != "pageview" {
@@ -50,7 +50,7 @@ func TestEnrichServerFields_EventType(t *testing.T) {
 	})
 
 	t.Run("preserves existing event type", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodPost, "/collect", nil)
+		req := httptest.NewRequest(http.MethodPost, "/", nil)
 		e := &Event{Type: "click"}
 		EnrichServerFields(req, e, config.Config{})
 		if e.Type != "click" {
@@ -61,7 +61,7 @@ func TestEnrichServerFields_EventType(t *testing.T) {
 
 func TestEnrichServerFields_UserAgent(t *testing.T) {
 	t.Run("extracts user agent when empty", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodPost, "/collect", nil)
+		req := httptest.NewRequest(http.MethodPost, "/", nil)
 		req.Header.Set("User-Agent", "Mozilla/5.0 Test Browser")
 		e := &Event{}
 		EnrichServerFields(req, e, config.Config{})
@@ -71,7 +71,7 @@ func TestEnrichServerFields_UserAgent(t *testing.T) {
 	})
 
 	t.Run("preserves existing user agent", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodPost, "/collect", nil)
+		req := httptest.NewRequest(http.MethodPost, "/", nil)
 		req.Header.Set("User-Agent", "Mozilla/5.0 Test Browser")
 		e := &Event{Device: DeviceInfo{UA: "Client UA"}}
 		EnrichServerFields(req, e, config.Config{})
@@ -83,7 +83,7 @@ func TestEnrichServerFields_UserAgent(t *testing.T) {
 
 func TestEnrichServerFields_Referrer(t *testing.T) {
 	t.Run("extracts referrer when empty", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodPost, "/collect", nil)
+		req := httptest.NewRequest(http.MethodPost, "/", nil)
 		req.Header.Set("Referer", "https://google.com/search")
 		e := &Event{}
 		EnrichServerFields(req, e, config.Config{})
@@ -96,7 +96,7 @@ func TestEnrichServerFields_Referrer(t *testing.T) {
 	})
 
 	t.Run("preserves existing referrer", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodPost, "/collect", nil)
+		req := httptest.NewRequest(http.MethodPost, "/", nil)
 		req.Header.Set("Referer", "https://google.com")
 		e := &Event{URL: URLInfo{Referrer: "https://existing.com"}}
 		EnrichServerFields(req, e, config.Config{})
@@ -108,7 +108,7 @@ func TestEnrichServerFields_Referrer(t *testing.T) {
 
 func TestEnrichServerFields_Query(t *testing.T) {
 	t.Run("extracts raw query when empty", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodPost, "/collect?foo=bar&baz=qux", nil)
+		req := httptest.NewRequest(http.MethodPost, "/?foo=bar&baz=qux", nil)
 		e := &Event{}
 		EnrichServerFields(req, e, config.Config{})
 		if e.URL.RawQuery != "foo=bar&baz=qux" {
@@ -120,7 +120,7 @@ func TestEnrichServerFields_Query(t *testing.T) {
 	})
 
 	t.Run("preserves existing raw query", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodPost, "/collect?foo=bar", nil)
+		req := httptest.NewRequest(http.MethodPost, "/?foo=bar", nil)
 		e := &Event{URL: URLInfo{RawQuery: "existing=query"}}
 		EnrichServerFields(req, e, config.Config{})
 		if e.URL.RawQuery != "existing=query" {
@@ -131,7 +131,7 @@ func TestEnrichServerFields_Query(t *testing.T) {
 
 func TestEnrichServerFields_ClientIP(t *testing.T) {
 	t.Run("extracts client IP without proxy", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodPost, "/collect", nil)
+		req := httptest.NewRequest(http.MethodPost, "/", nil)
 		req.RemoteAddr = "192.168.1.100:12345"
 		e := &Event{}
 		EnrichServerFields(req, e, config.Config{TrustProxy: false})
@@ -141,7 +141,7 @@ func TestEnrichServerFields_ClientIP(t *testing.T) {
 	})
 
 	t.Run("extracts client IP from X-Forwarded-For when proxy trusted", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodPost, "/collect", nil)
+		req := httptest.NewRequest(http.MethodPost, "/", nil)
 		req.RemoteAddr = "10.0.0.1:12345"
 		req.Header.Set("X-Forwarded-For", "203.0.113.1, 198.51.100.1")
 		e := &Event{}
@@ -519,7 +519,7 @@ func TestEnrichServerFieldsIntegration(t *testing.T) {
 		e := &Event{}
 		cfg := config.Config{TrustProxy: true}
 		EnrichServerFields(req, e, cfg)
-		
+
 		if e.TS == "" {
 			t.Error("timestamp should be set")
 		}

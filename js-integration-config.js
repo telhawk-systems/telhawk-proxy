@@ -3,7 +3,7 @@
 
 // Configuration for the pixel
 const GOTRACK_CONFIG = {
-  endpoint: "http://localhost:19890/collect",
+  endpoint: "http://localhost:19890/",
   version: 1
 };
 

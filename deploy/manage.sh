@@ -53,7 +53,7 @@ case "${1:-help}" in
     
     test-json)
         echo "📡 Testing JSON endpoint..."
-        curl -X POST http://localhost:19890/collect \
+        curl -X POST http://localhost:19890/ \
             -H "Content-Type: application/json" \
             -d '{
                 "event_id": "test-123",

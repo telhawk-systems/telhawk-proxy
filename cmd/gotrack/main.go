@@ -140,7 +140,7 @@ func initializeHMACAuth(cfg config.Config) *httpx.HMACAuth {
 	if cfg.HMACSecret != "" {
 		hmacAuth = httpx.NewHMACAuth(cfg.HMACSecret, cfg.HMACPublicKey)
 		if cfg.RequireHMAC {
-			log.Printf("HMAC authentication enabled and required for /collect endpoint")
+			log.Printf("HMAC authentication enabled and required for / endpoint")
 		} else {
 			log.Printf("HMAC authentication configured but not required")
 		}

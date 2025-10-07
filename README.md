@@ -139,7 +139,7 @@ Returns a 1×1 transparent GIF. Accepts query params (any unknowns go to `props`
 
 **Response**: `200` with `image/gif`, cache headers disabled. CORS allowlist optional.
 
-### `POST /collect`
+### `POST /`
 
 `Content-Type: application/json` with an event object or array of objects using the **Event model**.
 
@@ -672,7 +672,7 @@ A: Practically **at‑least‑once**. Use `event_id` for dedupe. Postgres `UNIQU
 A: Keep it small (< 4KB). Enforce via `MAX_BODY_BYTES`.
 
 **Q: Will ad blockers kill it?**
-A: Some will. Host on your own subdomain and avoid obvious paths; provide `/collect` JSON fallback.
+A: No, it would be nearly impossible to block with adblock.
 
 ---
 

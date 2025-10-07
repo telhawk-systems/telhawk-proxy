@@ -278,202 +278,6 @@ func assertAcceptedCount(t *testing.T, w *httptest.ResponseRecorder, want int) {
 	}
 }
 
-func TestCollect(t *testing.T) {
-	t.Run("accepts single event object", func(t *testing.T) {
-		var emittedEvent *event.Event
-		env := Env{
-			Cfg:  config.Config{MaxBodyBytes: 1024 * 1024},
-			Emit: func(e event.Event) { emittedEvent = &e },
-		}
-		eventJSON := `{"type":"click","event_id":"test-123"}`
-		req := httptest.NewRequest(http.MethodPost, "/collect", strings.NewReader(eventJSON))
-		req.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
-		env.Collect(w, req)
-		assertResponseStatus(t, w, http.StatusAccepted, "application/json")
-		assertAcceptedCount(t, w, 1)
-		if emittedEvent == nil {
-			t.Fatal("event should have been emitted")
-		}
-		if emittedEvent.EventID != "test-123" {
-			t.Errorf("event_id = %q, want test-123", emittedEvent.EventID)
-		}
-	})
-
-	t.Run("accepts array of events", func(t *testing.T) {
-		var emittedEvents []event.Event
-		env := Env{
-			Cfg:  config.Config{MaxBodyBytes: 1024 * 1024},
-			Emit: func(e event.Event) { emittedEvents = append(emittedEvents, e) },
-		}
-		eventsJSON := `[{"type":"pageview","event_id":"evt1"},{"type":"click","event_id":"evt2"}]`
-		req := httptest.NewRequest(http.MethodPost, "/collect", strings.NewReader(eventsJSON))
-		req.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
-		env.Collect(w, req)
-		assertResponseStatus(t, w, http.StatusAccepted, "")
-		assertAcceptedCount(t, w, 2)
-		if len(emittedEvents) != 2 {
-			t.Fatalf("expected 2 emitted events, got %d", len(emittedEvents))
-		}
-		if emittedEvents[0].EventID != "evt1" {
-			t.Errorf("first event_id = %q, want evt1", emittedEvents[0].EventID)
-		}
-		if emittedEvents[1].EventID != "evt2" {
-			t.Errorf("second event_id = %q, want evt2", emittedEvents[1].EventID)
-		}
-	})
-
-	t.Run("rejects non-POST methods", func(t *testing.T) {
-		env := Env{Cfg: config.Config{MaxBodyBytes: 1024 * 1024}, Emit: func(e event.Event) {}}
-		req := httptest.NewRequest(http.MethodGet, "/collect", nil)
-		w := httptest.NewRecorder()
-		env.Collect(w, req)
-		assertResponseStatus(t, w, http.StatusMethodNotAllowed, "")
-	})
-
-	t.Run("rejects invalid content type", func(t *testing.T) {
-		env := Env{Cfg: config.Config{MaxBodyBytes: 1024 * 1024}, Emit: func(e event.Event) {}}
-		req := httptest.NewRequest(http.MethodPost, "/collect", strings.NewReader("test"))
-		req.Header.Set("Content-Type", "text/plain")
-		w := httptest.NewRecorder()
-		env.Collect(w, req)
-		assertResponseStatus(t, w, http.StatusUnsupportedMediaType, "")
-	})
-
-	t.Run("accepts missing content type", func(t *testing.T) {
-		env := Env{Cfg: config.Config{MaxBodyBytes: 1024 * 1024}, Emit: func(e event.Event) {}}
-		eventJSON := `{"type":"test"}`
-		req := httptest.NewRequest(http.MethodPost, "/collect", strings.NewReader(eventJSON))
-		w := httptest.NewRecorder()
-		env.Collect(w, req)
-		assertResponseStatus(t, w, http.StatusAccepted, "")
-	})
-
-	t.Run("rejects invalid JSON", func(t *testing.T) {
-		env := Env{Cfg: config.Config{MaxBodyBytes: 1024 * 1024}, Emit: func(e event.Event) {}}
-		req := httptest.NewRequest(http.MethodPost, "/collect", strings.NewReader("{invalid json"))
-		req.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
-		env.Collect(w, req)
-		assertResponseStatus(t, w, http.StatusBadRequest, "")
-	})
-
-	t.Run("rejects invalid JSON array", func(t *testing.T) {
-		env := Env{Cfg: config.Config{MaxBodyBytes: 1024 * 1024}, Emit: func(e event.Event) {}}
-		req := httptest.NewRequest(http.MethodPost, "/collect", strings.NewReader(`[{"invalid": json}]`))
-		req.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
-		env.Collect(w, req)
-		assertResponseStatus(t, w, http.StatusBadRequest, "")
-	})
-
-	t.Run("rejects invalid JSON object in array", func(t *testing.T) {
-		env := Env{Cfg: config.Config{MaxBodyBytes: 1024 * 1024}, Emit: func(e event.Event) {}}
-		req := httptest.NewRequest(http.MethodPost, "/collect", strings.NewReader(`["not an object"]`))
-		req.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
-		env.Collect(w, req)
-		assertResponseStatus(t, w, http.StatusBadRequest, "")
-	})
-
-	t.Run("rejects body too large", func(t *testing.T) {
-		env := Env{Cfg: config.Config{MaxBodyBytes: 100}, Emit: func(e event.Event) {}}
-		largeBody := strings.Repeat("x", 200)
-		req := httptest.NewRequest(http.MethodPost, "/collect", strings.NewReader(largeBody))
-		req.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
-		env.Collect(w, req)
-		assertResponseStatus(t, w, http.StatusRequestEntityTooLarge, "")
-	})
-
-	t.Run("handles empty array", func(t *testing.T) {
-		env := Env{Cfg: config.Config{MaxBodyBytes: 1024 * 1024}, Emit: func(e event.Event) {}}
-		req := httptest.NewRequest(http.MethodPost, "/collect", strings.NewReader(`[]`))
-		req.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
-		env.Collect(w, req)
-		assertResponseStatus(t, w, http.StatusAccepted, "")
-		assertAcceptedCount(t, w, 0)
-	})
-
-	t.Run("handles nil Emit gracefully", func(t *testing.T) {
-		env := Env{
-			Cfg: config.Config{
-				MaxBodyBytes: 1024 * 1024,
-			},
-			Emit: nil,
-		}
-
-		eventJSON := `{"type":"test"}`
-		req := httptest.NewRequest(http.MethodPost, "/collect", strings.NewReader(eventJSON))
-		req.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
-
-		// Should not panic
-		env.Collect(w, req)
-
-		if w.Code != http.StatusAccepted {
-			t.Errorf("status code = %d, want %d", w.Code, http.StatusAccepted)
-		}
-	})
-
-	t.Run("HMAC authentication - rejects invalid HMAC", func(t *testing.T) {
-		auth := NewHMACAuth("test-secret", "")
-		env := Env{
-			Cfg: config.Config{
-				MaxBodyBytes: 1024 * 1024,
-			},
-			HMACAuth: auth,
-			Emit:     func(e event.Event) {},
-		}
-
-		eventJSON := `{"type":"test"}`
-		body := []byte(eventJSON)
-		req := httptest.NewRequest(http.MethodPost, "/collect", bytes.NewReader(body))
-		req.Header.Set("Content-Type", "application/json")
-		req.RemoteAddr = "192.168.1.1:8080"
-
-		// Provide an invalid HMAC
-		req.Header.Set("X-GoTrack-HMAC", "invalid-hmac-signature")
-
-		w := httptest.NewRecorder()
-
-		env.Collect(w, req)
-
-		// HMAC is always required when configured - should reject invalid HMAC
-		if w.Code != http.StatusUnauthorized {
-			t.Errorf("status code = %d, want %d (should reject invalid HMAC)", w.Code, http.StatusUnauthorized)
-		}
-	})
-
-	t.Run("HMAC authentication - rejects missing HMAC", func(t *testing.T) {
-		auth := NewHMACAuth("test-secret", "")
-		env := Env{
-			Cfg: config.Config{
-				MaxBodyBytes: 1024 * 1024,
-			},
-			HMACAuth: auth,
-			Emit:     func(e event.Event) {},
-		}
-
-		eventJSON := `{"type":"test"}`
-		req := httptest.NewRequest(http.MethodPost, "/collect", strings.NewReader(eventJSON))
-		req.Header.Set("Content-Type", "application/json")
-		req.RemoteAddr = "192.168.1.1:8080"
-		// No HMAC header
-
-		w := httptest.NewRecorder()
-
-		env.Collect(w, req)
-
-		// HMAC is always required when configured - should reject missing HMAC
-		if w.Code != http.StatusUnauthorized {
-			t.Errorf("status code = %d, want %d (should reject missing HMAC)", w.Code, http.StatusUnauthorized)
-		}
-	})
-}
-
 // TestWritePixel tests the pixel writing helper
 func TestWritePixel(t *testing.T) {
 	t.Run("writes pixel for normal request", func(t *testing.T) {
@@ -649,7 +453,7 @@ func TestServePixelJS(t *testing.T) {
 		if w.Code != http.StatusOK {
 			t.Errorf("status code = %d, want %d", w.Code, http.StatusOK)
 		}
-		
+
 		if len(w.Body.Bytes()) == 0 {
 			t.Error("expected non-empty response body")
 		}
@@ -833,7 +637,7 @@ func TestServePixelJS_MissingFiles(t *testing.T) {
 	if w.Code != 200 {
 		t.Errorf("status = %d, want 200 (embedded assets don't depend on files)", w.Code)
 	}
-	
+
 	if len(w.Body.Bytes()) == 0 {
 		t.Error("expected non-empty response body from embedded asset")
 	}

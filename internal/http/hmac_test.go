@@ -66,7 +66,7 @@ func TestVerifyHMAC(t *testing.T) {
 	payload := []byte(`{"test":"data"}`)
 
 	t.Run("rejects missing HMAC header", func(t *testing.T) {
-		req := httptest.NewRequest("POST", "/collect", bytes.NewReader(payload))
+		req := httptest.NewRequest("POST", "/", bytes.NewReader(payload))
 		req.RemoteAddr = "192.168.1.1:8080"
 
 		if auth.VerifyHMAC(req, payload) {
@@ -75,7 +75,7 @@ func TestVerifyHMAC(t *testing.T) {
 	})
 
 	t.Run("rejects invalid HMAC", func(t *testing.T) {
-		req := httptest.NewRequest("POST", "/collect", bytes.NewReader(payload))
+		req := httptest.NewRequest("POST", "/", bytes.NewReader(payload))
 		req.RemoteAddr = "192.168.1.1:8080"
 		req.Header.Set("X-GoTrack-HMAC", "invalid-hmac-value")
 
@@ -86,7 +86,7 @@ func TestVerifyHMAC(t *testing.T) {
 
 	t.Run("rejects when HMAC not provided", func(t *testing.T) {
 		auth := NewHMACAuth(secret, "")
-		req := httptest.NewRequest("POST", "/collect", bytes.NewReader(payload))
+		req := httptest.NewRequest("POST", "/", bytes.NewReader(payload))
 		req.RemoteAddr = "192.168.1.1:8080"
 
 		// HMAC is required when auth is configured
@@ -97,7 +97,7 @@ func TestVerifyHMAC(t *testing.T) {
 
 	t.Run("rejects when secret not configured", func(t *testing.T) {
 		authNoSecret := NewHMACAuth("", "") // requireHMAC = true, no secret
-		req := httptest.NewRequest("POST", "/collect", bytes.NewReader(payload))
+		req := httptest.NewRequest("POST", "/", bytes.NewReader(payload))
 		req.RemoteAddr = "192.168.1.1:8080"
 		req.Header.Set("X-GoTrack-HMAC", "some-hmac")
 
@@ -278,7 +278,7 @@ func TestHMACIntegration(t *testing.T) {
 		payload := []byte(`{"event":"test","data":"value"}`)
 
 		// Request without HMAC should be rejected when auth is configured
-		req := httptest.NewRequest("POST", "/collect", bytes.NewReader(payload))
+		req := httptest.NewRequest("POST", "/", bytes.NewReader(payload))
 		req.RemoteAddr = "203.0.113.1:12345"
 
 		if auth.VerifyHMAC(req, payload) {

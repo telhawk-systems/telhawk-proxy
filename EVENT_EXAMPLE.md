@@ -8,7 +8,7 @@ This document shows what a fully populated GoTrack event looks like, including a
 
 ### Request Line
 ```http
-POST /collect HTTP/1.1
+POST / HTTP/1.1
 ```
 
 ### Request Headers

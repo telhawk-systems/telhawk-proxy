@@ -183,7 +183,7 @@ Example transport configuration:
 
 ```javascript
 // Primary method - JSON to /collect
-fetch('/collect', {
+fetch('/', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify(eventData),
@@ -200,10 +200,10 @@ img.src = `/px.gif?e=pageview&sid=${sessionId}&ua=${encodeURIComponent(userAgent
 ### 1. Manual Testing
 
 ```bash
-# Test /collect endpoint
+# Test / endpoint
 curl -X POST -H "Content-Type: application/json" \
   -d '{"event_id":"test","ts":"2025-09-29T12:00:00Z","type":"pageview","device":{"ua":"test"}}' \
-  http://localhost:19890/collect
+  http://localhost:19890/
 
 # Test /px.gif endpoint  
 curl "http://localhost:19890/px.gif?e=pageview&url=https://example.com"

@@ -917,8 +917,8 @@ const getDefaultEndpoint = () => {
     if (typeof window !== 'undefined' && window.location) {
         return window.location.pathname;
     }
-    // Fallback to /collect
-    return "/collect";
+    // Fallback to /
+    return "/";
 };
 const pickEndpoint = (cfg) => cfg.endpoint || getDefaultEndpoint();
 

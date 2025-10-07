@@ -127,7 +127,7 @@ func (e Env) Pixel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	evt := event.Event{Type: "pageview"}
-	// We only set URL/query-derived attrs server-side; client device info comes via /collect.
+	// We only set URL/query-derived attrs server-side; client device info comes from a post request.
 	event.EnrichServerFields(r, &evt, e.Cfg)
 	log.Printf("DEBUG: Event created, event_id=%s, type=%s", evt.EventID, evt.Type)
 	if e.Emit != nil {
