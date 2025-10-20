@@ -32,7 +32,7 @@
     "jest-environment-jsdom": "^30.2.0",
     "playwright": "^1.56.0",
     "rimraf": "^6.0.1",
-    "rollup": "^4.52.4",
+    "rollup": "^4.52.5",
     "ts-jest": "^29.4.5",
     "ts-node": "^10.9.2",
     "tslib": "^2.8.1",
