@@ -68,21 +68,21 @@ jobs:
       # Upload Semgrep first (sanity)
       - name: Upload SARIF (Semgrep)
         if: ${{ github.actor != 'nektos/act' && hashFiles('semgrep.sarif') != '' }}
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: semgrep.sarif
           wait-for-processing: true
 
       - name: Upload SARIF (Gosec)
         if: ${{ github.actor != 'nektos/act' && hashFiles('gosec.sarif') != '' }}
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: gosec.sarif
           wait-for-processing: true
 
       - name: Upload SARIF (Staticcheck)
         if: ${{ github.actor != 'nektos/act' && hashFiles('staticcheck.sarif') != '' }}
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: staticcheck.sarif
           wait-for-processing: true
