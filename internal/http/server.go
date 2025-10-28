@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shortontech/gotrack/internal/assets"
+	"github.com/shortontech/telhawk-proxy/internal/assets"
 )
 
 // ProxyHandler implements a reverse proxy
@@ -298,7 +298,7 @@ func (m *MiddlewareRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Check if this is potentially a collection request (POST with HMAC header)
 	// We route to collect handler if HMAC header exists
 	// The collect handler will validate and either accept or reject
-	if r.Method == http.MethodPost && r.Header.Get("X-GoTrack-HMAC") != "" {
+	if r.Method == http.MethodPost && r.Header.Get("X-PROXY-HMAC") != "" {
 		// Route to collect handler - it will validate HMAC
 		// If HMAC is invalid, collect handler returns 401 (not proxied)
 		m.collectHandler(w, r)

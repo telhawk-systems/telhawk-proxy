@@ -1,6 +1,6 @@
-# Project Structure — GoTrack Pixel
+# Project Structure — TelHawk Proxy Pixel
 
-This document explains the folder and file layout of the GoTrack Pixel project. It’s designed to be idiomatic Go, modular, and production‑ready, while keeping the codebase easy to navigate.
+This document explains the folder and file layout of the TelHawk Proxy Pixel project. It’s designed to be idiomatic Go, modular, and production‑ready, while keeping the codebase easy to navigate.
 
 ---
 
@@ -26,7 +26,7 @@ This document explains the folder and file layout of the GoTrack Pixel project. 
 Holds the main entrypoint(s) of the application. For now, only one binary:
 
 ```
-cmd/gotrack/
+cmd/telhawk-proxy/
 └── main.go   # bootstraps config, HTTP server, sinks
 ```
 

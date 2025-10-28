@@ -40,11 +40,11 @@ jobs:
           file: ./Dockerfile
           push: false
           load: true
-          tags: gotrack:ci
+          tags: telhawk-proxy:ci
 
       - name: Generate Image SBOM (SPDX JSON) with Trivy
         run: |
-          trivy image --format spdx-json --output sbom-image.spdx.json gotrack:ci
+          trivy image --format spdx-json --output sbom-image.spdx.json telhawk-proxy:ci
 
       - name: Upload SBOM artifacts
         uses: actions/upload-artifact@v4

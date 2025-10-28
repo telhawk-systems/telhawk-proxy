@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/shortontech/gotrack/internal/event"
-	"github.com/shortontech/gotrack/internal/metrics"
-	"github.com/shortontech/gotrack/pkg/config"
+	"github.com/shortontech/telhawk-proxy/internal/event"
+	"github.com/shortontech/telhawk-proxy/internal/metrics"
+	"github.com/shortontech/telhawk-proxy/pkg/config"
 )
 
 // TestHealthz tests the health check endpoint
@@ -169,8 +169,8 @@ func TestHMACPublicKey(t *testing.T) {
 		if result["algorithm"] != "HMAC-SHA256" {
 			t.Errorf("algorithm = %q, want HMAC-SHA256", result["algorithm"])
 		}
-		if result["header"] != "X-GoTrack-HMAC" {
-			t.Errorf("header = %q, want X-GoTrack-HMAC", result["header"])
+		if result["header"] != "X-PROXY-HMAC" {
+			t.Errorf("header = %q, want X-PROXY-HMAC", result["header"])
 		}
 	})
 
@@ -266,8 +266,8 @@ func assertResponseStatus(t *testing.T, w *httptest.ResponseRecorder, wantCode i
 
 func assertAcceptedCount(t *testing.T, w *httptest.ResponseRecorder, want int) {
 	t.Helper()
-	if got := w.Header().Get("X-Gotrack-Accepted"); got != fmt.Sprintf("%d", want) {
-		t.Errorf("X-Gotrack-Accepted = %q, want %d", got, want)
+	if got := w.Header().Get("X-Proxy-Accepted"); got != fmt.Sprintf("%d", want) {
+		t.Errorf("X-Proxy-Accepted = %q, want %d", got, want)
 	}
 	var response map[string]interface{}
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {

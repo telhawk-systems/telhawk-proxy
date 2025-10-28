@@ -51,7 +51,7 @@ jobs:
         with:
           auth: ${{ secrets.GIST_TOKEN }}
           gistID: 06522d3b723a877fce2c749350f6dc83
-          filename: gotrack-coverage.json
+          filename: telhawk-proxy-coverage.json
           label: coverage
           message: ${{ steps.coverage.outputs.coverage }}%
           color: ${{ steps.coverage.outputs.color }}

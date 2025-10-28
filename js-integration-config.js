@@ -1,14 +1,14 @@
-// GoTrack JS Integration Configuration
+// proxy JS Integration Configuration
 // This file configures the JS security pixel to work with the Go backend
 
 // Configuration for the pixel
-const GOTRACK_CONFIG = {
+const PROXY_CONFIG = {
   endpoint: "http://localhost:19890/",
   version: 1
 };
 
 // Simple payload builder that matches Go Event structure
-function buildGoTrackPayload(env, detectors, score) {
+function buildProxyPayload(env, detectors, score) {
   const payload = {
     event_id: generateId(),
     ts: new Date().toISOString(),
@@ -72,10 +72,10 @@ function generateId() {
 }
 
 // Send data to Go backend
-async function sendToGoTrack(payload) {
+async function send(payload) {
   try {
     // Try fetch first
-    const response = await fetch(GOTRACK_CONFIG.endpoint, {
+    const response = await fetch(PROXY_CONFIG.endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -85,14 +85,14 @@ async function sendToGoTrack(payload) {
     });
     
     if (response.ok) {
-      console.log('✅ GoTrack: Event sent successfully');
+      console.log('✅ Proxy: Event sent successfully');
       return true;
     } else {
-      console.warn('⚠️ GoTrack: Server responded with', response.status);
+      console.warn('⚠️ TelHawk Proxy Server responded with', response.status);
       return false;
     }
   } catch (error) {
-    console.warn('⚠️ GoTrack: Fetch failed, trying fallback');
+    console.warn('⚠️ TelHawk Proxy Fetch failed, trying fallback');
     
     // Fallback to image pixel
     try {
@@ -104,10 +104,10 @@ async function sendToGoTrack(payload) {
         url: location?.href || ''
       });
       img.src = `http://localhost:19890/px.gif?${params.toString()}`;
-      console.log('✅ GoTrack: Fallback pixel sent');
+      console.log('✅ TelHawk Proxy Fallback pixel sent');
       return true;
     } catch (fallbackError) {
-      console.error('❌ GoTrack: All methods failed', fallbackError);
+      console.error('❌ TelHawk Proxy All methods failed', fallbackError);
       return false;
     }
   }
@@ -138,10 +138,10 @@ function collectEnvironment() {
   }
 
   // Simple session ID (in real implementation this would be more sophisticated)
-  env.session.sid = sessionStorage.getItem('gotrack_sid') || (() => {
+  env.session.sid = sessionStorage.getItem('telhawk-proxy_sid') || (() => {
     const sid = generateId();
     try {
-      sessionStorage.setItem('gotrack_sid', sid);
+      sessionStorage.setItem('telhawk-proxy_sid', sid);
     } catch (e) {
       // Storage not available
     }
@@ -151,31 +151,31 @@ function collectEnvironment() {
   return env;
 }
 
-// Initialize GoTrack pixel
-function initGoTrack() {
+// Initialize proxy pixel
+function initproxy() {
   try {
-    console.log('🚀 Initializing GoTrack pixel...');
+    console.log('🚀 Initializing proxy pixel...');
     
     const env = collectEnvironment();
     const detectors = []; // Simplified - real version would run bot detection
     const score = 0; // Simplified scoring
     
-    const payload = buildGoTrackPayload(env, detectors, score);
+    const payload = buildProxyPayload(env, detectors, score);
     
     // Send the payload
-    sendToGoTrack(payload);
+    send(payload);
     
   } catch (error) {
-    console.error('❌ GoTrack initialization failed:', error);
+    console.error('❌ proxy initialization failed:', error);
   }
 }
 
 // Export for testing
 if (typeof window !== 'undefined') {
-  window.GoTrack = {
-    init: initGoTrack,
-    config: GOTRACK_CONFIG,
-    buildPayload: buildGoTrackPayload,
-    send: sendToGoTrack
+  window.proxy = {
+    init: initproxy,
+    config: PROXY_CONFIG,
+    buildPayload: buildProxyPayload,
+    send: send
   };
 }

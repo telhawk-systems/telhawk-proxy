@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/shortontech/gotrack/internal/assets"
-	event "github.com/shortontech/gotrack/internal/event"
-	"github.com/shortontech/gotrack/internal/metrics"
-	cfg "github.com/shortontech/gotrack/pkg/config"
+	"github.com/shortontech/telhawk-proxy/internal/assets"
+	event "github.com/shortontech/telhawk-proxy/internal/event"
+	"github.com/shortontech/telhawk-proxy/internal/metrics"
+	cfg "github.com/shortontech/telhawk-proxy/pkg/config"
 )
 
 var pixelGIF = []byte{
@@ -116,7 +116,7 @@ func (e Env) HMACPublicKey(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{
 		"public_key": publicKey,
 		"algorithm":  "HMAC-SHA256",
-		"header":     "X-GoTrack-HMAC",
+		"header":     "X-PROXY-HMAC",
 	})
 }
 
@@ -253,7 +253,7 @@ func (e Env) processSingleEvent(w http.ResponseWriter, r *http.Request, raw json
 
 func (e Env) sendCollectResponse(w http.ResponseWriter, accepted int) {
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("X-Gotrack-Accepted", itoa(accepted))
+	w.Header().Set("X-Proxy-Accepted", itoa(accepted))
 	w.WriteHeader(http.StatusAccepted)
 	_ = json.NewEncoder(w).Encode(map[string]any{"accepted": accepted, "status": "ok"})
 }

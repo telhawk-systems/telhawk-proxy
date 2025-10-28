@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# GoTrack JS ↔ Go Integration Test Script
+# proxy JS ↔ Go Integration Test Script
 # This script starts the Go server and provides testing utilities
 
 set -e
@@ -12,12 +12,12 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}🚀 GoTrack Integration Test Setup${NC}"
+echo -e "${BLUE}🚀 proxy Integration Test Setup${NC}"
 
 # Check if Go binary exists
-if [[ ! -f "./gotrack" ]]; then
+if [[ ! -f "./telhawk-proxy" ]]; then
     echo -e "${YELLOW}⚠️  Building Go application...${NC}"
-    go build -o ./gotrack ./cmd/gotrack
+    go build -o ./telhawk-proxy ./cmd/telhawk-proxy
 fi
 
 # Function to test endpoints
@@ -41,7 +41,7 @@ test_endpoints() {
             "ts": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'",
             "type": "pageview",
             "device": {
-                "ua": "GoTrack-Integration-Test/1.0",
+                "ua": "proxy-Integration-Test/1.0",
                 "language": "en-US",
                 "viewport_w": 1920,
                 "viewport_h": 1080
@@ -50,7 +50,7 @@ test_endpoints() {
                 "session_id": "integration_test_session"
             },
             "url": {
-                "referrer": "https://github.com/gotrack/integration-test"
+                "referrer": "https://github.com/telhawk-proxy/integration-test"
             }
         }' \
         http://localhost:19890/collect)
@@ -99,7 +99,7 @@ show_test_page_info() {
 
 # Function to start server
 start_server() {
-    echo -e "\n${BLUE}🏁 Starting GoTrack Server${NC}"
+    echo -e "\n${BLUE}🏁 Starting proxy Server${NC}"
     echo -e "${YELLOW}Configuration:${NC}"
     echo -e "  Server: http://localhost:19890"
     echo -e "  Outputs: log"
@@ -112,7 +112,7 @@ start_server() {
     OUTPUTS=log \
     LOG_PATH=./integration-test.ndjson \
     SERVER_ADDR=":19890" \
-    ./gotrack
+    ./telhawk-proxy
 }
 
 # Main script logic
@@ -136,7 +136,7 @@ case "${1:-}" in
         OUTPUTS=log \
         LOG_PATH=./integration-test.ndjson \
         SERVER_ADDR=":19890" \
-        ./gotrack &
+        ./telhawk-proxy &
         
         SERVER_PID=$!
         echo -e "${YELLOW}Server started with PID: $SERVER_PID${NC}"

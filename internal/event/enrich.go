@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shortontech/gotrack/internal/event/detection"
-	"github.com/shortontech/gotrack/pkg/config"
+	"github.com/shortontech/telhawk-proxy/internal/event/detection"
+	"github.com/shortontech/telhawk-proxy/pkg/config"
 )
 
 // Normalize fields that the server can set/augment safely.

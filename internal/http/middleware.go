@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/shortontech/gotrack/internal/metrics"
+	"github.com/shortontech/telhawk-proxy/internal/metrics"
 )
 
 func RequestLogger(next http.Handler) http.Handler {
@@ -21,7 +21,7 @@ func cors(next http.Handler) http.Handler {
 		// Very permissive for dev; tighten in production.
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-GoTrack-HMAC")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-PROXY-HMAC")
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
 			return

@@ -1,6 +1,6 @@
-# GoTrack Prometheus Metrics
+# TelHawk Proxy Prometheus Metrics
 
-GoTrack includes a built-in Prometheus metrics server that exposes operational metrics on a separate port for monitoring and alerting.
+TelHawk Proxy includes a built-in Prometheus metrics server that exposes operational metrics on a separate port for monitoring and alerting.
 
 ## Configuration
 
@@ -35,14 +35,14 @@ The metrics server:
 ## Available Metrics
 
 ### Event Processing
-- `gotrack_events_ingested_total{sink}` - Total events successfully processed by sink type
-- `gotrack_sink_errors_total{sink,error_type}` - Total errors writing to sinks
-- `gotrack_queue_depth{sink}` - Current depth of internal event queues
-- `gotrack_batch_flush_latency_seconds{sink}` - Batch flush timing to sinks
+- `telhawk-proxy_events_ingested_total{sink}` - Total events successfully processed by sink type
+- `telhawk-proxy_sink_errors_total{sink,error_type}` - Total errors writing to sinks
+- `telhawk-proxy_queue_depth{sink}` - Current depth of internal event queues
+- `telhawk-proxy_batch_flush_latency_seconds{sink}` - Batch flush timing to sinks
 
 ### HTTP Performance
-- `gotrack_http_requests_total{endpoint,method,status}` - HTTP request counts
-- `gotrack_http_duration_seconds{endpoint,method}` - HTTP response time distributions
+- `telhawk-proxy_http_requests_total{endpoint,method,status}` - HTTP request counts
+- `telhawk-proxy_http_duration_seconds{endpoint,method}` - HTTP response time distributions
 
 ### Standard Metrics
 - Go runtime metrics (GC, memory, goroutines)
@@ -55,20 +55,20 @@ The metrics server:
 ```bash
 export METRICS_ENABLED=true
 export METRICS_ADDR=127.0.0.1:9090
-./gotrack
+./telhawk-proxy
 ```
 
 ### Check Metrics
 ```bash
-curl http://127.0.0.1:9090/metrics | grep gotrack
+curl http://127.0.0.1:9090/metrics | grep telhawk-proxy
 ```
 
 ### Prometheus Configuration
 ```yaml
 scrape_configs:
-  - job_name: 'gotrack'
+  - job_name: 'telhawk-proxy'
     static_configs:
-      - targets: ['gotrack-host:9090']
+      - targets: ['telhawk-proxy-host:9090']
     scrape_interval: 15s
     metrics_path: /metrics
     scheme: http
@@ -78,8 +78,8 @@ scrape_configs:
 ```yaml
 version: '3.8'
 services:
-  gotrack:
-    image: gotrack:latest
+  telhawk-proxy:
+    image: telhawk-proxy:latest
     environment:
       - METRICS_ENABLED=true
       - METRICS_ADDR=0.0.0.0:9090
@@ -107,22 +107,22 @@ networks:
 
 ### Event Ingestion Rate
 ```promql
-rate(gotrack_events_ingested_total[5m])
+rate(telhawk-proxy_events_ingested_total[5m])
 ```
 
 ### Error Rate by Sink
 ```promql
-rate(gotrack_sink_errors_total[5m]) / rate(gotrack_events_ingested_total[5m])
+rate(telhawk-proxy_sink_errors_total[5m]) / rate(telhawk-proxy_events_ingested_total[5m])
 ```
 
 ### 95th Percentile Response Time
 ```promql
-histogram_quantile(0.95, rate(gotrack_http_duration_seconds_bucket[5m]))
+histogram_quantile(0.95, rate(telhawk-proxy_http_duration_seconds_bucket[5m]))
 ```
 
 ### Request Rate by Endpoint
 ```promql
-sum(rate(gotrack_http_requests_total[5m])) by (endpoint)
+sum(rate(telhawk-proxy_http_requests_total[5m])) by (endpoint)
 ```
 
 ## Alerting Examples
@@ -130,26 +130,26 @@ sum(rate(gotrack_http_requests_total[5m])) by (endpoint)
 ### High Error Rate
 ```yaml
 groups:
-  - name: gotrack
+  - name: telhawk-proxy
     rules:
-      - alert: GoTrackHighErrorRate
-        expr: rate(gotrack_sink_errors_total[5m]) > 0.1
+      - alert: TelHawk ProxyHighErrorRate
+        expr: rate(telhawk-proxy_sink_errors_total[5m]) > 0.1
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "GoTrack experiencing high sink error rate"
+          summary: "TelHawk Proxy experiencing high sink error rate"
 ```
 
 ### No Events Ingested (Potential Outage)
 ```yaml
-      - alert: GoTrackNoEvents
-        expr: rate(gotrack_events_ingested_total[5m]) == 0
+      - alert: TelHawk ProxyNoEvents
+        expr: rate(telhawk-proxy_events_ingested_total[5m]) == 0
         for: 2m
         labels:
           severity: critical
         annotations:
-          summary: "GoTrack not ingesting any events"
+          summary: "TelHawk Proxy not ingesting any events"
 ```
 
 ## Production Deployment

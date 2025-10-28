@@ -19,19 +19,19 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 COPY . .
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
-    go build -trimpath -ldflags="-s -w" -o /bin/gotrack ./cmd/gotrack
+    go build -trimpath -ldflags="-s -w" -o /bin/telhawk-proxy ./cmd/telhawk-proxy
 
 # ---- runner ----
 FROM gcr.io/distroless/base-debian12:nonroot AS runner
 WORKDIR /app
 USER nonroot:nonroot
-COPY --from=go-builder /bin/gotrack /app/gotrack
+COPY --from=go-builder /bin/telhawk-proxy /app/telhawk-proxy
 COPY --from=js-builder /js/dist /app/static
 COPY --from=js-builder /js/package.json /js/package-lock.json /app/static/
 
 # Create directory for SSL certificates (if needed)
 # Note: SSL certificates should be mounted as volumes in production
-# Example: docker run -v /path/to/certs:/app/certs gotrack
+# Example: docker run -v /path/to/certs:/app/certs telhawk-proxy
 
 EXPOSE 19890
 
@@ -39,6 +39,6 @@ EXPOSE 19890
 # Uses the built-in health check functionality of the application
 # Check every 30s with 3s timeout, fail after 3 consecutive failures
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD ["/app/gotrack", "-healthcheck", "-health-host", "localhost", "-health-port", "19890"]
+    CMD ["/app/telhawk-proxy", "-healthcheck", "-health-host", "localhost", "-health-port", "19890"]
 
-ENTRYPOINT ["/app/gotrack"]
+ENTRYPOINT ["/app/telhawk-proxy"]

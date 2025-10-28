@@ -45,7 +45,7 @@ func NewHMACAuth(secret, publicKey string) *HMACAuth {
 func (h *HMACAuth) derivePublicKey(secret []byte) []byte {
 	// Use HMAC-SHA256 with a fixed salt to derive public key
 	mac := hmac.New(sha256.New, secret)
-	mac.Write([]byte("gotrack-public-key-derivation"))
+	mac.Write([]byte("telhawk-proxy-public-key-derivation"))
 	return mac.Sum(nil)[:16] // Use first 16 bytes as public key
 }
 
@@ -110,9 +110,9 @@ func (h *HMACAuth) VerifyHMAC(r *http.Request, payload []byte) bool {
 	}
 
 	// Get HMAC from header
-	providedHMAC := r.Header.Get("X-GoTrack-HMAC")
+	providedHMAC := r.Header.Get("X-PROXY-HMAC")
 	if providedHMAC == "" {
-		log.Printf("HMAC verification failed: missing X-GoTrack-HMAC header")
+		log.Printf("HMAC verification failed: missing X-PROXY-HMAC header")
 		return false
 	}
 
@@ -182,9 +182,9 @@ func (h *HMACAuth) GenerateClientScriptForRequest(r *http.Request) string {
 // GenerateClientScriptWithKey generates JavaScript with a specific key
 func (h *HMACAuth) GenerateClientScriptWithKey(keyB64 string) string {
 	return fmt.Sprintf(`
-// GoTrack HMAC Authentication
+// proxy HMAC Authentication
 (function() {
-  const GOTRACK_PUBLIC_KEY = '%s';
+  const PROXY_PUBLIC_KEY = '%s';
   
   // Base64 decode helper
   function base64ToBytes(base64) {
@@ -208,25 +208,25 @@ func (h *HMACAuth) GenerateClientScriptWithKey(keyB64 string) string {
       .join('');
   }
   
-  // Override fetch for GoTrack collection
+  // Override fetch for proxy collection
   const originalFetch = window.fetch;
   window.fetch = async function(url, options = {}) {
-    // Only intercept POST requests that already have X-GoTrack-HMAC header
+    // Only intercept POST requests that already have X-PROXY-HMAC header
     // This means the tracking library marked it as a tracking request
     if (options.method === 'POST' && options.body && 
-        options.headers && options.headers['X-GoTrack-HMAC']) {
+        options.headers && options.headers['X-PROXY-HMAC']) {
       try {
         // Replace the marker with actual HMAC signature
-        const hmac = await generateHMAC(options.body, GOTRACK_PUBLIC_KEY);
-        options.headers['X-GoTrack-HMAC'] = hmac;
+        const hmac = await generateHMAC(options.body, PROXY_PUBLIC_KEY);
+        options.headers['X-PROXY-HMAC'] = hmac;
       } catch (e) {
-        console.warn('GoTrack HMAC generation failed:', e);
+        console.warn('proxy HMAC generation failed:', e);
       }
     }
     return originalFetch.call(this, url, options);
   };
   
-  console.log('GoTrack HMAC authentication initialized');
+  console.log('proxy HMAC authentication initialized');
 })();
 `, keyB64)
 }
@@ -239,9 +239,9 @@ func (h *HMACAuth) GenerateClientScript() string {
 	publicKeyB64 := h.GetPublicKeyBase64()
 
 	return fmt.Sprintf(`
-// GoTrack HMAC Authentication
+// proxy HMAC Authentication
 (function() {
-  const GOTRACK_PUBLIC_KEY = '%s';
+  const PROXY_PUBLIC_KEY = '%s';
   
   // Simple HMAC-SHA256 implementation for client-side
   async function generateHMAC(payload, key) {
@@ -259,25 +259,25 @@ func (h *HMACAuth) GenerateClientScript() string {
       .join('');
   }
   
-  // Override fetch for GoTrack collection
+  // Override fetch for proxy collection
   const originalFetch = window.fetch;
   window.fetch = async function(url, options = {}) {
-    // Only intercept POST requests that already have X-GoTrack-HMAC header
+    // Only intercept POST requests that already have X-PROXY-HMAC header
     // This means the tracking library marked it as a tracking request
     if (options.method === 'POST' && options.body && 
-        options.headers && options.headers['X-GoTrack-HMAC']) {
+        options.headers && options.headers['X-PROXY-HMAC']) {
       try {
         // Replace the marker with actual HMAC signature
-        const hmac = await generateHMAC(options.body, GOTRACK_PUBLIC_KEY);
-        options.headers['X-GoTrack-HMAC'] = hmac;
+        const hmac = await generateHMAC(options.body, PROXY_PUBLIC_KEY);
+        options.headers['X-PROXY-HMAC'] = hmac;
       } catch (e) {
-        console.warn('GoTrack HMAC generation failed:', e);
+        console.warn('proxy HMAC generation failed:', e);
       }
     }
     return originalFetch.call(this, url, options);
   };
   
-  console.log('GoTrack HMAC authentication initialized');
+  console.log('proxy HMAC authentication initialized');
 })();
 `, publicKeyB64)
 }

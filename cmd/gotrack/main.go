@@ -13,11 +13,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/shortontech/gotrack/internal/event"
-	httpx "github.com/shortontech/gotrack/internal/http"
-	"github.com/shortontech/gotrack/internal/metrics"
-	"github.com/shortontech/gotrack/internal/sink"
-	"github.com/shortontech/gotrack/pkg/config"
+	"github.com/shortontech/telhawk-proxy/internal/event"
+	httpx "github.com/shortontech/telhawk-proxy/internal/http"
+	"github.com/shortontech/telhawk-proxy/internal/metrics"
+	"github.com/shortontech/telhawk-proxy/internal/sink"
+	"github.com/shortontech/telhawk-proxy/pkg/config"
 )
 
 func main() {
@@ -43,10 +43,10 @@ func main() {
 
 	// Validate required configuration
 	if cfg.ForwardDestination == "" {
-		log.Fatal("FORWARD_DESTINATION is required - GoTrack operates as a transparent proxy")
+		log.Fatal("FORWARD_DESTINATION is required - TelHawk Proxy operates as a transparent proxy")
 	}
 	if cfg.HMACSecret == "" {
-		log.Fatal("HMAC_SECRET is required - GoTrack requires HMAC authentication for tracking")
+		log.Fatal("HMAC_SECRET is required - TelHawk Proxy requires HMAC authentication for tracking")
 	}
 
 	// Initialize metrics
@@ -175,12 +175,12 @@ func startHTTPServer(cfg config.Config, env httpx.Env) *http.Server {
 
 	go func() {
 		if cfg.EnableHTTPS {
-			log.Printf("gotrack listening on %s (HTTPS)", cfg.ServerAddr)
+			log.Printf("telhawk-proxy listening on %s (HTTPS)", cfg.ServerAddr)
 			if err := srv.ListenAndServeTLS(cfg.CertFile, cfg.KeyFile); err != nil && err != http.ErrServerClosed {
 				log.Fatalf("HTTPS server error: %v", err)
 			}
 		} else {
-			log.Printf("gotrack listening on %s (HTTP)", cfg.ServerAddr)
+			log.Printf("telhawk-proxy listening on %s (HTTP)", cfg.ServerAddr)
 			if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 				log.Fatalf("HTTP server error: %v", err)
 			}

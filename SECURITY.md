@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-This is GoTrack, a high-security tracking pixel and bot detection service. 
+This is TelHawk Proxy, a high-security tracking pixel and bot detection service. 
 
 | Version | Supported          |
 | ------- | ------------------ |

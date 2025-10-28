@@ -44,13 +44,13 @@ services:
       timeout: 5s
       retries: 5
 
-  gotrack:
-    container_name: gotrack
+  telhawk-proxy:
+    container_name: telhawk-proxy
     build:
       context: .         # repo root (relative to this compose file)
       dockerfile: Dockerfile
       target: runner
-    image: gotrack:local
+    image: telhawk-proxy:local
     depends_on:
       postgres:
         condition: service_healthy
@@ -64,7 +64,7 @@ services:
       - LOG_PATH=/out/events.ndjson
       # Kafka configuration
       - KAFKA_BROKERS=kafka:29092
-      - KAFKA_TOPIC=gotrack.events
+      - KAFKA_TOPIC=telhawk-proxy.events
       - KAFKA_ACKS=all
       - KAFKA_COMPRESSION=snappy
       # PostgreSQL configuration

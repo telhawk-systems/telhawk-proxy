@@ -1,12 +1,12 @@
-# GoTrack Integration Guide
+# TelHawk Proxy Integration Guide
 
-This guide explains how GoTrack operates as a transparent proxy with automatic tracking injection.
+This guide explains how TelHawk Proxy operates as a transparent proxy with automatic tracking injection.
 
 ## 🏗️ Architecture Overview
 
 ```
 ┌─────────────────┐    All HTTP Traffic    ┌──────────────────┐    Proxied Traffic    ┌──────────────────┐
-│  Browser        │───────────────────────►│  GoTrack Proxy   │─────────────────────►│  Your Website    │
+│  Browser        │───────────────────────►│  TelHawk Proxy Proxy   │─────────────────────►│  Your Website    │
 │                 │◄───────────────────────│  (:19899)        │◄─────────────────────│  (:3000)         │
 └─────────────────┘  Auto-injected HTML    └──────────────────┘   Original Response   └──────────────────┘
                      + Tracking Code                 │
@@ -20,13 +20,13 @@ This guide explains how GoTrack operates as a transparent proxy with automatic t
 ```
 
 **How It Works:**
-1. Browser requests page from GoTrack proxy
-2. GoTrack forwards request to your website
+1. Browser requests page from TelHawk Proxy proxy
+2. TelHawk Proxy forwards request to your website
 3. Your website returns HTML response
-4. GoTrack injects tracking JavaScript and pixel into HTML
+4. TelHawk Proxy injects tracking JavaScript and pixel into HTML
 5. Browser receives modified HTML with tracking code
-6. Tracking code sends data to GoTrack (stealth mode: POSTs to same URL)
-7. GoTrack identifies tracking requests via HMAC header
+6. Tracking code sends data to TelHawk Proxy (stealth mode: POSTs to same URL)
+7. TelHawk Proxy identifies tracking requests via HMAC header
 8. Events are sent to configured sinks
 
 ## 🔧 Configuration
@@ -56,7 +56,7 @@ TEST_MODE=false                              # Generate test events on startup
 
 ### Automatic Injection
 
-No JavaScript configuration needed! GoTrack automatically injects:
+No JavaScript configuration needed! TelHawk Proxy automatically injects:
 
 
 ## 📊 Event Structure
@@ -114,8 +114,8 @@ For local development and testing:
 
 ```bash
 # Terminal 1: Start Go server
-cd /path/to/gotrack
-OUTPUTS=log LOG_PATH=./events.ndjson SERVER_ADDR=":19890" ./gotrack
+cd /path/to/telhawk-proxy
+OUTPUTS=log LOG_PATH=./events.ndjson SERVER_ADDR=":19890" ./telhawk-proxy
 
 # Terminal 2: Serve test page (optional)
 python3 -m http.server 8080
@@ -128,7 +128,7 @@ For production deployment:
 
 ```bash
 # Build Go binary
-go build -o gotrack ./cmd/gotrack
+go build -o telhawk-proxy ./cmd/telhawk-proxy
 
 # Run with production config
 OUTPUTS="log,kafka,postgres" \
@@ -137,7 +137,7 @@ TRUST_PROXY=true \
 KAFKA_BROKERS="kafka1:9092,kafka2:9092" \
 KAFKA_TOPIC="analytics.events" \
 PG_DSN="postgres://user:pass@db:5432/analytics" \
-./gotrack
+./telhawk-proxy
 ```
 
 ### Option 3: Docker Deployment
@@ -149,8 +149,8 @@ Use the provided Docker setup:
 docker-compose up --build
 
 # Or build manually
-docker build -t gotrack .
-docker run -p 19890:19890 -e OUTPUTS=log gotrack
+docker build -t telhawk-proxy .
+docker run -p 19890:19890 -e OUTPUTS=log telhawk-proxy
 ```
 
 ## 🔒 CORS Configuration
@@ -240,7 +240,7 @@ cd js && npm test
 Monitor server activity:
 ```bash
 # Watch request logs (stdout)
-tail -f /var/log/gotrack/app.log
+tail -f /var/log/telhawk-proxy/app.log
 
 # Watch event logs (NDJSON)
 tail -f ./events.ndjson | jq '.'
@@ -254,10 +254,10 @@ curl http://localhost:19890/metrics
 ```
 
 Key metrics:
-- `gotrack_requests_total{endpoint="/collect"}`
-- `gotrack_requests_total{endpoint="/px.gif"}`
-- `gotrack_events_processed_total`
-- `gotrack_sink_errors_total`
+- `telhawk-proxy_requests_total{endpoint="/collect"}`
+- `telhawk-proxy_requests_total{endpoint="/px.gif"}`
+- `telhawk-proxy_events_processed_total`
+- `telhawk-proxy_sink_errors_total`
 
 ## 🔍 Troubleshooting
 
