@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shortontech/gotrack/pkg/config"
+	"github.com/shortontech/telhawk-proxy/pkg/config"
 )
 
 func TestEnrichServerFields_Timestamp(t *testing.T) {

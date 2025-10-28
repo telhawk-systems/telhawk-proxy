@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/shortontech/gotrack/internal/event"
+	"github.com/shortontech/telhawk-proxy/internal/event"
 )
 
 // TestValidateTableName tests SQL injection prevention

@@ -1,6 +1,6 @@
 # Test Scripts
 
-This directory contains manual test scripts and HTML test pages for testing various features of gotrack.
+This directory contains manual test scripts and HTML test pages for testing various features of telhawk-proxy.
 
 ## Shell Scripts
 
@@ -18,11 +18,11 @@ This directory contains manual test scripts and HTML test pages for testing vari
 
 ## Usage
 
-Make sure the gotrack server is running before executing these scripts:
+Make sure the telhawk-proxy server is running before executing these scripts:
 
 ```bash
 # Start the server (from project root)
-go run ./cmd/gotrack
+go run ./cmd/telhawk-proxy
 
 # Run a test script
 ./test/scripts/test-integration.sh

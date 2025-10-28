@@ -1,4 +1,4 @@
--- Initialize the PostgreSQL database for GoTrack
+-- Initialize the PostgreSQL database for proxy
 -- This script is automatically executed when the postgres container starts
 
 -- Create the events table with proper indexes

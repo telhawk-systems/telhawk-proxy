@@ -1,4 +1,4 @@
-BINARY_NAME=gotrack
+BINARY_NAME=telhawk-proxy
 CMD_DIR=./cmd/$(BINARY_NAME)
 BIN_DIR=./bin
 

@@ -77,7 +77,7 @@ func TestVerifyHMAC(t *testing.T) {
 	t.Run("rejects invalid HMAC", func(t *testing.T) {
 		req := httptest.NewRequest("POST", "/", bytes.NewReader(payload))
 		req.RemoteAddr = "192.168.1.1:8080"
-		req.Header.Set("X-GoTrack-HMAC", "invalid-hmac-value")
+		req.Header.Set("X-PROXY-HMAC", "invalid-hmac-value")
 
 		if auth.VerifyHMAC(req, payload) {
 			t.Error("should reject invalid HMAC")
@@ -99,7 +99,7 @@ func TestVerifyHMAC(t *testing.T) {
 		authNoSecret := NewHMACAuth("", "") // requireHMAC = true, no secret
 		req := httptest.NewRequest("POST", "/", bytes.NewReader(payload))
 		req.RemoteAddr = "192.168.1.1:8080"
-		req.Header.Set("X-GoTrack-HMAC", "some-hmac")
+		req.Header.Set("X-PROXY-HMAC", "some-hmac")
 
 		if authNoSecret.VerifyHMAC(req, payload) {
 			t.Error("should reject when no secret configured")
@@ -115,14 +115,14 @@ func TestGenerateClientScript(t *testing.T) {
 		if script == "" {
 			t.Error("should generate non-empty script")
 		}
-		if !strings.Contains(script, "GOTRACK_PUBLIC_KEY") {
+		if !strings.Contains(script, "PROXY_PUBLIC_KEY") {
 			t.Error("script should contain public key constant")
 		}
 		if !strings.Contains(script, "generateHMAC") {
 			t.Error("script should contain generateHMAC function")
 		}
-		if !strings.Contains(script, "X-GoTrack-HMAC") {
-			t.Error("script should set X-GoTrack-HMAC header")
+		if !strings.Contains(script, "X-PROXY-HMAC") {
+			t.Error("script should set X-PROXY-HMAC header")
 		}
 	})
 

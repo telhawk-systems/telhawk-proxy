@@ -3,12 +3,12 @@
 
 set -e
 
-echo "=== GoTrack URL Parameter Preservation Test ==="
+echo "=== proxy URL Parameter Preservation Test ==="
 echo
 
-# Build GoTrack
-echo "1. Building GoTrack..."
-go build -o ./gotrack ./cmd/gotrack
+# Build proxy
+echo "1. Building proxy..."
+go build -o ./telhawk-proxy ./cmd/telhawk-proxy
 echo "✓ Build complete"
 echo
 
@@ -44,13 +44,13 @@ sleep 2
 echo "✓ Test server started"
 echo
 
-# Start GoTrack
-echo "3. Starting GoTrack with auto-injection..."
+# Start proxy
+echo "3. Starting proxy with auto-injection..."
 FORWARD_DESTINATION=http://localhost:8091 \
 OUTPUTS=log \
 SERVER_ADDR=:19911 \
-timeout 10 ./gotrack &
-GOTRACK_PID=$!
+timeout 10 ./telhawk-proxy &
+PROXY_PID=$!
 sleep 2
 
 # Test cases
@@ -71,7 +71,7 @@ if [[ "$DECODED" == *"utm_source=google"* && "$DECODED" == *"utm_medium=cpc"* &&
     echo "   ✓ UTM parameters preserved"
 else
     echo "   ✗ UTM parameters missing: $DECODED"
-    kill $GOTRACK_PID $TEST_SERVER_PID 2>/dev/null || true
+    kill $PROXY_PID $TEST_SERVER_PID 2>/dev/null || true
     exit 1
 fi
 
@@ -90,7 +90,7 @@ if [[ "$DECODED" == *"q=hello world"* && "$DECODED" == *"ref=site.com/page"* && 
     echo "   ✓ Complex parameters preserved"
 else
     echo "   ✗ Complex parameters missing: $DECODED"
-    kill $GOTRACK_PID $TEST_SERVER_PID 2>/dev/null || true
+    kill $PROXY_PID $TEST_SERVER_PID 2>/dev/null || true
     exit 1
 fi
 
@@ -109,7 +109,7 @@ if [[ "$DECODED" == "/test.html" ]]; then
     echo "   ✓ No parameters handled correctly"
 else
     echo "   ✗ No parameters case failed: $DECODED"
-    kill $GOTRACK_PID $TEST_SERVER_PID 2>/dev/null || true
+    kill $PROXY_PID $TEST_SERVER_PID 2>/dev/null || true
     exit 1
 fi
 
@@ -128,13 +128,13 @@ if [[ "$DECODED" == *"fbclid=ABC123"* && "$DECODED" == *"gclid=XYZ789"* && "$DEC
     echo "   ✓ Mixed tracking parameters preserved"
 else
     echo "   ✗ Mixed tracking parameters missing: $DECODED"
-    kill $GOTRACK_PID $TEST_SERVER_PID 2>/dev/null || true
+    kill $PROXY_PID $TEST_SERVER_PID 2>/dev/null || true
     exit 1
 fi
 
 # Clean up
-kill $GOTRACK_PID $TEST_SERVER_PID 2>/dev/null || true
-wait $GOTRACK_PID $TEST_SERVER_PID 2>/dev/null || true
+kill $PROXY_PID $TEST_SERVER_PID 2>/dev/null || true
+wait $PROXY_PID $TEST_SERVER_PID 2>/dev/null || true
 rm -f /tmp/url_test_server.py
 
 echo

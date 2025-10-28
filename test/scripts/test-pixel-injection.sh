@@ -1,14 +1,14 @@
 #!/bin/bash
-# Comprehensive test script for GoTrack pixel injection
+# Comprehensive test script for proxy pixel injection
 
 set -e
 
-echo "=== GoTrack Pixel Injection Test ==="
+echo "=== proxy Pixel Injection Test ==="
 echo
 
 # Build the application
-echo "1. Building GoTrack..."
-go build -o ./gotrack ./cmd/gotrack
+echo "1. Building proxy..."
+go build -o ./telhawk-proxy ./cmd/telhawk-proxy
 echo "✓ Build complete"
 echo
 
@@ -62,8 +62,8 @@ echo "3. Testing with pixel injection enabled..."
 FORWARD_DESTINATION=http://localhost:8088 \
 OUTPUTS=log \
 SERVER_ADDR=:19901 \
-timeout 5 ./gotrack &
-GOTRACK_PID=$!
+timeout 5 ./telhawk-proxy &
+PROXY_PID=$!
 sleep 2
 
 # Test HTML injection
@@ -74,7 +74,7 @@ if [[ "$PIXEL_COUNT" == "1" ]]; then
     echo "✓ HTML pixel injection working"
 else
     echo "✗ HTML pixel injection failed"
-    kill $GOTRACK_PID $TEST_SERVER_PID 2>/dev/null || true
+    kill $PROXY_PID $TEST_SERVER_PID 2>/dev/null || true
     exit 1
 fi
 
@@ -82,7 +82,7 @@ fi
 JSON_RESULT=$(curl -s http://localhost:19901/api/data.json)
 if echo "$JSON_RESULT" | grep -q 'px\.gif'; then
     echo "✗ JSON content incorrectly modified: $JSON_RESULT"
-    kill $GOTRACK_PID $TEST_SERVER_PID 2>/dev/null || true
+    kill $PROXY_PID $TEST_SERVER_PID 2>/dev/null || true
     exit 1
 else
     echo "✓ JSON content not modified (correct)"
@@ -96,12 +96,12 @@ if [[ "$MIXED_PIXEL_COUNT" == "1" ]]; then
     echo "✓ Case-insensitive HTML detection working"
 else
     echo "✗ Case-insensitive HTML detection failed"
-    kill $GOTRACK_PID $TEST_SERVER_PID 2>/dev/null || true
+    kill $PROXY_PID $TEST_SERVER_PID 2>/dev/null || true
     exit 1
 fi
 
-kill $GOTRACK_PID 2>/dev/null || true
-wait $GOTRACK_PID 2>/dev/null || true
+kill $PROXY_PID 2>/dev/null || true
+wait $PROXY_PID 2>/dev/null || true
 echo
 
 # Test with pixel injection disabled
@@ -109,8 +109,8 @@ echo "4. Testing with pixel injection disabled..."
 FORWARD_DESTINATION=http://localhost:8088 \
 OUTPUTS=log \
 SERVER_ADDR=:19902 \
-timeout 5 ./gotrack &
-GOTRACK_PID=$!
+timeout 5 ./telhawk-proxy &
+PROXY_PID=$!
 sleep 2
 
 # Test HTML not injected when disabled
@@ -118,15 +118,15 @@ HTML_NO_INJECT=$(curl -s http://localhost:19902/page.html)
 if echo "$HTML_NO_INJECT" | grep -q 'px\.gif'; then
     echo "✗ Pixel injection not properly disabled"
     echo "Response: $HTML_NO_INJECT"
-    kill $GOTRACK_PID $TEST_SERVER_PID 2>/dev/null || true
+    kill $PROXY_PID $TEST_SERVER_PID 2>/dev/null || true
     exit 1
 else
     echo "✓ Pixel injection properly disabled"
 fi
 
 # Clean up
-kill $GOTRACK_PID $TEST_SERVER_PID 2>/dev/null || true
-wait $GOTRACK_PID $TEST_SERVER_PID 2>/dev/null || true
+kill $PROXY_PID $TEST_SERVER_PID 2>/dev/null || true
+wait $PROXY_PID $TEST_SERVER_PID 2>/dev/null || true
 rm -f /tmp/injection_test_server.py
 
 echo

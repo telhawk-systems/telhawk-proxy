@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/shortontech/gotrack/internal/event"
+	"github.com/shortontech/telhawk-proxy/internal/event"
 )
 
 // TestGenerateTestEvents tests the test event generation

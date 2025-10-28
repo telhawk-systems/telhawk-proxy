@@ -14,7 +14,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-// Metrics holds all the Prometheus metrics for GoTrack
+// Metrics holds all the Prometheus metrics for proxy
 type Metrics struct {
 	// Counters
 	EventsIngested *prometheus.CounterVec
@@ -53,12 +53,12 @@ func LoadConfig() Config {
 	}
 }
 
-// NewMetrics creates and registers all GoTrack metrics
+// NewMetrics creates and registers all proxy metrics
 func NewMetrics() *Metrics {
 	m := &Metrics{
 		EventsIngested: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Name: "gotrack_events_ingested_total",
+				Name: "telhawk-proxy_events_ingested_total",
 				Help: "Total events ingested by sink type",
 			},
 			[]string{"sink"},
@@ -66,7 +66,7 @@ func NewMetrics() *Metrics {
 
 		SinkErrors: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Name: "gotrack_sink_errors_total",
+				Name: "telhawk-proxy_sink_errors_total",
 				Help: "Total errors writing to a sink",
 			},
 			[]string{"sink", "error_type"},
@@ -74,7 +74,7 @@ func NewMetrics() *Metrics {
 
 		HTTPRequests: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Name: "gotrack_http_requests_total",
+				Name: "telhawk-proxy_http_requests_total",
 				Help: "Total HTTP requests by endpoint and status",
 			},
 			[]string{"endpoint", "method", "status"},
@@ -82,7 +82,7 @@ func NewMetrics() *Metrics {
 
 		QueueDepth: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
-				Name: "gotrack_queue_depth",
+				Name: "telhawk-proxy_queue_depth",
 				Help: "Current depth of the internal event queue",
 			},
 			[]string{"sink"},
@@ -90,7 +90,7 @@ func NewMetrics() *Metrics {
 
 		BatchFlushLatency: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
-				Name:    "gotrack_batch_flush_latency_seconds",
+				Name:    "telhawk-proxy_batch_flush_latency_seconds",
 				Help:    "Latency of flushing a batch to sinks",
 				Buckets: prometheus.DefBuckets,
 			},
@@ -99,7 +99,7 @@ func NewMetrics() *Metrics {
 
 		HTTPDuration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
-				Name:    "gotrack_http_duration_seconds",
+				Name:    "telhawk-proxy_http_duration_seconds",
 				Help:    "HTTP request duration",
 				Buckets: []float64{0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0},
 			},

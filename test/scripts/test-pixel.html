@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GoTrack Pixel Integration Test</title>
+    <title>proxy Pixel Integration Test</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 40px; }
         .success { color: green; }
@@ -14,7 +14,7 @@
     </style>
 </head>
 <body>
-    <h1>🔒 GoTrack JS ↔ Go Integration Test</h1>
+    <h1>🔒 proxy JS ↔ Go Integration Test</h1>
     
     <div class="test-section">
         <h2>Integration Status</h2>
@@ -46,13 +46,13 @@
         async function testDirectCollect() {
             document.getElementById('test-results').innerHTML += '<div class="info">Testing /collect endpoint...</div>';
             
-            const env = window.GoTrack.buildPayload({
+            const env = window.proxy.buildPayload({
                 nav: { ua: navigator.userAgent, lang: navigator.language },
                 screen: { w: window.innerWidth, h: window.innerHeight, dpr: devicePixelRatio },
                 session: { sid: 'test_session_123' }
             }, [], 0);
             
-            const success = await window.GoTrack.send(env);
+            const success = await window.proxy.send(env);
             const result = success 
                 ? '<div class="success">✅ /collect endpoint working!</div>'
                 : '<div class="error">❌ /collect endpoint failed</div>';
@@ -93,7 +93,7 @@
 
         // Initialize on page load
         window.addEventListener('DOMContentLoaded', function() {
-            console.log('🔧 Initializing GoTrack integration test...');
+            console.log('🔧 Initializing proxy integration test...');
             
             // Show environment data
             const env = {
@@ -109,19 +109,19 @@
             document.getElementById('env-data').textContent = JSON.stringify(env, null, 2);
 
             // Show payload structure
-            const payload = window.GoTrack.buildPayload({
+            const payload = window.proxy.buildPayload({
                 nav: { ua: navigator.userAgent, lang: navigator.language },
                 screen: { w: window.innerWidth, h: window.innerHeight, dpr: devicePixelRatio },
                 session: { sid: 'demo_session' }
             }, [{ id: 'demo_detector', score: 0 }], 0);
             document.getElementById('payload-data').textContent = JSON.stringify(payload, null, 2);
 
-            // Initialize GoTrack
-            document.getElementById('status').innerHTML = '<div class="info">🚀 Initializing GoTrack...</div>';
-            window.GoTrack.init();
+            // Initialize proxy
+            document.getElementById('status').innerHTML = '<div class="info">🚀 Initializing proxy...</div>';
+            window.proxy.init();
             
             setTimeout(() => {
-                document.getElementById('status').innerHTML = '<div class="success">✅ GoTrack initialized successfully!</div>';
+                document.getElementById('status').innerHTML = '<div class="success">✅ proxy initialized successfully!</div>';
             }, 1000);
         });
     </script>

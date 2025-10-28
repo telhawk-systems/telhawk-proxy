@@ -1,4 +1,4 @@
-module github.com/shortontech/gotrack
+module github.com/shortontech/telhawk-proxy
 
 go 1.23.0
 

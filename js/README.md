@@ -1,11 +1,11 @@
-# GoTrack JS Pixel
+# TelHawk Proxy JS Pixel
 
 This is the **client-side tracking pixel library** written in TypeScript.  
-It collects environment signals, runs bot-detection heuristics, and sends events to the GoTrack collector (`/px.gif` or `/collect`).
+It collects environment signals, runs bot-detection heuristics, and sends events to the TelHawk Proxy collector (`/px.gif` or `/collect`).
 
 ## 🔗 Integration with Go Backend
 
-The JS pixel is configured to work seamlessly with the GoTrack Go server. See the main [INTEGRATION_GUIDE.md](../INTEGRATION_GUIDE.md) for complete setup instructions.
+The JS pixel is configured to work seamlessly with the TelHawk Proxy Go server. See the main [INTEGRATION_GUIDE.md](../INTEGRATION_GUIDE.md) for complete setup instructions.
 
 ### Quick Setup
 
@@ -15,11 +15,11 @@ The JS pixel is configured to work seamlessly with the GoTrack Go server. See th
 
 // Initialize
 <script>
-  GoTrack.init(); // Uses default localhost:19890
+  TelHawk Proxy.init(); // Uses default localhost:19890
   
   // Or with custom endpoint
-  GoTrack.config.endpoint = "https://your-domain.com/collect";
-  GoTrack.init();
+  TelHawk Proxy.config.endpoint = "https://your-domain.com/collect";
+  TelHawk Proxy.init();
 </script>
 ```
 
@@ -134,7 +134,7 @@ npm run e2e      # runs Playwright tests (headless vs headful)
 ```html
 <script src="/dist/pixel.umd.js"></script>
 <script>
-  GoTrackPixel.init({ endpoint: "https://your-collector/collect" });
+  TelHawk ProxyPixel.init({ endpoint: "https://your-collector/collect" });
 </script>
 ```
 

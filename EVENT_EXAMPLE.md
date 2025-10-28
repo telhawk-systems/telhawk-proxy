@@ -1,6 +1,6 @@
 # Event Example - Complete Request Structure
 
-This document shows what a fully populated GoTrack event looks like, including all possible HTTP headers, request payload, and server-enriched data.
+This document shows what a fully populated TelHawk Proxy event looks like, including all possible HTTP headers, request payload, and server-enriched data.
 
 ---
 
@@ -28,9 +28,9 @@ Connection: keep-alive
 Cache-Control: no-cache
 ```
 
-#### GoTrack-Specific Headers
+#### TelHawk Proxy-Specific Headers
 ```http
-X-GoTrack-HMAC: sha256=a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456
+X-TelHawk Proxy-HMAC: sha256=a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456
 ```
 
 #### Proxy & CDN Headers (when TRUST_PROXY=true)
@@ -278,7 +278,7 @@ Content-Length: 27
 Access-Control-Allow-Origin: *
 Access-Control-Allow-Methods: GET, POST, OPTIONS
 Date: Mon, 30 Dec 2024 00:00:00 GMT
-Server: GoTrack/1.0
+Server: TelHawk Proxy/1.0
 X-Request-ID: req_1735516800_def456
 ```
 
@@ -332,7 +332,7 @@ Only a minimal subset is required for a valid event:
 All other fields are optional and enriched as available.
 
 ### Server-Side Enrichment
-The following fields are added or enhanced by the GoTrack server:
+The following fields are added or enhanced by the TelHawk Proxy server:
 - `server.ip_hash` - Hashed client IP (if `IP_HASH_SECRET` configured)
 - `server.geo` - GeoIP lookup (if `GEOIP_DB` configured)
 - `server.detection` - Bot detection signals from request analysis
@@ -344,14 +344,14 @@ The following fields are added or enhanced by the GoTrack server:
 - No PII (personally identifiable information) is collected by default
 
 ### CloudFlare & CloudFront Headers
-When `TRUST_PROXY=true`, GoTrack will extract geolocation from CDN headers:
+When `TRUST_PROXY=true`, TelHawk Proxy will extract geolocation from CDN headers:
 - CloudFlare: `CF-IPCountry`, etc.
 - CloudFront: `CloudFront-Viewer-Country`, `CloudFront-Viewer-City`, etc.
 
 **Note:** These headers are currently **not fully implemented** - see [MISSING_FEATURES.md](MISSING_FEATURES.md) for planned enhancements.
 
 ### Multiple Targets
-Currently, GoTrack forwards requests to a single `FORWARD_DESTINATION`. Support for multiple relay targets is planned - see [MISSING_FEATURES.md](MISSING_FEATURES.md).
+Currently, TelHawk Proxy forwards requests to a single `FORWARD_DESTINATION`. Support for multiple relay targets is planned - see [MISSING_FEATURES.md](MISSING_FEATURES.md).
 
 ### Data Sinks
 Events can be simultaneously written to multiple sinks:

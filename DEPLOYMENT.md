@@ -1,9 +1,9 @@
-# GoTrack Deployment Guide
+# TelHawk Proxy Deployment Guide
 
 ## Quick Start with Docker Compose
 
-The complete GoTrack stack includes:
-- **GoTrack** application with all three sinks
+The complete TelHawk Proxy stack includes:
+- **TelHawk Proxy** application with all three sinks
 - **Apache Kafka** for stream processing
 - **PostgreSQL** for persistent analytics storage
 - **Persistent volumes** for data durability
@@ -22,7 +22,7 @@ The complete GoTrack stack includes:
 
 ### Built-in Test Mode
 
-GoTrack includes a test mode that automatically generates sample events for testing your sink configurations:
+TelHawk Proxy includes a test mode that automatically generates sample events for testing your sink configurations:
 
 ```bash
 # Quick local test (log only)
@@ -47,12 +47,12 @@ GoTrack includes a test mode that automatically generates sample events for test
 
 ```bash
 # Test specific sink configurations
-TEST_MODE=true OUTPUTS=log LOG_PATH=./test.ndjson ./gotrack
-TEST_MODE=true OUTPUTS=kafka KAFKA_BROKERS=localhost:9092 ./gotrack
-TEST_MODE=true OUTPUTS=postgres PG_DSN="postgres://..." ./gotrack
+TEST_MODE=true OUTPUTS=log LOG_PATH=./test.ndjson ./telhawk-proxy
+TEST_MODE=true OUTPUTS=kafka KAFKA_BROKERS=localhost:9092 ./telhawk-proxy
+TEST_MODE=true OUTPUTS=postgres PG_DSN="postgres://..." ./telhawk-proxy
 
 # Test multiple sinks
-TEST_MODE=true OUTPUTS=log,kafka,postgres ./gotrack
+TEST_MODE=true OUTPUTS=log,kafka,postgres ./telhawk-proxy
 ```
 
 ### Verifying Data Flow
@@ -99,14 +99,14 @@ tail -f out/events.ndjson
 
 ```
 ┌─────────────┐     ┌──────────────┐     ┌─────────────┐
-│   Browser   │───▶│   GoTrack    │───▶│ Log Files │
+│   Browser   │───▶│   TelHawk Proxy    │───▶│ Log Files │
 │  /px.gif    │     │ :19890       │     │ ./out/*.log │
 │  /     │    │     │              |     └─────────────┘
 └─────────────┘     │              │     ┌─────────────┐
                     │              │───▶│ Kafka       │
                     │              │     │ :9092       │
                     │              │     │ Topic:      │
-                    │              │     │ gotrack.*   │
+                    │              │     │ telhawk-proxy.*   │
                     │              │     └─────────────┘
                     │              │     ┌─────────────┐
                     │              │───▶│ PostgreSQL  │
@@ -131,7 +131,7 @@ All sinks are enabled by default with production-ready settings:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `KAFKA_BROKERS` | `kafka:29092` | Kafka broker addresses |
-| `KAFKA_TOPIC` | `gotrack.events` | Topic for events |
+| `KAFKA_TOPIC` | `telhawk-proxy.events` | Topic for events |
 | `KAFKA_ACKS` | `all` | Acknowledgment level |
 | `KAFKA_COMPRESSION` | `snappy` | Compression type |
 
@@ -157,7 +157,7 @@ All data is persisted in Docker volumes:
 ### Scaling
 - **Kafka**: Add more brokers by scaling the kafka service
 - **PostgreSQL**: Use read replicas or sharding for high load
-- **GoTrack**: Run multiple instances behind a load balancer
+- **TelHawk Proxy**: Run multiple instances behind a load balancer
 
 ### Monitoring
 - Check `/metrics` endpoint for Prometheus metrics
@@ -192,7 +192,7 @@ All data is persisted in Docker volumes:
 docker-compose logs
 
 # Connect to containers
-docker-compose exec gotrack /bin/sh
+docker-compose exec telhawk-proxy /bin/sh
 docker-compose exec postgres bash
 docker-compose exec kafka bash
 

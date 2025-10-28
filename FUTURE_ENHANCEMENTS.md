@@ -1,6 +1,6 @@
 # Future Enhancements
 
-This document outlines planned features and improvements for the GoTrack analytics platform.
+This document outlines planned features and improvements for the TelHawk Proxy analytics platform.
 
 ## Configuration Management
 

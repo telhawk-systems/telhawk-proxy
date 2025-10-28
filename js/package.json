@@ -1,7 +1,7 @@
 {
-  "name": "gotrack-pixel",
+  "name": "telhawk-proxy-pixel",
   "version": "0.1.0",
-  "description": "Client-side tracking pixel library for GoTrack (fraud/bot defense)",
+  "description": "Client-side tracking pixel library for proxy (fraud/bot defense)",
   "author": "Steven Horton",
   "license": "MIT",
   "type": "module",

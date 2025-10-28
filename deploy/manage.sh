@@ -1,46 +1,46 @@
 #!/bin/bash
 set -e
 
-# GoTrack Docker Compose Management Script
+# proxy Docker Compose Management Script
 
 COMPOSE_FILE="docker-compose.yml"
 
 case "${1:-help}" in
     up)
-        echo "🚀 Starting GoTrack stack (Kafka + PostgreSQL + GoTrack)..."
+        echo "🚀 Starting proxy stack (Kafka + PostgreSQL + proxy)..."
         docker-compose -f $COMPOSE_FILE up -d
         echo "✅ Stack started!"
         echo ""
         echo "Services:"
-        echo "  - GoTrack:    http://localhost:19890"
+        echo "  - TelHawk Proxy    http://localhost:19890"
         echo "  - PostgreSQL: localhost:5432 (analytics/analytics)"
         echo "  - Kafka:      localhost:9092"
         echo ""
-        echo "Logs: docker-compose logs -f gotrack"
+        echo "Logs: docker-compose logs -f telhawk-proxy"
         echo "Stop: ./deploy/manage.sh down"
         ;;
     
     down)
-        echo "🛑 Stopping GoTrack stack..."
+        echo "🛑 Stopping proxy stack..."
         docker-compose -f $COMPOSE_FILE down
         echo "✅ Stack stopped!"
         ;;
     
     logs)
-        service="${2:-gotrack}"
+        service="${2:-telhawk-proxy}"
         echo "📋 Following logs for $service..."
         docker-compose -f $COMPOSE_FILE logs -f $service
         ;;
     
     restart)
-        echo "🔄 Restarting GoTrack stack..."
+        echo "🔄 Restarting proxy stack..."
         docker-compose -f $COMPOSE_FILE restart
         echo "✅ Stack restarted!"
         ;;
     
     build)
-        echo "🔨 Building GoTrack image..."
-        docker-compose -f $COMPOSE_FILE build gotrack
+        echo "🔨 Building proxy image..."
+        docker-compose -f $COMPOSE_FILE build telhawk-proxy
         echo "✅ Build complete!"
         ;;
     
@@ -72,13 +72,13 @@ case "${1:-help}" in
         
     test-mode)
         echo "🧪 Testing with built-in test events..."
-        echo "Starting GoTrack with test mode enabled..."
+        echo "Starting proxy with test mode enabled..."
         TEST_MODE=true OUTPUTS=log,kafka,postgres \
         SERVER_ADDR=:19897 \
         LOG_PATH=./out/test_events.ndjson \
         KAFKA_BROKERS=kafka:29092 \
         PG_DSN="postgres://analytics:analytics@postgres:5432/analytics?sslmode=disable" \
-        ./gotrack
+        ./telhawk-proxy
         ;;
         
     test-local)
@@ -86,7 +86,7 @@ case "${1:-help}" in
         TEST_MODE=true OUTPUTS=log \
         SERVER_ADDR=:19898 \
         LOG_PATH=./local_test.ndjson \
-        ./gotrack
+        ./telhawk-proxy
         ;;
     
     psql)
@@ -98,7 +98,7 @@ case "${1:-help}" in
         echo "📨 Starting Kafka console consumer..."
         docker-compose -f $COMPOSE_FILE exec kafka kafka-console-consumer \
             --bootstrap-server localhost:29092 \
-            --topic gotrack.events \
+            --topic telhawk-proxy.events \
             --from-beginning
         ;;
     
@@ -121,16 +121,16 @@ case "${1:-help}" in
         ;;
     
     help|*)
-        echo "GoTrack Management Script"
+        echo "proxy Management Script"
         echo ""
         echo "Usage: $0 <command>"
         echo ""
         echo "Commands:"
         echo "  up           - Start the full stack"
         echo "  down         - Stop the stack"
-        echo "  logs [svc]   - Follow logs (default: gotrack)"
+        echo "  logs [svc]   - Follow logs (default: telhawk-proxy)"
         echo "  restart      - Restart all services"
-        echo "  build        - Rebuild GoTrack image"
+        echo "  build        - Rebuild proxy image"
         echo "  test-pixel   - Test pixel tracking endpoint"
         echo "  test-json    - Test JSON API endpoint"
         echo "  test-mode    - Test with built-in events (requires stack)"

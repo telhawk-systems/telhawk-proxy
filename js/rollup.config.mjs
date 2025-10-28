@@ -14,7 +14,7 @@ export default {
     {
       file: "dist/pixel.umd.js",
       format: "umd",
-      name: "GoTrackPixel",
+      name: "proxyPixel",
       sourcemap: true
     }
   ],

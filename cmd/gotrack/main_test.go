@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shortontech/gotrack/internal/event"
-	httpx "github.com/shortontech/gotrack/internal/http"
-	"github.com/shortontech/gotrack/internal/metrics"
-	"github.com/shortontech/gotrack/internal/sink"
-	"github.com/shortontech/gotrack/pkg/config"
+	"github.com/shortontech/telhawk-proxy/internal/event"
+	httpx "github.com/shortontech/telhawk-proxy/internal/http"
+	"github.com/shortontech/telhawk-proxy/internal/metrics"
+	"github.com/shortontech/telhawk-proxy/internal/sink"
+	"github.com/shortontech/telhawk-proxy/pkg/config"
 )
 
 // Mock sink for testing

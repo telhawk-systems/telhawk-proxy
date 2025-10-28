@@ -1,15 +1,40 @@
-# GoTrack
+# TelHawk Proxy
 
-[![Tests](https://github.com/shortontech/gotrack/actions/workflows/test-coverage.yml/badge.svg)](https://github.com/shortontech/gotrack/actions/workflows/test-coverage.yml)
-[![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/shortontech/06522d3b723a877fce2c749350f6dc83/raw/gotrack-coverage.json)](https://github.com/shortontech/gotrack/actions/workflows/test-coverage.yml)
-[![JS Tests](https://github.com/shortontech/gotrack/actions/workflows/js-test-coverage.yml/badge.svg)](https://github.com/shortontech/gotrack/actions/workflows/js-test-coverage.yml)
-[![JS Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/shortontech/06522d3b723a877fce2c749350f6dc83/raw/gotrack-js-coverage.json)](https://github.com/shortontech/gotrack/actions/workflows/js-test-coverage.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/shortontech/gotrack)](https://goreportcard.com/report/github.com/shortontech/gotrack)
+[![Tests](https://github.com/telhawk/telhawk-proxy/actions/workflows/test-coverage.yml/badge.svg)](https://github.com/telhawk/telhawk-proxy/actions/workflows/test-coverage.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/shortontech/06522d3b723a877fce2c749350f6dc83/raw/telhawk-proxy-coverage.json)](https://github.com/telhawk/telhawk-proxy/actions/workflows/test-coverage.yml)
+[![JS Tests](https://github.com/telhawk/telhawk-proxy/actions/workflows/js-test-coverage.yml/badge.svg)](https://github.com/telhawk/telhawk-proxy/actions/workflows/js-test-coverage.yml)
+[![JS Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/shortontech/06522d3b723a877fce2c749350f6dc83/raw/telhawk-proxy-js-coverage.json)](https://github.com/telhawk/telhawk-proxy/actions/workflows/js-test-coverage.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/telhawk/telhawk-proxy)](https://goreportcard.com/report/github.com/telhawk/telhawk-proxy)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-GoTrack is a **high-security tracking pixel and collection service** built in Go.  
-It’s designed for **bot and hacker detection**, fraud monitoring, and operational telemetry — not adtech profiling.  
-The platform is **privacy-aware, compliance-minded**, and ships with a hardened container image.
+TelHawk Proxy is a **transparent reverse proxy with built-in telemetry collection** built in Go.  
+It sits between your users and your application, automatically instrumenting web traffic by injecting tracking code into HTML responses. This enables **real-time visibility** into user behavior, bot detection, fraud monitoring, and operational telemetry — all without requiring code changes to your application.  
+The platform is **privacy-aware, compliance-minded**, and ships with a hardened container image designed for security-focused teams who need visibility without compromising user privacy.
+
+---
+
+## What TelHawk Proxy Does
+
+TelHawk Proxy acts as a **reverse proxy** that:
+
+1. **Intercepts all web traffic** between users and your application
+2. **Automatically injects tracking code** into every HTML response (no code changes needed)
+3. **Collects telemetry data** from user interactions, device fingerprints, and behavior patterns
+4. **Routes data to your analytics pipeline** via pluggable outputs (logs, Kafka, PostgreSQL)
+5. **Transparently forwards** all other requests to your backend application
+
+**Use Cases:**
+
+- **Operational visibility**: Real-time monitoring of user journeys and application usage
+- **Security monitoring**: Bot detection, fraud prevention, and anomaly detection
+- **Compliance**: Privacy-aware telemetry that avoids GDPR/HIPAA violations
+- **Performance analytics**: Track page load times, user flows, and conversion funnels
+
+**What TelHawk Proxy is NOT:**
+
+- Not an adtech/tracking platform for profiling or targeting
+- Not a replacement for application monitoring (APM) tools
+- Not a general-purpose load balancer or API gateway
 
 ---
 
@@ -48,25 +73,42 @@ The platform is **privacy-aware, compliance-minded**, and ships with a hardened 
 
 ## 🚀 Quick Start
 
-GoTrack operates as a **transparent reverse proxy** that automatically injects tracking code into HTML responses.
+### Understanding the Architecture
+
+TelHawk Proxy sits **between your users and your application** as a reverse proxy:
+
+```
+[Users] → [TelHawk Proxy :8080] → [Your Application :3000]
+            ↓
+    [Telemetry Pipeline]
+    (Logs/Kafka/PostgreSQL)
+```
+
+When a user requests a page:
+1. TelHawk Proxy receives the request and forwards it to your application
+2. Your application returns an HTML response
+3. TelHawk Proxy automatically injects tracking JavaScript and a 1x1 pixel
+4. The instrumented HTML is sent to the user
+5. User interactions generate telemetry events collected by TelHawk Proxy
+6. Events are routed to your configured outputs (logs, Kafka, PostgreSQL)
 
 ### Basic proxy setup
 
 ```bash
-go build -o ./gotrack ./cmd/gotrack
+go build -o ./telhawk-proxy ./cmd/telhawk-proxy
 
 HMAC_SECRET=your-secret-key \
 FORWARD_DESTINATION=http://your-site.com \
 SERVER_ADDR=":19899" \
 OUTPUTS=log \
 LOG_PATH=./events.ndjson \
-./gotrack
+./telhawk-proxy
 ```
 
 ### Run with test events (for testing sinks)
 
 ```bash
-go build -o ./gotrack ./cmd/gotrack
+go build -o ./telhawk-proxy ./cmd/telhawk-proxy
 
 TEST_MODE=true \
 HMAC_SECRET=your-secret-key \
@@ -74,7 +116,7 @@ FORWARD_DESTINATION=http://example.com \
 OUTPUTS=log \
 LOG_PATH=./events.ndjson \
 SERVER_ADDR=":19890" \
-./gotrack
+./telhawk-proxy
 ```
 
 This will automatically generate 5 sample events after startup to test your sink configuration.
@@ -88,10 +130,10 @@ METRICS_ADDR=127.0.0.1:9090 \
 HMAC_SECRET=your-secret-key \
 FORWARD_DESTINATION=http://your-site.com \
 OUTPUTS=log \
-./gotrack
+./telhawk-proxy
 
 # Check metrics
-curl http://127.0.0.1:9090/metrics | grep gotrack
+curl http://127.0.0.1:9090/metrics | grep telhawk
 ```
 
 See [METRICS.md](METRICS.md) for full monitoring and alerting documentation.
@@ -181,7 +223,7 @@ ENABLE_HTTPS=true \
 SSL_CERT_FILE=./server.crt \
 SSL_KEY_FILE=./server.key \
 OUTPUTS=log \
-./gotrack
+./telhawk-proxy
 ```
 
 **Docker HTTPS Setup:**
@@ -207,7 +249,7 @@ docker-compose up
 
 ### Transparent Proxy Mode (Always Enabled)
 
-GoTrack operates exclusively as a **reverse proxy**, automatically injecting tracking code into all HTML responses. All non-tracking requests are transparently forwarded to the destination server.
+TelHawk Proxy operates exclusively as a **reverse proxy**, automatically injecting tracking code into all HTML responses. All non-tracking requests are transparently forwarded to the destination server.
 
 * `FORWARD_DESTINATION` (required): destination URL to proxy all requests to
 * `HMAC_SECRET` (required): secret key for HMAC authentication and tracking security
@@ -215,17 +257,17 @@ GoTrack operates exclusively as a **reverse proxy**, automatically injecting tra
 **Basic Setup:**
 
 ```bash
-# Run GoTrack as a transparent tracking proxy
+# Run TelHawk Proxy as a transparent tracking proxy
 HMAC_SECRET=your-secret-key \
 FORWARD_DESTINATION=http://localhost:3000 \
 OUTPUTS=log \
 SERVER_ADDR=:8080 \
-./gotrack
+./telhawk-proxy
 ```
 
 **How It Works:**
 
-- **Tracking endpoints** (`/px.gif`, `/collect`, `/healthz`, `/readyz`, `/metrics`, `/hmac.js`) are handled by GoTrack
+- **Tracking endpoints** (`/px.gif`, `/collect`, `/healthz`, `/readyz`, `/metrics`, `/hmac.js`) are handled by TelHawk Proxy
 - **All other requests** are proxied to the `FORWARD_DESTINATION` server  
 - **HTML responses** automatically get tracking JavaScript and pixel injected
 - **POST requests with HMAC header** are routed to collection handler (stealth mode)
@@ -234,7 +276,7 @@ SERVER_ADDR=:8080 \
 
 **Automatic Tracking Injection:**
 
-GoTrack automatically injects into every HTML response:
+TelHawk Proxy automatically injects into every HTML response:
 - ✅ **Full JavaScript tracking library** (43KB inlined) - ad-blocker resistant
 - ✅ **1x1 transparent pixel** as fallback
 - ✅ **HMAC authentication script** (when HMAC_SECRET is set)
@@ -258,14 +300,14 @@ GoTrack automatically injects into every HTML response:
 
 **Example Architecture:**
 ```
-[Client] → [GoTrack :8080] → [Your App :3000]
+[Client] → [TelHawk Proxy :8080] → [Your App :3000]
            ↓ (injects tracking + collects data)
          [Analytics Pipeline]
 ```
 
 ### HMAC Authentication (Required)
 
-GoTrack requires HMAC-SHA256 authentication to identify tracking requests and prevent forged data:
+TelHawk Proxy requires HMAC-SHA256 authentication to identify tracking requests and prevent forged data:
 
 * `HMAC_SECRET` (required): Master secret key for HMAC generation/verification
 * `HMAC_PUBLIC_KEY` (optional): Override the derived public key with a custom base64-encoded key
@@ -273,7 +315,7 @@ GoTrack requires HMAC-SHA256 authentication to identify tracking requests and pr
 **HMAC Security Model:**
 - Uses **IP-derived keys**: Each client IP gets a unique HMAC key derived from `HMAC_SECRET + IP`
 - **SHA-256 based**: Uses HMAC-SHA256 for cryptographic integrity
-- **Header-based**: HMAC signature sent via `X-GoTrack-HMAC` header
+- **Header-based**: HMAC signature sent via `X-TelHawk Proxy-HMAC` header
 - **Replay protection**: Different IPs cannot reuse each other's signatures
 
 **Setup HMAC Authentication:**
@@ -285,7 +327,7 @@ HMAC_SECRET="$(openssl rand -base64 32)"
 # Enable HMAC authentication
 HMAC_SECRET="$HMAC_SECRET" \
 OUTPUTS=log \
-./gotrack
+./telhawk-proxy
 ```
 
 **Client Integration:**
@@ -299,7 +341,7 @@ fetch('/hmac/public-key')
   .then(r => r.json())
   .then(data => {
     // Use data.public_key for HMAC generation
-    // Send HMAC in X-GoTrack-HMAC header
+    // Send HMAC in X-TelHawk Proxy-HMAC header
   });
 ```
 
@@ -325,7 +367,7 @@ Auto-injected HTML includes both the tracking pixel AND the HMAC script:
 ### Kafka sink
 
 * `KAFKA_BROKERS` (e.g., `localhost:9092,localhost:9093`)
-* `KAFKA_TOPIC` (default `gotrack.events`)
+* `KAFKA_TOPIC` (default `telhawk-proxy.events`)
 * `KAFKA_ACKS` (default `all`), `KAFKA_COMPRESSION` (e.g., `snappy`)
 * TLS/SASL: `KAFKA_SASL_MECHANISM`, `KAFKA_SASL_USER`, `KAFKA_SASL_PASSWORD`, `KAFKA_TLS_CA` (path), `KAFKA_TLS_SKIP_VERIFY`
 
@@ -391,21 +433,21 @@ ON CONFLICT (event_id) DO NOTHING;
 
 ### Test Mode
 
-GoTrack includes a built-in test mode that generates sample events for testing your sink configurations:
+TelHawk Proxy includes a built-in test mode that generates sample events for testing your sink configurations:
 
 ```bash
 # Test locally with log sink only
-TEST_MODE=true OUTPUTS=log ./gotrack
+TEST_MODE=true OUTPUTS=log ./telhawk-proxy
 
 # Test all sinks (requires running Kafka/PostgreSQL)
-TEST_MODE=true OUTPUTS=log,kafka,postgres ./gotrack
+TEST_MODE=true OUTPUTS=log,kafka,postgres ./telhawk-proxy
 
 # Test specific configuration
 TEST_MODE=true \
 OUTPUTS=kafka \
 KAFKA_BROKERS=localhost:9092 \
 KAFKA_TOPIC=test.events \
-./gotrack
+./telhawk-proxy
 ```
 
 **Test Events Generated:**
@@ -564,8 +606,8 @@ npm run build
 
 ```bash
 # Build and test locally with generated events
-go build -o ./gotrack ./cmd/gotrack
-TEST_MODE=true OUTPUTS=log ./gotrack
+go build -o ./telhawk-proxy ./cmd/telhawk-proxy
+TEST_MODE=true OUTPUTS=log ./telhawk-proxy
 
 # Test with Docker Compose stack
 ./deploy/manage.sh up
@@ -581,7 +623,7 @@ tail -f out/events.ndjson              # Log files
 
 ## 🔄 CI/CD & Quality Gates
 
-GoTrack has comprehensive automated testing and quality checks via GitHub Actions:
+TelHawk Proxy has comprehensive automated testing and quality checks via GitHub Actions:
 
 ### Go Backend Workflows
 

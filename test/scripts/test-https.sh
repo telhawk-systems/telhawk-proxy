@@ -1,14 +1,14 @@
 #!/bin/bash
-# Quick HTTPS test script for GoTrack
+# Quick HTTPS test script for proxy
 
 set -e
 
-echo "=== GoTrack HTTPS Setup Test ==="
+echo "=== proxy HTTPS Setup Test ==="
 echo
 
 # Build the application
-echo "1. Building GoTrack..."
-go build -o ./gotrack ./cmd/gotrack
+echo "1. Building proxy..."
+go build -o ./telhawk-proxy ./cmd/telhawk-proxy
 echo "✓ Build complete"
 echo
 
@@ -25,7 +25,7 @@ echo
 
 # Test HTTP mode
 echo "3. Testing HTTP mode..."
-OUTPUTS=log SERVER_ADDR=:19890 timeout 3 ./gotrack &
+OUTPUTS=log SERVER_ADDR=:19890 timeout 3 ./telhawk-proxy &
 SERVER_PID=$!
 sleep 1
 
@@ -43,7 +43,7 @@ echo
 
 # Test HTTPS mode
 echo "4. Testing HTTPS mode..."
-ENABLE_HTTPS=true SSL_CERT_FILE=./server.crt SSL_KEY_FILE=./server.key OUTPUTS=log SERVER_ADDR=:19891 timeout 3 ./gotrack &
+ENABLE_HTTPS=true SSL_CERT_FILE=./server.crt SSL_KEY_FILE=./server.key OUTPUTS=log SERVER_ADDR=:19891 timeout 3 ./telhawk-proxy &
 SERVER_PID=$!
 sleep 1
 
@@ -61,11 +61,11 @@ echo
 
 echo "=== All tests passed! ==="
 echo
-echo "To run GoTrack with HTTPS:"
+echo "To run proxy with HTTPS:"
 echo "  export ENABLE_HTTPS=true"
 echo "  export SSL_CERT_FILE=./server.crt"  
 echo "  export SSL_KEY_FILE=./server.key"
-echo "  ./gotrack"
+echo "  ./telhawk-proxy"
 echo
 echo "Environment variables for HTTPS:"
 echo "  ENABLE_HTTPS     - Set to 'true' to enable HTTPS"

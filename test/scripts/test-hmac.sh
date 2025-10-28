@@ -3,22 +3,22 @@
 
 set -e
 
-echo "=== GoTrack HMAC Authentication Test ==="
+echo "=== proxy HMAC Authentication Test ==="
 echo
 
-# Build and start GoTrack with HMAC required
-echo "1. Building GoTrack..."
-go build -o ./gotrack ./cmd/gotrack
+# Build and start proxy with HMAC required
+echo "1. Building proxy..."
+go build -o ./telhawk-proxy ./cmd/telhawk-proxy
 echo "✓ Build complete"
 echo
 
-echo "2. Starting GoTrack with HMAC authentication..."
+echo "2. Starting proxy with HMAC authentication..."
 HMAC_SECRET="test-secret-key-12345" \
 REQUIRE_HMAC=true \
 OUTPUTS=log \
 SERVER_ADDR=:19907 \
-timeout 10 ./gotrack &
-GOTRACK_PID=$!
+timeout 10 ./telhawk-proxy &
+PROXY_PID=$!
 sleep 2
 
 # Get public key
@@ -35,7 +35,7 @@ if [[ "$STATUS_CODE" == "401" ]]; then
     echo "✓ Correctly rejected request without HMAC"
 else
     echo "✗ Expected 401, got $STATUS_CODE"
-    kill $GOTRACK_PID 2>/dev/null || true
+    kill $PROXY_PID 2>/dev/null || true
     exit 1
 fi
 echo
@@ -90,7 +90,7 @@ echo
 echo "6. Testing with correct HMAC (should succeed)..."
 RESPONSE=$(curl -s -w "%{http_code}" -X POST \
     -H "Content-Type: application/json" \
-    -H "X-GoTrack-HMAC: $HMAC_VALUE" \
+    -H "X-PROXY-HMAC: $HMAC_VALUE" \
     -d "$PAYLOAD" \
     http://localhost:19907/collect)
 
@@ -103,7 +103,7 @@ if [[ "$STATUS_CODE" == "202" ]]; then
 else
     echo "✗ Expected 202, got $STATUS_CODE"
     echo "Response: $RESPONSE"
-    kill $GOTRACK_PID 2>/dev/null || true
+    kill $PROXY_PID 2>/dev/null || true
     exit 1
 fi
 echo
@@ -113,7 +113,7 @@ echo "7. Testing with invalid HMAC (should fail)..."
 INVALID_HMAC="deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
 RESPONSE=$(curl -s -w "%{http_code}" -X POST \
     -H "Content-Type: application/json" \
-    -H "X-GoTrack-HMAC: $INVALID_HMAC" \
+    -H "X-PROXY-HMAC: $INVALID_HMAC" \
     -d "$PAYLOAD" \
     http://localhost:19907/collect)
 
@@ -122,13 +122,13 @@ if [[ "$STATUS_CODE" == "401" ]]; then
     echo "✓ Correctly rejected request with invalid HMAC"
 else
     echo "✗ Expected 401, got $STATUS_CODE"
-    kill $GOTRACK_PID 2>/dev/null || true
+    kill $PROXY_PID 2>/dev/null || true
     exit 1
 fi
 
 # Clean up
-kill $GOTRACK_PID 2>/dev/null || true
-wait $GOTRACK_PID 2>/dev/null || true
+kill $PROXY_PID 2>/dev/null || true
+wait $PROXY_PID 2>/dev/null || true
 rm -f /tmp/hmac_test.py
 
 echo
@@ -149,4 +149,4 @@ echo
 echo "Client integration:"
 echo "  GET /hmac/public-key            - Get public key for client-side HMAC"
 echo "  GET /hmac.js                    - Get JavaScript HMAC integration"
-echo "  Header: X-GoTrack-HMAC          - HMAC signature header"
+echo "  Header: X-PROXY-HMAC          - HMAC signature header"

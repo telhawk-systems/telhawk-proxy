@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
-	"github.com/shortontech/gotrack/internal/event"
+	"github.com/shortontech/telhawk-proxy/internal/event"
 )
 
 // KafkaConfig holds configuration for Kafka producer
@@ -47,7 +47,7 @@ func NewKafkaSinkFromEnv() *KafkaSink {
 
 	config := KafkaConfig{
 		Brokers:       brokers,
-		Topic:         getEnvOr("KAFKA_TOPIC", "gotrack.events"),
+		Topic:         getEnvOr("KAFKA_TOPIC", "telhawk-proxy.events"),
 		Acks:          getEnvOr("KAFKA_ACKS", "all"),
 		Compression:   getEnvOr("KAFKA_COMPRESSION", ""),
 		SASLMechanism: os.Getenv("KAFKA_SASL_MECHANISM"),

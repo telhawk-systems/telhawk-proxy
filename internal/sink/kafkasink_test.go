@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/shortontech/gotrack/internal/event"
+	"github.com/shortontech/telhawk-proxy/internal/event"
 )
 
 func withEnvVars(t *testing.T, vars map[string]string, fn func()) {
@@ -88,7 +88,7 @@ func TestNewKafkaSinkFromEnv(t *testing.T) {
 			sink := NewKafkaSinkFromEnv()
 			assertKafkaConfig(t, sink.config, map[string]interface{}{
 				"brokers": []string{"localhost:9092"},
-				"topic":   "gotrack.events",
+				"topic":   "telhawk-proxy.events",
 				"acks":    "all",
 			})
 		})

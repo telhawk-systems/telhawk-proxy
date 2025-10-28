@@ -7,7 +7,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/shortontech/gotrack/internal/event"
+	"github.com/shortontech/telhawk-proxy/internal/event"
 )
 
 type LogSink struct {
