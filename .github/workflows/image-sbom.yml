@@ -47,7 +47,7 @@ jobs:
           trivy image --format spdx-json --output sbom-image.spdx.json telhawk-proxy:ci
 
       - name: Upload SBOM artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: sbom-${{ github.sha }}
           path: |
