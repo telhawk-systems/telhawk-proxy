@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
-	"github.com/shortontech/telhawk-proxy/internal/event"
+	"github.com/telhawk-systems/telhawk-proxy/internal/event"
 )
 
 // KafkaConfig holds configuration for Kafka producer

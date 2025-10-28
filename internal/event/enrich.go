@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shortontech/telhawk-proxy/internal/event/detection"
-	"github.com/shortontech/telhawk-proxy/pkg/config"
+	"github.com/telhawk-systems/telhawk-proxy/internal/event/detection"
+	"github.com/telhawk-systems/telhawk-proxy/pkg/config"
 )
 
 // Normalize fields that the server can set/augment safely.

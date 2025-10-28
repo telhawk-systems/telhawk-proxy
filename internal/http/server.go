@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shortontech/telhawk-proxy/internal/assets"
+	"github.com/telhawk-systems/telhawk-proxy/internal/assets"
 )
 
 // ProxyHandler implements a reverse proxy

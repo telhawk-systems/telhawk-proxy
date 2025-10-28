@@ -3,7 +3,7 @@ package sink
 import (
 	"context"
 
-	"github.com/shortontech/telhawk-proxy/internal/event"
+	"github.com/telhawk-systems/telhawk-proxy/internal/event"
 )
 
 type Sink interface {

@@ -1,10 +1,10 @@
 # TelHawk Proxy
 
-[![Tests](https://github.com/telhawk/telhawk-proxy/actions/workflows/test-coverage.yml/badge.svg)](https://github.com/telhawk/telhawk-proxy/actions/workflows/test-coverage.yml)
-[![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/shortontech/06522d3b723a877fce2c749350f6dc83/raw/telhawk-proxy-coverage.json)](https://github.com/telhawk/telhawk-proxy/actions/workflows/test-coverage.yml)
-[![JS Tests](https://github.com/telhawk/telhawk-proxy/actions/workflows/js-test-coverage.yml/badge.svg)](https://github.com/telhawk/telhawk-proxy/actions/workflows/js-test-coverage.yml)
-[![JS Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/shortontech/06522d3b723a877fce2c749350f6dc83/raw/telhawk-proxy-js-coverage.json)](https://github.com/telhawk/telhawk-proxy/actions/workflows/js-test-coverage.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/telhawk/telhawk-proxy)](https://goreportcard.com/report/github.com/telhawk/telhawk-proxy)
+[![Tests](https://github.com/telhawk-systems/telhawk-proxy/actions/workflows/test-coverage.yml/badge.svg)](https://github.com/telhawk-systems/telhawk-proxy/actions/workflows/test-coverage.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/shortontech/06522d3b723a877fce2c749350f6dc83/raw/telhawk-proxy-coverage.json)](https://github.com/telhawk-systems/telhawk-proxy/actions/workflows/test-coverage.yml)
+[![JS Tests](https://github.com/telhawk-systems/telhawk-proxy/actions/workflows/js-test-coverage.yml/badge.svg)](https://github.com/telhawk-systems/telhawk-proxy/actions/workflows/js-test-coverage.yml)
+[![JS Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/shortontech/06522d3b723a877fce2c749350f6dc83/raw/telhawk-proxy-js-coverage.json)](https://github.com/telhawk-systems/telhawk-proxy/actions/workflows/js-test-coverage.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/telhawk-systems/telhawk-proxy)](https://goreportcard.com/report/github.com/telhawk-systems/telhawk-proxy)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 TelHawk Proxy is a **transparent reverse proxy with built-in telemetry collection** built in Go.  

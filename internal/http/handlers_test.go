@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/shortontech/telhawk-proxy/internal/event"
-	"github.com/shortontech/telhawk-proxy/internal/metrics"
-	"github.com/shortontech/telhawk-proxy/pkg/config"
+	"github.com/telhawk-systems/telhawk-proxy/internal/event"
+	"github.com/telhawk-systems/telhawk-proxy/internal/metrics"
+	"github.com/telhawk-systems/telhawk-proxy/pkg/config"
 )
 
 // TestHealthz tests the health check endpoint

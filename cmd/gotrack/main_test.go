@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shortontech/telhawk-proxy/internal/event"
-	httpx "github.com/shortontech/telhawk-proxy/internal/http"
-	"github.com/shortontech/telhawk-proxy/internal/metrics"
-	"github.com/shortontech/telhawk-proxy/internal/sink"
-	"github.com/shortontech/telhawk-proxy/pkg/config"
+	"github.com/telhawk-systems/telhawk-proxy/internal/event"
+	httpx "github.com/telhawk-systems/telhawk-proxy/internal/http"
+	"github.com/telhawk-systems/telhawk-proxy/internal/metrics"
+	"github.com/telhawk-systems/telhawk-proxy/internal/sink"
+	"github.com/telhawk-systems/telhawk-proxy/pkg/config"
 )
 
 // Mock sink for testing

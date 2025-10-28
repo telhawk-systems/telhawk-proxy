@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/shortontech/telhawk-proxy/internal/event"
+	"github.com/telhawk-systems/telhawk-proxy/internal/event"
 )
 
 func withEnvVars(t *testing.T, vars map[string]string, fn func()) {

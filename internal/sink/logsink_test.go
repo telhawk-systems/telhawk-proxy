@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shortontech/telhawk-proxy/internal/event"
+	"github.com/telhawk-systems/telhawk-proxy/internal/event"
 )
 
 // TestNewLogSink tests LogSink creation
