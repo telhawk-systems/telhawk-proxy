@@ -84,7 +84,7 @@ jobs:
           path: complexity_report.md
 
       - name: Upload complexity report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: complexity-report
           path: |
