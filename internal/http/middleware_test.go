@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shortontech/telhawk-proxy/internal/metrics"
+	"github.com/telhawk-systems/telhawk-proxy/internal/metrics"
 )
 
 // TestRequestLogger tests the request logging middleware

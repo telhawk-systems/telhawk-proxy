@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/shortontech/telhawk-proxy/internal/assets"
-	event "github.com/shortontech/telhawk-proxy/internal/event"
-	"github.com/shortontech/telhawk-proxy/internal/metrics"
-	cfg "github.com/shortontech/telhawk-proxy/pkg/config"
+	"github.com/telhawk-systems/telhawk-proxy/internal/assets"
+	event "github.com/telhawk-systems/telhawk-proxy/internal/event"
+	"github.com/telhawk-systems/telhawk-proxy/internal/metrics"
+	cfg "github.com/telhawk-systems/telhawk-proxy/pkg/config"
 )
 
 var pixelGIF = []byte{

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/shortontech/telhawk-proxy/internal/event"
+	"github.com/telhawk-systems/telhawk-proxy/internal/event"
 )
 
 // generateTestEvents creates sample events for testing sinks

@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/shortontech/telhawk-proxy/internal/metrics"
+	"github.com/telhawk-systems/telhawk-proxy/internal/metrics"
 )
 
 func RequestLogger(next http.Handler) http.Handler {

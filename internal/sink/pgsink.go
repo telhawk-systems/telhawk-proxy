@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/lib/pq"
-	"github.com/shortontech/telhawk-proxy/internal/event"
+	"github.com/telhawk-systems/telhawk-proxy/internal/event"
 )
 
 // validSQLIdentifier matches valid SQL identifiers (table/column names)

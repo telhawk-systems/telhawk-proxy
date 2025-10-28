@@ -1,4 +1,4 @@
-module github.com/shortontech/telhawk-proxy
+module github.com/telhawk-systems/telhawk-proxy
 
 go 1.23.0
 

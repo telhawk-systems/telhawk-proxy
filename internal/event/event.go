@@ -1,6 +1,6 @@
 package event
 
-import "github.com/shortontech/telhawk-proxy/internal/event/detection"
+import "github.com/telhawk-systems/telhawk-proxy/internal/event/detection"
 
 // High-level envelope. Optional fields are omitted when empty.
 type Event struct {
