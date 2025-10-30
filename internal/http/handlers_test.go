@@ -3,7 +3,6 @@ package httpx
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -249,33 +248,6 @@ func TestPixel(t *testing.T) {
 		env.Pixel(w, req)
 		assertPixelResponse(t, w, http.StatusOK, true)
 	})
-}
-
-// TestCollect tests the event collection endpoint
-func assertResponseStatus(t *testing.T, w *httptest.ResponseRecorder, wantCode int, wantContentType string) {
-	t.Helper()
-	if w.Code != wantCode {
-		t.Errorf("status code = %d, want %d", w.Code, wantCode)
-	}
-	if wantContentType != "" {
-		if got := w.Header().Get("Content-Type"); got != wantContentType {
-			t.Errorf("Content-Type = %q, want %q", got, wantContentType)
-		}
-	}
-}
-
-func assertAcceptedCount(t *testing.T, w *httptest.ResponseRecorder, want int) {
-	t.Helper()
-	if got := w.Header().Get("X-Proxy-Accepted"); got != fmt.Sprintf("%d", want) {
-		t.Errorf("X-Proxy-Accepted = %q, want %d", got, want)
-	}
-	var response map[string]interface{}
-	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
-		t.Fatalf("failed to decode response: %v", err)
-	}
-	if response["accepted"] != float64(want) {
-		t.Errorf("accepted = %v, want %d", response["accepted"], want)
-	}
 }
 
 // TestWritePixel tests the pixel writing helper
