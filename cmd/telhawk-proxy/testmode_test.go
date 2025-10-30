@@ -176,6 +176,7 @@ func TestBoolPtr(t *testing.T) {
 		ptr := boolPtr(true)
 		if ptr == nil {
 			t.Error("expected non-nil pointer")
+			return
 		}
 		if !*ptr {
 			t.Error("expected pointer to true")
@@ -186,6 +187,7 @@ func TestBoolPtr(t *testing.T) {
 		ptr := boolPtr(false)
 		if ptr == nil {
 			t.Error("expected non-nil pointer")
+			return
 		}
 		if *ptr {
 			t.Error("expected pointer to false")
