@@ -54,9 +54,17 @@ jobs:
                       if "results" not in run:
                           run["results"] = []
                       # Fix invalid startLine and startColumn values (must be >= 1)
+                      # and ensure artifactLocation is present
                       for result in run.get("results", []):
                           for location in result.get("locations", []):
                               physical_location = location.get("physicalLocation", {})
+                              # Ensure artifactLocation exists and has a uri
+                              if "artifactLocation" not in physical_location:
+                                  physical_location["artifactLocation"] = {"uri": "unknown"}
+                                  location["physicalLocation"] = physical_location
+                              elif "uri" not in physical_location.get("artifactLocation", {}):
+                                  physical_location["artifactLocation"]["uri"] = "unknown"
+                              
                               region = physical_location.get("region", {})
                               if "startLine" in region and region["startLine"] < 1:
                                   region["startLine"] = 1
