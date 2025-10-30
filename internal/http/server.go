@@ -239,22 +239,21 @@ func injectPixel(body []byte, r *http.Request, hmacAuth *HMACAuth) []byte {
 
 	// Build injected content with INLINED tracking library and pixel
 	// By inlining the entire script, we avoid ad-blocker detection on script src URLs
+	// Using template.HTMLEscapeString to ensure user input (pixelURL) is properly escaped
+	escapedPixelURL := template.HTMLEscapeString(pixelURL)
+	
 	var injectedContent string
 	if hmacAuth != nil {
 		// Include HMAC script (keep as src since it needs server state), inline tracking library, and pixel
-		// nosemgrep: go.lang.security.injection.raw-html-format.raw-html-format
-		injectedContent = fmt.Sprintf(`<script src="/hmac.js"></script>
-<script>%s</script>
-<img src="%s" width="1" height="1" style="display:none" alt="">`,
-			string(assets.PixelUMDJS),
-			template.HTMLEscapeString(pixelURL)) // nosemgrep: go.lang.security.injection.raw-html-format.raw-html-format
+		// Safe: assets.PixelUMDJS is static content, escapedPixelURL is HTML-escaped
+		injectedContent = `<script src="/hmac.js"></script>
+<script>` + string(assets.PixelUMDJS) + `</script>
+<img src="` + escapedPixelURL + `" width="1" height="1" style="display:none" alt="">`
 	} else {
 		// Inline tracking library and pixel without HMAC
-		// nosemgrep: go.lang.security.injection.raw-html-format.raw-html-format
-		injectedContent = fmt.Sprintf(`<script>%s</script>
-<img src="%s" width="1" height="1" style="display:none" alt="">`,
-			string(assets.PixelUMDJS),
-			template.HTMLEscapeString(pixelURL)) // nosemgrep: go.lang.security.injection.raw-html-format.raw-html-format
+		// Safe: assets.PixelUMDJS is static content, escapedPixelURL is HTML-escaped
+		injectedContent = `<script>` + string(assets.PixelUMDJS) + `</script>
+<img src="` + escapedPixelURL + `" width="1" height="1" style="display:none" alt="">`
 	}
 
 	// Try to inject before </body> tag (case-insensitive)
