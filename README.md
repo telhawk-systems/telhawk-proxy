@@ -5,7 +5,7 @@
 [![JS Tests](https://github.com/telhawk-systems/telhawk-proxy/actions/workflows/js-test-coverage.yml/badge.svg)](https://github.com/telhawk-systems/telhawk-proxy/actions/workflows/js-test-coverage.yml)
 [![JS Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/shortontech/06522d3b723a877fce2c749350f6dc83/raw/telhawk-proxy-js-coverage.json)](https://github.com/telhawk-systems/telhawk-proxy/actions/workflows/js-test-coverage.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/telhawk-systems/telhawk-proxy)](https://goreportcard.com/report/github.com/telhawk-systems/telhawk-proxy)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 TelHawk Proxy is a **transparent reverse proxy with built-in telemetry collection** built in Go.  
 It sits between your users and your application, automatically instrumenting web traffic by injecting tracking code into HTML responses. This enables **real-time visibility** into user behavior, bot detection, fraud monitoring, and operational telemetry — all without requiring code changes to your application.  
@@ -724,7 +724,7 @@ Built with ❤️ in Go. Inspired by years of shipping analytics/fraud pipelines
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+This project is licensed under the Apache 2.0 License - see the [LICENSE.md](LICENSE.md) file for details.
 
 ---
 
