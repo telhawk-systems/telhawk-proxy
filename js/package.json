@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Client-side tracking pixel library for proxy (fraud/bot defense)",
   "author": "Steven Horton",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "type": "module",
   "main": "dist/pixel.umd.js",
   "module": "dist/pixel.esm.js",
