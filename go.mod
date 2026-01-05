@@ -1,10 +1,8 @@
 module github.com/telhawk-systems/telhawk-proxy
 
-go 1.23.0
+go 1.24.3
 
-toolchain go1.24.2
-
-require github.com/confluentinc/confluent-kafka-go/v2 v2.12.0
+require github.com/confluentinc/confluent-kafka-go/v2 v2.13.0
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
