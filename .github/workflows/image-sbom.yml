@@ -34,7 +34,7 @@ jobs:
           trivy fs --include-dev-deps --format spdx-json --output sbom-js.spdx.json ./js
 
       - name: Build image (uses ./Dockerfile)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
