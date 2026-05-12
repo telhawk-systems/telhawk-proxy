@@ -1,5 +1,5 @@
 # ---- js-builder ----
-FROM node:25-slim AS js-builder
+FROM node:26-slim AS js-builder
 WORKDIR /js
 COPY js/package*.json ./
 RUN npm ci --production=false
