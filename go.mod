@@ -1,8 +1,8 @@
 module github.com/telhawk-systems/telhawk-proxy
 
-go 1.24.3
+go 1.25.0
 
-require github.com/confluentinc/confluent-kafka-go/v2 v2.14.1
+require github.com/confluentinc/confluent-kafka-go/v2 v2.14.2
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
@@ -20,6 +20,6 @@ require (
 	github.com/prometheus/common v0.66.1 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
-	golang.org/x/sys v0.35.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
 	google.golang.org/protobuf v1.36.8 // indirect
 )
