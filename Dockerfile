@@ -7,7 +7,7 @@ COPY js/ ./
 RUN npm run build
 
 # ---- go-builder ----
-FROM golang:1.26 AS go-builder
+FROM golang:1.27 AS go-builder
 ENV CGO_ENABLED=1 GO111MODULE=on GOTOOLCHAIN=auto
 WORKDIR /src
 
